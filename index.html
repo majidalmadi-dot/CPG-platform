@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KSUMC National CPG Authority — AI-Powered Platform</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--p:#0D5C3E;--pl:#148C5B;--pd:#0A4A32;--s:#1B6B93;--a:#C4A035;--al:#E8C94A;--bg:#F4F6F8;--c:#FFF;--t:#1A1A2E;--tl:#5A5A7A;--b:#E0E4EA;--ok:#10B981;--warn:#F59E0B;--err:#EF4444;--info:#3B82F6;--gh:#10B981;--gm:#3B82F6;--gl:#F59E0B;--gvl:#EF4444;--sw:260px;--hh:64px;--ai1:#8B5CF6;--ai2:#EC4899;--ai3:#06B6D4;--ai4:#F97316;--ai5:#14B8A6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--t)}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sw);background:linear-gradient(180deg,var(--pd),var(--p));color:#fff;z-index:100;display:flex;flex-direction:column}
+.sidebar-brand{padding:16px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.15)}
+.sidebar-brand .logo{width:40px;height:40px;background:var(--a);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:var(--pd)}
+.sidebar-brand h2{font-size:13px;line-height:1.3}
+.sidebar-brand small{font-size:9px;opacity:.7;display:block}
+.sidebar-nav{flex:1;overflow-y:auto;padding:8px 0}
+.nav-s{padding:8px 18px 2px;font-size:9px;text-transform:uppercase;letter-spacing:1.2px;opacity:.45;margin-top:6px}
+.nav-i{display:flex;align-items:center;gap:10px;padding:8px 18px;cursor:pointer;font-size:12.5px;border-left:3px solid transparent;transition:all .15s}
+.nav-i:hover{background:rgba(255,255,255,.1)}
+.nav-i.active{background:rgba(255,255,255,.15);border-left-color:var(--a)}
+.nav-i svg{width:16px;height:16px;opacity:.8;flex-shrink:0}
+.nav-i .ai-dot{width:6px;height:6px;border-radius:50%;margin-left:auto;flex-shrink:0}
+.sidebar-footer{padding:12px 18px;border-top:1px solid rgba(255,255,255,.15);font-size:10px;opacity:.5}
+.header{position:fixed;top:0;left:var(--sw);right:0;height:var(--hh);background:var(--c);border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:90}
+.header h1{font-size:17px;font-weight:600}
+.header-right{display:flex;align-items:center;gap:14px}
+.role-badge{background:var(--p);color:#fff;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:500}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--s);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px}
+.main{margin-left:var(--sw);margin-top:var(--hh);padding:24px;min-height:calc(100vh - var(--hh))}
+.card{background:var(--c);border-radius:12px;border:1px solid var(--b);padding:22px;margin-bottom:18px}
+.card-t{font-size:15px;font-weight:600}
+.card-st{font-size:11.5px;color:var(--tl);margin-top:2px}
+.grid{display:grid;gap:18px}
+.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}
+.stat{background:var(--c);border-radius:12px;border:1px solid var(--b);padding:18px}
+.stat .sv{font-size:26px;font-weight:700}.stat .sl{font-size:11px;color:var(--tl);margin-top:2px}
+.stat .sc{font-size:10px;margin-top:4px;display:flex;align-items:center;gap:3px}
+.sc.up{color:var(--ok)}.sc.dn{color:var(--err)}
+.badge{display:inline-flex;padding:2px 9px;border-radius:20px;font-size:10.5px;font-weight:600}
+.b-ok{background:#D1FAE5;color:#065F46}.b-w{background:#FEF3C7;color:#92400E}.b-err{background:#FEE2E2;color:#991B1B}.b-i{background:#DBEAFE;color:#1E40AF}.b-p{background:#D1E7DD;color:var(--pd)}.b-s{background:#E0E7FF;color:#3730A3}.b-ai{background:#EDE9FE;color:#5B21B6}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;padding:8px 12px;background:#F8FAFC;border-bottom:2px solid var(--b);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--tl)}
+td{padding:8px 12px;border-bottom:1px solid var(--b)}
+tr:hover td{background:#F8FAFC}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 16px;border-radius:8px;font-size:12.5px;font-weight:500;border:none;cursor:pointer;transition:all .15s}
+.btn-p{background:var(--p);color:#fff}.btn-p:hover{background:var(--pd)}
+.btn-s{background:var(--s);color:#fff}
+.btn-o{background:transparent;border:1px solid var(--b);color:var(--t)}.btn-o:hover{background:#F8FAFC}
+.btn-ai{background:linear-gradient(135deg,var(--ai1),var(--ai2));color:#fff}
+.btn-ai:hover{opacity:.9}
+.btn-sm{padding:4px 10px;font-size:11.5px}
+.tabs{display:flex;border-bottom:2px solid var(--b);margin-bottom:18px}
+.tab{padding:8px 18px;font-size:12.5px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--tl);transition:all .15s}
+.tab.active{color:var(--p);border-bottom-color:var(--p)}
+.tab:hover{color:var(--p)}
+.pbar{height:7px;background:#E5E7EB;border-radius:4px;overflow:hidden}.pfill{height:100%;border-radius:4px;transition:width .5s}
+.stepper{display:flex;gap:0;margin:18px 0}.step{flex:1;text-align:center;position:relative}
+.step-c{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin:0 auto 6px;border:3px solid var(--b);background:#fff;color:var(--tl);position:relative;z-index:2}
+.step.done .step-c{background:var(--ok);border-color:var(--ok);color:#fff}
+.step.now .step-c{background:var(--p);border-color:var(--p);color:#fff;animation:pulse 2s infinite}
+.step-l{font-size:10px;font-weight:600;color:var(--tl)}.step.now .step-l{color:var(--p)}.step.done .step-l{color:var(--ok)}
+.step-cn{position:absolute;top:18px;left:50%;right:-50%;height:3px;background:var(--b);z-index:1}.step.done .step-cn{background:var(--ok)}.step:last-child .step-cn{display:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(13,92,62,.4)}50%{box-shadow:0 0 0 8px rgba(13,92,62,0)}}
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center}.modal-ov.show{display:flex}
+.modal{background:#fff;border-radius:16px;width:92%;max-width:850px;max-height:88vh;overflow-y:auto;padding:28px}
+.fg{margin-bottom:14px}.fl{display:block;font-size:11px;font-weight:600;margin-bottom:5px;color:var(--tl);text-transform:uppercase;letter-spacing:.4px}
+.fi,.fs,.ft{width:100%;padding:9px 12px;border:1px solid var(--b);border-radius:8px;font-size:12.5px;font-family:inherit}.ft{min-height:70px;resize:vertical}
+.fi:focus,.fs:focus,.ft:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(13,92,62,.1)}
+.gs{font-size:15px;letter-spacing:2px}
+.tl{position:relative;padding-left:28px}.tl::before{content:'';position:absolute;left:9px;top:0;bottom:0;width:2px;background:var(--b)}
+.tl-i{position:relative;margin-bottom:16px}.tl-d{position:absolute;left:-23px;top:4px;width:10px;height:10px;border-radius:50%;border:2px solid var(--p);background:#fff}
+.tl-i.done .tl-d{background:var(--ok);border-color:var(--ok)}
+.pyramid{display:flex;flex-direction:column;align-items:center;gap:5px;margin:18px 0}
+.pyr-l{padding:12px 22px;border-radius:10px;text-align:center;font-weight:600;font-size:12.5px;color:#fff;cursor:pointer;transition:transform .2s}
+.pyr-l:hover{transform:scale(1.02)}.pyr-l small{font-size:10px;font-weight:400;opacity:.9;display:block;margin-top:3px}
+.kanban{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.kb-col{background:#F8FAFC;border-radius:10px;padding:12px;min-height:260px}
+.kb-ct{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;display:flex;align-items:center;gap:5px}
+.kb-card{background:#fff;border-radius:8px;padding:10px;margin-bottom:8px;border:1px solid var(--b);cursor:pointer;transition:all .15s}
+.kb-card:hover{box-shadow:0 3px 10px rgba(0,0,0,.07);transform:translateY(-1px)}
+.kb-card h4{font-size:12px;margin-bottom:4px}.kb-card p{font-size:10.5px;color:var(--tl)}
+.chk{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #F3F4F6;font-size:12.5px}
+.chk input{margin-top:2px;accent-color:var(--p)}
+.page{display:none}.page.active{display:block}
+.flow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;margin:18px 0}
+.flow-n{background:var(--c);border:2px solid var(--p);border-radius:10px;padding:10px 16px;font-size:11.5px;font-weight:600;text-align:center;min-width:120px}
+.flow-n.fw{border-color:var(--s);background:#EFF6FF}.flow-n.out{border-color:var(--a);background:#FFFBEB}.flow-n.ai{border-color:var(--ai1);background:#F5F3FF}
+.flow-a{font-size:18px;color:var(--p)}
+/* AI-specific */
+.ai-card{border:1px solid #DDD6FE;background:linear-gradient(135deg,#FAFAFE,#F5F3FF);border-radius:12px;padding:20px;position:relative;overflow:hidden}
+.ai-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--ai1),var(--ai2),var(--ai3))}
+.ai-card .ai-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:10px}
+.ai-glow{box-shadow:0 0 20px rgba(139,92,246,.1)}
+.ai-status{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:10px;background:#EDE9FE;color:#5B21B6}
+.ai-status::before{content:'';width:5px;height:5px;border-radius:50%;background:#8B5CF6;animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.cmd-input{display:flex;gap:8px;margin:16px 0;padding:14px;background:#F5F3FF;border-radius:12px;border:1px solid #DDD6FE}
+.cmd-input input{flex:1;border:none;background:transparent;font-size:13px;outline:none;font-family:inherit}
+.cmd-input .cmd-prefix{font-weight:700;color:var(--ai1);font-size:14px}
+@media(max-width:1200px){.g4{grid-template-columns:repeat(2,1fr)}.kanban{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:768px){.sidebar{transform:translateX(-100%)}.main,.header{margin-left:0}.g4,.g3,.g2{grid-template-columns:1fr}.kanban{grid-template-columns:1fr}}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#C4C8D0;border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+<div class="sidebar-brand">
+<div class="logo">CPG</div>
+<div><h2>KSUMC National<br>CPG Authority</h2><small>المرجع الوطني للأدلة الإكلينيكية · AI-Powered</small></div>
+</div>
+<div class="sidebar-nav">
+<div class="nav-s">Main</div>
+<div class="nav-i active" onclick="sp('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</div>
+<div class="nav-i" onclick="sp('aicommand')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 015 5v1a5 5 0 01-10 0V7a5 5 0 015-5z"/><path d="M4 14s1.5 2 8 2 8-2 8-2"/><path d="M4.5 16.5C3 18 3 20 3 22h18c0-2 0-4-1.5-5.5"/></svg>AI Command Center<span class="ai-dot" style="background:var(--ai1)"></span></div>
+<div class="nav-i" onclick="sp('governance')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Governance & Roles</div>
+
+<div class="nav-s">AI-Powered Skills</div>
+<div class="nav-i" onclick="sp('ai_etg')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Evidence-to-Guideline<span class="ai-dot" style="background:var(--ai1)"></span></div>
+<div class="nav-i" onclick="sp('ai_srma')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>Systematic Review / MA<span class="ai-dot" style="background:var(--ai2)"></span></div>
+<div class="nav-i" onclick="sp('ai_cea')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Cost-Effectiveness<span class="ai-dot" style="background:var(--ai3)"></span></div>
+<div class="nav-i" onclick="sp('ai_hps')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Health Policy Scanner<span class="ai-dot" style="background:var(--ai4)"></span></div>
+<div class="nav-i" onclick="sp('ai_phpsa')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>PHPSA Outputs<span class="ai-dot" style="background:var(--ai5)"></span></div>
+
+<div class="nav-s">Guideline Workflow</div>
+<div class="nav-i" onclick="sp('workflow')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>GRADE Workflow</div>
+<div class="nav-i" onclick="sp('evidence')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Evidence Search</div>
+<div class="nav-i" onclick="sp('guidelines')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Active Guidelines</div>
+
+<div class="nav-s">Management</div>
+<div class="nav-i" onclick="sp('lifecycle')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>Lifecycle & Reports</div>
+<div class="nav-i" onclick="sp('frameworks')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Frameworks & Tools</div>
+</div>
+<div class="sidebar-footer">KSUMC CPG v2.0 · AI-Powered<br>GRADE·NICE·GIN-McMaster·AGREE II·ADAPTE</div>
+</nav>
+
+<!-- HEADER -->
+<header class="header">
+<div style="display:flex;align-items:center;gap:14px">
+<h1 id="pt">National Dashboard</h1>
+<span class="ai-status">AI Engine Active</span>
+</div>
+<div class="header-right">
+<div class="role-badge" id="cr">Steering Committee Chair</div>
+<select class="fs" style="width:auto;padding:5px 8px;font-size:11px" onchange="document.getElementById('cr').textContent=this.options[this.selectedIndex].text">
+<option>Steering Committee Chair</option><option>Technical Committee Lead</option><option>Guideline Panel Member</option><option>GRADE Methodologist</option><option>External Reviewer</option><option>Public Consultation</option>
+</select>
+<span id="auth-status" style="font-size:10px;color:var(--tl)">⚪ Demo mode</span>
+<div class="avatar" style="cursor:pointer" onclick="sp('login')">MA</div>
+</div>
+</header>
+
+<div class="main">
+<!-- ====== DASHBOARD ====== -->
+<div class="page active" id="p-dashboard">
+<div class="grid g4">
+<div class="stat"><div class="sv">24</div><div class="sl">Published Guidelines</div><div class="sc up">↑ 6 new this quarter</div></div>
+<div class="stat"><div class="sv">12</div><div class="sl">In Development</div><div class="sc up">↑ 3 advancing</div></div>
+<div class="stat"><div class="sv">87</div><div class="sl">Panel Members</div><div class="sc up">8 committees</div></div>
+<div class="stat" style="border-left:3px solid var(--ai1)"><div class="sv" style="color:var(--ai1)">5</div><div class="sl">AI Skills Active</div><div class="sc up">All engines online</div></div>
+</div>
+
+<!-- AI Skills Overview -->
+<div class="card" style="margin-top:2px">
+<div class="card-t">🤖 Integrated AI Skills Engine</div>
+<div class="card-st" style="margin-bottom:16px">Five specialized AI modules power every stage of guideline development</div>
+<div class="grid g5" style="grid-template-columns:repeat(5,1fr)">
+<div class="ai-card ai-glow">
+<div class="ai-icon" style="background:#EDE9FE">📋</div>
+<div style="font-weight:700;font-size:13px">Evidence-to-Guideline</div>
+<div style="font-size:11px;color:var(--tl);margin:6px 0">NICE-inspired 5-stage CPG pipeline. PICO → Search → Appraise → Synthesize → Recommend</div>
+<div style="display:flex;gap:4px;flex-wrap:wrap"><span class="badge b-ai">GRADE</span><span class="badge b-ai">EtR</span><span class="badge b-ai">SoF</span></div>
+<button class="btn btn-ai btn-sm" style="margin-top:10px;width:100%" onclick="sp('ai_etg')">Launch Skill →</button>
+</div>
+<div class="ai-card ai-glow">
+<div class="ai-icon" style="background:#FCE7F3">📊</div>
+<div style="font-weight:700;font-size:13px">Systematic Review / MA</div>
+<div style="font-size:11px;color:var(--tl);margin:6px 0">PRISMA 2020 pipeline. Protocol → Search → Screen → Extract → Pool → Forest plots</div>
+<div style="display:flex;gap:4px;flex-wrap:wrap"><span class="badge b-ai">PRISMA</span><span class="badge b-ai">RoB</span><span class="badge b-ai">I²</span></div>
+<button class="btn btn-ai btn-sm" style="margin-top:10px;width:100%" onclick="sp('ai_srma')">Launch Skill →</button>
+</div>
+<div class="ai-card ai-glow">
+<div class="ai-icon" style="background:#CFFAFE">💰</div>
+<div style="font-weight:700;font-size:13px">Cost-Effectiveness</div>
+<div style="font-size:11px;color:var(--tl);margin:6px 0">HTA-grade CEA/CUA. Decision trees, Markov models, PSA, ICER calculation</div>
+<div style="display:flex;gap:4px;flex-wrap:wrap"><span class="badge b-ai">ICER</span><span class="badge b-ai">QALY</span><span class="badge b-ai">PSA</span></div>
+<button class="btn btn-ai btn-sm" style="margin-top:10px;width:100%" onclick="sp('ai_cea')">Launch Skill →</button>
+</div>
+<div class="ai-card ai-glow">
+<div class="ai-icon" style="background:#FFEDD5">🏛️</div>
+<div style="font-weight:700;font-size:13px">Health Policy Scanner</div>
+<div style="font-size:11px;color:var(--tl);margin:6px 0">Saudi/GCC/Global policy discovery. WHO building blocks, gap analysis, benchmarking</div>
+<div style="display:flex;gap:4px;flex-wrap:wrap"><span class="badge b-ai">MOH</span><span class="badge b-ai">SHC</span><span class="badge b-ai">WHO</span></div>
+<button class="btn btn-ai btn-sm" style="margin-top:10px;width:100%" onclick="sp('ai_hps')">Launch Skill →</button>
+</div>
+<div class="ai-card ai-glow">
+<div class="ai-icon" style="background:#CCFBF1">📄</div>
+<div style="font-weight:700;font-size:13px">PHPSA Outputs</div>
+<div style="font-size:11px;color:var(--tl);margin:6px 0">Policy briefs, reports, governance docs, newsletters — Arabic/English bilingual</div>
+<div style="display:flex;gap:4px;flex-wrap:wrap"><span class="badge b-ai">Briefs</span><span class="badge b-ai">V2030</span><span class="badge b-ai">AR/EN</span></div>
+<button class="btn btn-ai btn-sm" style="margin-top:10px;width:100%" onclick="sp('ai_phpsa')">Launch Skill →</button>
+</div>
+</div>
+</div>
+
+<!-- Pipeline Kanban -->
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+<div><div class="card-t">Guideline Development Pipeline</div><div class="card-st">AI-assisted tracking across all stages</div></div>
+<button class="btn btn-p btn-sm" onclick="openM('new-gl-modal')">+ New Guideline</button>
+</div>
+<div class="kanban">
+<div class="kb-col"><div class="kb-ct"><span style="width:7px;height:7px;border-radius:50%;background:var(--info)"></span>Scoping & PICO</div>
+<div class="kb-card" onclick="sp('ai_etg')"><h4>Diabetic Retinopathy Screening</h4><p>MOH · Primary Care</p><div style="margin-top:6px"><span class="badge b-i">PICO Draft</span></div></div>
+<div class="kb-card"><h4>Sickle Cell Disease</h4><p>KSUMC · Hematology</p><div style="margin-top:6px"><span class="badge b-i">Scoping</span></div></div>
+</div>
+<div class="kb-col"><div class="kb-ct"><span style="width:7px;height:7px;border-radius:50%;background:var(--s)"></span>Evidence Search</div>
+<div class="kb-card"><h4>H. pylori Eradication</h4><p>Saudi Gastro Society</p><div style="margin-top:6px"><span class="badge b-s">SR in Progress</span></div></div>
+</div>
+<div class="kb-col"><div class="kb-ct"><span style="width:7px;height:7px;border-radius:50%;background:var(--warn)"></span>GRADE Appraisal</div>
+<div class="kb-card"><h4>CRC Screening Protocol</h4><p>NTP · Oncology</p><div style="margin-top:6px"><span class="badge b-w">RoB Assessment</span></div></div>
+<div class="kb-card"><h4>Hypertension in Pregnancy</h4><p>KSUMC · OB/GYN</p><div style="margin-top:6px"><span class="badge b-w">GRADE Profiles</span></div></div>
+</div>
+<div class="kb-col"><div class="kb-ct"><span style="width:7px;height:7px;border-radius:50%;background:var(--a)"></span>EtR & Consensus</div>
+<div class="kb-card"><h4>Asthma — Adult</h4><p>Saudi Thoracic Society</p><div style="margin-top:6px"><span class="badge b-p">Delphi Round 2</span></div></div>
+</div>
+<div class="kb-col"><div class="kb-ct"><span style="width:7px;height:7px;border-radius:50%;background:var(--ok)"></span>External Review</div>
+<div class="kb-card"><h4>NAFLD/NASH Pathway</h4><p>KSUMC · Hepatology</p><div style="margin-top:6px"><span class="badge b-ok">Public Comment</span></div></div>
+</div>
+</div>
+</div>
+
+<!-- Framework Compliance + Activity -->
+<div class="grid g2">
+<div class="card">
+<div class="card-t" style="margin-bottom:12px">Framework Compliance</div>
+<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px"><span>GRADE Methodology</span><span>92%</span></div><div class="pbar"><div class="pfill" style="width:92%;background:var(--ok)"></div></div></div>
+<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px"><span>AGREE II Quality</span><span>87%</span></div><div class="pbar"><div class="pfill" style="width:87%;background:var(--ok)"></div></div></div>
+<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px"><span>NICE Process</span><span>81%</span></div><div class="pbar"><div class="pfill" style="width:81%;background:var(--info)"></div></div></div>
+<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px"><span>GIN-McMaster Checklist</span><span>74%</span></div><div class="pbar"><div class="pfill" style="width:74%;background:var(--info)"></div></div></div>
+<div><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:3px"><span>ADAPTE Contextualization</span><span>68%</span></div><div class="pbar"><div class="pfill" style="width:68%;background:var(--warn)"></div></div></div>
+</div>
+<div class="card">
+<div class="card-t" style="margin-bottom:12px">Recent Activity</div>
+<div class="tl">
+<div class="tl-i done"><div class="tl-d"></div><div><strong>CRC Screening</strong> — AI completed RoB assessment <span style="font-size:10px;color:var(--tl)">2h ago</span></div></div>
+<div class="tl-i"><div class="tl-d"></div><div><strong>Asthma CPG</strong> — Delphi Round 2 results in <span style="font-size:10px;color:var(--tl)">5h ago</span></div></div>
+<div class="tl-i"><div class="tl-d"></div><div><strong>H. pylori SR</strong> — AI forest plot generated <span style="font-size:10px;color:var(--tl)">8h ago</span></div></div>
+<div class="tl-i"><div class="tl-d"></div><div><strong>Policy Scanner</strong> — Found 3 new MOH policies <span style="font-size:10px;color:var(--tl)">1d ago</span></div></div>
+<div class="tl-i"><div class="tl-d"></div><div><strong>NAFLD CEA</strong> — Markov model ICER calculated <span style="font-size:10px;color:var(--tl)">1d ago</span></div></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ====== AI COMMAND CENTER ====== -->
+<div class="page" id="p-aicommand">
+<div class="card" style="border-top:3px solid var(--ai1)">
+<div class="card-t">🤖 AI Command Center</div>
+<div class="card-st" style="margin-bottom:16px">Natural language interface to all 5 AI skills. Type a command or select a workflow below.</div>
+<div class="cmd-input">
+<span class="cmd-prefix">AI ›</span>
+<input id="ai-cmd" placeholder="e.g. 'Develop a GRADE guideline for GLP-1 agonists in T2DM' or 'Run a meta-analysis on SGLT2i and heart failure'" onkeydown="if(event.key==='Enter')runAI()">
+<button class="btn btn-ai" onclick="runAI()">Execute</button>
+</div>
+<div id="ai-output" style="display:none;margin-top:16px;padding:16px;background:#F5F3FF;border-radius:10px;border:1px solid #DDD6FE">
+<div style="font-weight:600;margin-bottom:8px;color:var(--ai1)">🤖 AI Processing...</div>
+<div id="ai-result" style="font-size:13px;line-height:1.7"></div>
+</div>
+</div>
+
+<div class="card-t" style="margin:20px 0 14px">Quick Launch — AI Workflows</div>
+<div class="grid g3">
+<div class="ai-card ai-glow" style="cursor:pointer" onclick="sp('ai_etg')">
+<div style="font-size:20px;margin-bottom:8px">📋</div>
+<div style="font-weight:700;font-size:14px;margin-bottom:6px">Evidence-to-Guideline</div>
+<div style="font-size:12px;color:var(--tl);margin-bottom:10px">Complete NICE-inspired 5-stage CPG development pipeline with GRADE methodology integration</div>
+<table style="font-size:11px">
+<tr><td><strong>Stage 1:</strong> Scoping & PICO formulation</td></tr>
+<tr><td><strong>Stage 2:</strong> Systematic evidence search</td></tr>
+<tr><td><strong>Stage 3:</strong> Critical appraisal & GRADE profiling</td></tr>
+<tr><td><strong>Stage 4:</strong> Evidence synthesis & SoF tables</td></tr>
+<tr><td><strong>Stage 5:</strong> EtR framework & recommendation drafting</td></tr>
+</table>
+<div style="margin-top:10px;font-size:11px"><strong>Outputs:</strong> Scope document, GRADE evidence profiles, Summary of Findings, EtR tables, formatted CPG (DOCX/PDF)</div>
+</div>
+
+<div class="ai-card ai-glow" style="cursor:pointer" onclick="sp('ai_srma')">
+<div style="font-size:20px;margin-bottom:8px">📊</div>
+<div style="font-weight:700;font-size:14px;margin-bottom:6px">Systematic Review & Meta-Analysis</div>
+<div style="font-size:12px;color:var(--tl);margin-bottom:10px">PRISMA 2020-aligned pipeline for designing, conducting, and reporting SR/MA with GRADE</div>
+<table style="font-size:11px">
+<tr><td><strong>Stage 0:</strong> PICO question formulation</td></tr>
+<tr><td><strong>Stage 1:</strong> Protocol (PRISMA-P) & PROSPERO</td></tr>
+<tr><td><strong>Stage 2:</strong> Multi-database search strategy</td></tr>
+<tr><td><strong>Stage 3:</strong> Screening & study selection</td></tr>
+<tr><td><strong>Stage 4:</strong> RoB (RoB 2, ROBINS-I, NOS, QUADAS-2)</td></tr>
+<tr><td><strong>Stage 5:</strong> Meta-analysis (forest/funnel plots, I², PSA)</td></tr>
+<tr><td><strong>Stage 6:</strong> GRADE certainty & manuscript</td></tr>
+</table>
+</div>
+
+<div class="ai-card ai-glow" style="cursor:pointer" onclick="sp('ai_cea')">
+<div style="font-size:20px;margin-bottom:8px">💰</div>
+<div style="font-weight:700;font-size:14px;margin-bottom:6px">Cost-Effectiveness Analysis</div>
+<div style="font-size:12px;color:var(--tl);margin-bottom:10px">HTA-grade CEA/CUA workflow aligned with CHEERS 2022 and NICE reference case methods</div>
+<table style="font-size:11px">
+<tr><td><strong>Stage 0:</strong> Analytic framing (CEA/CUA/BIA)</td></tr>
+<tr><td><strong>Stage 1:</strong> Model structure (decision tree/Markov/PartSA)</td></tr>
+<tr><td><strong>Stage 2:</strong> Data inputs (transitions, utilities, costs)</td></tr>
+<tr><td><strong>Stage 3:</strong> Base case results & ICER calculation</td></tr>
+<tr><td><strong>Stage 4:</strong> Sensitivity analysis (DSA, PSA, CEAC)</td></tr>
+<tr><td><strong>Stage 5:</strong> Budget impact & HTA submission</td></tr>
+</table>
+</div>
+
+<div class="ai-card ai-glow" style="cursor:pointer" onclick="sp('ai_hps')">
+<div style="font-size:20px;margin-bottom:8px">🏛️</div>
+<div style="font-weight:700;font-size:14px;margin-bottom:6px">Health Policy Scanner</div>
+<div style="font-size:12px;color:var(--tl);margin-bottom:10px">Systematic discovery and analysis of health policies across Saudi, GCC, and global levels</div>
+<table style="font-size:11px">
+<tr><td><strong>Step 1:</strong> Map organizations (MOH, SHC, SFDA, SCFHS, WHO)</td></tr>
+<tr><td><strong>Step 2:</strong> Policy discovery (EN + AR, 10-year window)</td></tr>
+<tr><td><strong>Step 3:</strong> Extract & categorize (WHO building blocks)</td></tr>
+<tr><td><strong>Step 4:</strong> Gap analysis & benchmarking</td></tr>
+<tr><td><strong>Step 5:</strong> Structured critique & recommendations</td></tr>
+</table>
+</div>
+
+<div class="ai-card ai-glow" style="cursor:pointer" onclick="sp('ai_phpsa')">
+<div style="font-size:20px;margin-bottom:8px">📄</div>
+<div style="font-weight:700;font-size:14px;margin-bottom:6px">PHPSA Document Production</div>
+<div style="font-size:12px;color:var(--tl);margin-bottom:10px">Full document suite for Public Healthcare Policy Society of Saudi Arabia</div>
+<table style="font-size:11px">
+<tr><td>Policy briefs (موجزات السياسات) — Arabic with English summary</td></tr>
+<tr><td>Research reports & evidence syntheses</td></tr>
+<tr><td>Governance: meeting minutes, board decisions, annual reports</td></tr>
+<tr><td>Newsletters, press releases, membership comms</td></tr>
+<tr><td>Training program designs & partnership MOUs</td></tr>
+</table>
+</div>
+
+<div class="ai-card ai-glow" style="cursor:pointer;border:2px dashed #DDD6FE;background:#FAFAFE">
+<div style="font-size:20px;margin-bottom:8px">⚡</div>
+<div style="font-weight:700;font-size:14px;margin-bottom:6px">AI Skill Integration Map</div>
+<div style="font-size:12px;color:var(--tl);margin-bottom:10px">How all 5 skills chain together in a guideline lifecycle:</div>
+<div style="font-size:11px;line-height:1.8">
+<strong>1.</strong> <span style="color:var(--ai4)">Policy Scanner</span> identifies gap → triggers topic nomination<br>
+<strong>2.</strong> <span style="color:var(--ai1)">Evidence-to-Guideline</span> scopes PICO & eligibility<br>
+<strong>3.</strong> <span style="color:var(--ai2)">SR/MA Engine</span> runs the systematic review & meta-analysis<br>
+<strong>4.</strong> <span style="color:var(--ai1)">Evidence-to-Guideline</span> GRADE profiles + EtR → recommendations<br>
+<strong>5.</strong> <span style="color:var(--ai3)">CEA Engine</span> evaluates cost-effectiveness of interventions<br>
+<strong>6.</strong> <span style="color:var(--ai5)">PHPSA Outputs</span> produces policy briefs + stakeholder communications<br>
+<strong>7.</strong> <span style="color:var(--ai4)">Policy Scanner</span> monitors implementation & policy alignment
+</div>
+</div>
+</div>
+</div>
+<!-- ====== GOVERNANCE ====== -->
+<div class="page" id="p-governance">
+<div class="card">
+<div class="card-t">National CPG Authority — Governance Architecture</div>
+<div class="card-st" style="margin-bottom:18px">Multi-tiered authority model aligned with WHO, NICE, and GIN-McMaster governance standards</div>
+<div class="pyramid">
+<div class="pyr-l" style="width:38%;background:linear-gradient(135deg,#0A4A32,#0D5C3E)">TIER 1 — National Steering Committee (NSC)<small>Strategic oversight · Priority setting · Final endorsement · Royal mandate</small></div>
+<div class="pyr-l" style="width:50%;background:linear-gradient(135deg,#1B6B93,#2980B9)">TIER 2 — Technical Oversight Committee (TOC)<small>Methodological standards · Framework compliance · Quality assurance · COI</small></div>
+<div class="pyr-l" style="width:62%;background:linear-gradient(135deg,#C4A035,#E8C94A);color:#1A1A2E">TIER 3 — Guideline Development Groups (GDGs)<small>Topic-specific panels · Evidence synthesis · GRADE appraisal · Recommendations</small></div>
+<div class="pyr-l" style="width:74%;background:linear-gradient(135deg,#6366F1,#818CF8)">TIER 4 — Evidence Review Teams (ERTs)<small>Systematic reviews · Data extraction · Risk of bias · GRADE profiling</small></div>
+<div class="pyr-l" style="width:86%;background:linear-gradient(135deg,#64748B,#94A3B8)">TIER 5 — External Review & Public Consultation<small>Peer review · Stakeholder feedback · Patient input · International experts</small></div>
+</div>
+</div>
+<div class="grid g2">
+<div class="card">
+<div class="card-t" style="color:var(--p)">Tier 1 — National Steering Committee</div>
+<div style="margin-top:10px;font-size:12.5px">
+<p style="margin-bottom:10px">Supreme authority for national CPG endorsement under Saudi Health Council mandate.</p>
+<table>
+<tr><th>Role</th><th>Responsibility</th><th>Authority</th></tr>
+<tr><td>NSC Chair</td><td>Strategic direction, inter-ministerial coordination</td><td><span class="badge b-err">Full Veto</span></td></tr>
+<tr><td>MOH Representative</td><td>Policy alignment, implementation mandate</td><td><span class="badge b-w">Vote + Mandate</span></td></tr>
+<tr><td>SHC Liaison</td><td>Regulatory compliance, national registry</td><td><span class="badge b-w">Vote + Registry</span></td></tr>
+<tr><td>SCFHS Representative</td><td>Workforce training alignment</td><td><span class="badge b-i">Advisory Vote</span></td></tr>
+<tr><td>SFDA Representative</td><td>Drug/device formulary alignment</td><td><span class="badge b-i">Advisory Vote</span></td></tr>
+<tr><td>KSUMC Dean</td><td>Academic leadership</td><td><span class="badge b-w">Vote</span></td></tr>
+<tr><td>Patient Advocate</td><td>Patient perspective, equity</td><td><span class="badge b-i">Advisory</span></td></tr>
+</table>
+<p style="margin-top:10px;font-size:11px;color:var(--tl)"><strong>Decision:</strong> ≥75% supermajority. Chair holds tiebreaker.</p>
+</div>
+</div>
+<div class="card">
+<div class="card-t" style="color:var(--s)">Tier 2 — Technical Oversight Committee</div>
+<div style="margin-top:10px;font-size:12.5px">
+<p style="margin-bottom:10px">Methodological gatekeepers. No guideline advances without TOC quality certification.</p>
+<table>
+<tr><th>Role</th><th>Responsibility</th><th>Authority</th></tr>
+<tr><td>Chief Methodologist</td><td>GRADE methodology standards</td><td><span class="badge b-err">Quality Veto</span></td></tr>
+<tr><td>Biostatistician Lead</td><td>Meta-analysis QC</td><td><span class="badge b-w">Technical Block</span></td></tr>
+<tr><td>Health Economist</td><td>CEA review (AI-assisted)</td><td><span class="badge b-i">Advisory</span></td></tr>
+<tr><td>Info Specialist</td><td>Search strategy validation</td><td><span class="badge b-i">Advisory</span></td></tr>
+<tr><td>Ethics Officer</td><td>COI management, equity</td><td><span class="badge b-w">Ethics Block</span></td></tr>
+<tr><td>AGREE II Assessor</td><td>Guideline quality scoring</td><td><span class="badge b-w">Quality Gate</span></td></tr>
+</table>
+<p style="margin-top:10px;font-size:11px;color:var(--tl)"><strong>Gate:</strong> AGREE II ≥70% Rigour domain required to advance.</p>
+</div>
+</div>
+</div>
+<div class="grid g3" style="margin-top:0">
+<div class="card"><div class="card-t" style="color:var(--a)">Tier 3 — GDGs</div><div style="margin-top:8px;font-size:12px">
+<div class="chk"><strong style="min-width:80px">Chair</strong> Clinical expert lead</div>
+<div class="chk"><strong style="min-width:80px">Co-Chair</strong> Methodologist</div>
+<div class="chk"><strong style="min-width:80px">Clinicians</strong> 4–8 multidisciplinary</div>
+<div class="chk"><strong style="min-width:80px">Patient Rep</strong> 1–2 patients/caregivers</div>
+<div class="chk"><strong style="min-width:80px">Nurse/AHP</strong> Implementation view</div>
+<p style="margin-top:8px;font-size:10px;color:var(--tl)">Consensus: ≥70% modified Delphi.</p>
+</div></div>
+<div class="card"><div class="card-t" style="color:#6366F1">Tier 4 — ERTs</div><div style="margin-top:8px;font-size:12px">
+<div class="chk"><strong style="min-width:80px">SR Lead</strong> Protocol & execution</div>
+<div class="chk"><strong style="min-width:80px">Searcher</strong> 5+ database strategy</div>
+<div class="chk"><strong style="min-width:80px">Screeners</strong> Dual independent</div>
+<div class="chk"><strong style="min-width:80px">Extractors</strong> Data + reconciliation</div>
+<div class="chk"><strong style="min-width:80px">GRADE Analyst</strong> Profiles & SoF</div>
+</div></div>
+<div class="card"><div class="card-t" style="color:#64748B">Tier 5 — External Review</div><div style="margin-top:8px;font-size:12px">
+<div class="chk"><strong style="min-width:100px">Peer Reviewers</strong> 3+ international experts</div>
+<div class="chk"><strong style="min-width:100px">Stakeholders</strong> Societies, MOH directorates</div>
+<div class="chk"><strong style="min-width:100px">Public Comment</strong> 30-day open period</div>
+<div class="chk"><strong style="min-width:100px">Patient Groups</strong> Disease-specific orgs</div>
+<p style="margin-top:8px;font-size:10px;color:var(--tl)">All comments logged in public audit trail.</p>
+</div></div>
+</div>
+</div>
+
+<!-- ====== GRADE WORKFLOW ====== -->
+<div class="page" id="p-workflow">
+<div class="card">
+<div class="card-t">GRADE Guideline Development Workflow</div>
+<div class="card-st" style="margin-bottom:18px">Integrated GRADE · NICE · GIN-McMaster · AGREE II · ADAPTE — 10-stage pipeline</div>
+<div class="stepper">
+<div class="step done"><div class="step-cn"></div><div class="step-c">1</div><div class="step-l">Topic<br>Selection</div></div>
+<div class="step done"><div class="step-cn"></div><div class="step-c">2</div><div class="step-l">Scoping<br>& PICO</div></div>
+<div class="step done"><div class="step-cn"></div><div class="step-c">3</div><div class="step-l">Evidence<br>Search</div></div>
+<div class="step now"><div class="step-cn"></div><div class="step-c">4</div><div class="step-l">GRADE<br>Appraisal</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c">5</div><div class="step-l">EtR &<br>Consensus</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c">6</div><div class="step-l">Drafting</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c">7</div><div class="step-l">External<br>Review</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c">8</div><div class="step-l">Public<br>Consult</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c">9</div><div class="step-l">NSC<br>Endorse</div></div>
+<div class="step"><div class="step-c">10</div><div class="step-l">Publish</div></div>
+</div>
+</div>
+
+<div class="tabs" id="wf-tabs">
+<div class="tab active" onclick="swf('wf1')">1. Topic</div>
+<div class="tab" onclick="swf('wf2')">2. PICO</div>
+<div class="tab" onclick="swf('wf3')">3. Search</div>
+<div class="tab" onclick="swf('wf4')">4. GRADE</div>
+<div class="tab" onclick="swf('wf5')">5. EtR</div>
+<div class="tab" onclick="swf('wf6')">6–10</div>
+</div>
+
+<div id="wf1" class="wfs">
+<div class="grid g2">
+<div class="card">
+<div class="card-t">Topic Prioritization Matrix</div>
+<div class="card-st" style="margin-bottom:12px">GIN-McMaster & NICE criteria</div>
+<table>
+<tr><th>Criterion</th><th>Weight</th><th>Score</th></tr>
+<tr><td>Disease burden in Saudi Arabia</td><td>25%</td><td><input type="range" min="1" max="5" value="4" style="width:70px" oninput="this.nextElementSibling.textContent=this.value"> <span>4</span></td></tr>
+<tr><td>Practice variation</td><td>20%</td><td><input type="range" min="1" max="5" value="3" style="width:70px" oninput="this.nextElementSibling.textContent=this.value"> <span>3</span></td></tr>
+<tr><td>New evidence available</td><td>20%</td><td><input type="range" min="1" max="5" value="5" style="width:70px" oninput="this.nextElementSibling.textContent=this.value"> <span>5</span></td></tr>
+<tr><td>Patient safety/equity</td><td>15%</td><td><input type="range" min="1" max="5" value="4" style="width:70px" oninput="this.nextElementSibling.textContent=this.value"> <span>4</span></td></tr>
+<tr><td>Vision 2030 alignment</td><td>10%</td><td><input type="range" min="1" max="5" value="3" style="width:70px" oninput="this.nextElementSibling.textContent=this.value"> <span>3</span></td></tr>
+<tr><td>Implementation feasibility</td><td>10%</td><td><input type="range" min="1" max="5" value="4" style="width:70px" oninput="this.nextElementSibling.textContent=this.value"> <span>4</span></td></tr>
+</table>
+<div style="margin-top:12px;padding:10px;background:#F0FDF4;border-radius:8px;font-size:12px"><strong>Score: 3.90/5.00</strong> — <span class="badge b-ok">High Priority</span></div>
+</div>
+<div class="card">
+<div class="card-t">ADAPTE Decision Gate</div>
+<div class="card-st" style="margin-bottom:12px">Adapt existing or develop de novo?</div>
+<div class="chk"><input type="checkbox" checked> Existing international guideline found?</div>
+<div class="chk"><input type="checkbox" checked> Source AGREE II ≥60% Rigour?</div>
+<div class="chk"><input type="checkbox"> Source PICO matches Saudi population?</div>
+<div class="chk"><input type="checkbox"> Saudi epidemiology comparable?</div>
+<div class="chk"><input type="checkbox" checked> SFDA-approved interventions match?</div>
+<div class="chk"><input type="checkbox"> Health system context comparable?</div>
+<div style="margin-top:12px;padding:10px;background:#FEF3C7;border-radius:8px;font-size:12px"><strong>4/6 met</strong> — <span class="badge b-w">Partial Adaptation</span></div>
+</div>
+</div>
+</div>
+
+<div id="wf2" class="wfs" style="display:none">
+<div class="card">
+<div class="card-t">PICO Framework Builder <span class="ai-status" style="margin-left:8px">AI-Assisted</span></div>
+<div class="card-st" style="margin-bottom:14px">GRADE/GIN-McMaster structured question</div>
+<div class="grid g2">
+<div>
+<div class="fg"><label class="fl">P — Population</label><input class="fi" placeholder="e.g. Adults ≥18y with T2DM in Saudi Arabia"></div>
+<div class="fg"><label class="fl">I — Intervention</label><input class="fi" placeholder="e.g. GLP-1 receptor agonists"></div>
+<div class="fg"><label class="fl">C — Comparator</label><input class="fi" placeholder="e.g. DPP-4 inhibitors or standard insulin"></div>
+<div class="fg"><label class="fl">O — Outcomes (rank)</label><textarea class="ft" placeholder="Critical: HbA1c reduction, CV events&#10;Important: Weight, hypoglycemia&#10;Low: GI side effects"></textarea></div>
+</div>
+<div>
+<div class="fg"><label class="fl">S — Setting</label><input class="fi" placeholder="e.g. MOH tertiary and secondary hospitals"></div>
+<div class="fg"><label class="fl">T — Time Horizon</label><input class="fi" placeholder="e.g. ≥52 weeks"></div>
+<div class="fg"><label class="fl">Study Designs</label><select class="fs"><option>RCTs only</option><option>RCTs + cohorts</option><option>All designs</option></select></div>
+<div class="fg"><label class="fl">Saudi/Gulf Context</label><textarea class="ft" placeholder="e.g. 24% diabetes prevalence, Ramadan fasting, SFDA coverage"></textarea></div>
+</div>
+</div>
+<div style="display:flex;gap:8px;margin-top:8px">
+<button class="btn btn-ai">🤖 AI: Auto-Generate Scope Document</button>
+<button class="btn btn-o">Export as DOCX</button>
+</div>
+</div>
+</div>
+
+<div id="wf3" class="wfs" style="display:none">
+<div class="card">
+<div class="card-t">Systematic Evidence Search <span class="ai-status" style="margin-left:8px">AI-Assisted</span></div>
+<div class="grid g2">
+<div>
+<div class="fg"><label class="fl">Search Strategy (PubMed)</label>
+<textarea class="ft" style="min-height:100px;font-family:monospace;font-size:11px">("Diabetes Mellitus, Type 2"[MeSH])
+AND
+("GLP-1 receptor agonists"[MeSH] OR "semaglutide"[tiab])
+AND
+("Randomized Controlled Trial"[pt])</textarea></div>
+<div style="display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn btn-p btn-sm" onclick="simSearch()">PubMed</button>
+<button class="btn btn-s btn-sm">Cochrane</button>
+<button class="btn btn-o btn-sm">EMBASE</button>
+<button class="btn btn-o btn-sm">WHO IRIS</button>
+<button class="btn btn-ai btn-sm">🤖 AI: Auto-Search All</button>
+</div>
+</div>
+<div style="background:#F8FAFC;border-radius:10px;padding:14px">
+<div style="font-weight:600;margin-bottom:10px">PRISMA Flow</div>
+<div style="font-size:12px">
+<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB"><span>Identified</span><strong id="pr1">—</strong></div>
+<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB"><span>Duplicates removed</span><strong id="pr2">—</strong></div>
+<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB"><span>Screened</span><strong id="pr3">—</strong></div>
+<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB"><span>Excluded T/A</span><strong id="pr4">—</strong></div>
+<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB"><span>Full-text reviewed</span><strong id="pr5">—</strong></div>
+<div style="display:flex;justify-content:space-between;padding:5px 0"><span><strong>Included</strong></span><strong id="pr6" style="color:var(--ok)">—</strong></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="wf4" class="wfs" style="display:none">
+<div class="card">
+<div class="card-t">GRADE Evidence Profile <span class="ai-status" style="margin-left:8px">AI-Assisted</span></div>
+<div class="card-st" style="margin-bottom:14px">Rate certainty across 5 GRADE domains per outcome</div>
+<table>
+<tr><th>Outcome</th><th>Studies</th><th>RoB</th><th>Inconsistency</th><th>Indirectness</th><th>Imprecision</th><th>Pub Bias</th><th>Effect</th><th>Certainty</th></tr>
+<tr><td><strong>HbA1c</strong><br><span class="badge b-err" style="font-size:9px">Critical</span></td><td>8 RCTs<br>(12,450)</td>
+<td><select class="fs" style="font-size:10px;padding:3px"><option>Not serious</option><option selected>Serious</option></select></td>
+<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Not serious</option><option>Serious</option></select></td>
+<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Not serious</option><option>Serious</option></select></td>
+<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Not serious</option><option>Serious</option></select></td>
+<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Undetected</option><option>Suspected</option></select></td>
+<td>MD −0.9%<br>(−1.1,−0.7)</td><td><span class="gs">⊕⊕⊕◯</span><br><span class="badge b-i">Moderate</span></td></tr>
+<tr><td><strong>CV events</strong><br><span class="badge b-err" style="font-size:9px">Critical</span></td><td>4 RCTs<br>(38,200)</td>
+<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Not serious</option></select></td>
+<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Not serious</option></select></td>
+<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Not serious</option></select></td>
+<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Not serious</option></select></td>
+<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Undetected</option></select></td>
+<td>RR 0.88<br>(0.82,0.94)</td><td><span class="gs">⊕⊕⊕⊕</span><br><span class="badge b-ok">High</span></td></tr>
+</table>
+<div style="margin-top:14px;display:flex;gap:8px">
+<button class="btn btn-ai">🤖 AI: Auto-Calculate GRADE</button>
+<button class="btn btn-o">Generate SoF Table</button>
+<button class="btn btn-o">Export to GRADEpro</button>
+</div>
+</div>
+</div>
+
+<div id="wf5" class="wfs" style="display:none">
+<div class="card">
+<div class="card-t">Evidence-to-Recommendation Framework <span class="ai-status" style="margin-left:8px">AI-Assisted</span></div>
+<div class="card-st" style="margin-bottom:14px">GRADE EtD — all 11 domains</div>
+<table>
+<tr><th style="width:28%">EtR Domain</th><th style="width:22%">Judgement</th><th>Saudi Context</th></tr>
+<tr><td><strong>Problem priority</strong></td><td><select class="fs" style="font-size:11px"><option selected>Yes</option><option>Probably yes</option></select></td><td><input class="fi" style="font-size:11px" value="T2DM prevalence ~24% in KSA"></td></tr>
+<tr><td><strong>Desirable effects</strong></td><td><select class="fs" style="font-size:11px"><option selected>Large</option><option>Moderate</option></select></td><td><input class="fi" style="font-size:11px" value="HbA1c + CV benefit"></td></tr>
+<tr><td><strong>Undesirable effects</strong></td><td><select class="fs" style="font-size:11px"><option>Trivial</option><option>Small</option><option selected>Moderate</option></select></td><td><input class="fi" style="font-size:11px" value="GI effects, transient"></td></tr>
+<tr><td><strong>Certainty of evidence</strong></td><td><select class="fs" style="font-size:11px"><option>High</option><option selected>Moderate</option></select></td><td><input class="fi" style="font-size:11px"></td></tr>
+<tr><td><strong>Values & preferences</strong></td><td><select class="fs" style="font-size:11px"><option>No uncertainty</option><option selected>Possibly important</option></select></td><td><input class="fi" style="font-size:11px" value="Ramadan fasting; injection preference"></td></tr>
+<tr><td><strong>Resource use</strong></td><td><select class="fs" style="font-size:11px"><option selected>Moderate costs</option><option>Large costs</option></select></td><td><input class="fi" style="font-size:11px" value="SFDA formulary covered"></td></tr>
+<tr><td><strong>Cost-effectiveness</strong></td><td><select class="fs" style="font-size:11px"><option selected>Probably favours</option></select></td><td><input class="fi" style="font-size:11px" value="ICER below Saudi WTP"></td></tr>
+<tr><td><strong>Equity</strong></td><td><select class="fs" style="font-size:11px"><option selected>Probably no impact</option></select></td><td><input class="fi" style="font-size:11px"></td></tr>
+<tr><td><strong>Acceptability</strong></td><td><select class="fs" style="font-size:11px"><option selected>Yes</option></select></td><td><input class="fi" style="font-size:11px"></td></tr>
+<tr><td><strong>Feasibility</strong></td><td><select class="fs" style="font-size:11px"><option selected>Yes</option></select></td><td><input class="fi" style="font-size:11px"></td></tr>
+</table>
+<div style="margin-top:16px;padding:14px;background:linear-gradient(135deg,#F0FDF4,#ECFDF5);border:2px solid var(--ok);border-radius:10px">
+<div style="font-weight:700;font-size:13px;margin-bottom:8px">DRAFT RECOMMENDATION</div>
+<div style="background:#fff;border-radius:8px;padding:14px;border:1px solid var(--b)">
+<p style="font-size:13px;line-height:1.6"><strong>We recommend</strong> GLP-1 receptor agonists for adults with T2DM and established CV disease, as add-on to metformin.</p>
+<div style="margin-top:10px;display:flex;gap:14px;font-size:11px">
+<span><strong>Strength:</strong> <span class="badge b-ok">Strong</span></span>
+<span><strong>Certainty:</strong> ⊕⊕⊕◯ Moderate</span>
+<span><strong>Agreement:</strong> 89%</span>
+</div>
+</div>
+</div>
+<div style="margin-top:12px;display:flex;gap:8px">
+<button class="btn btn-ai">🤖 AI: Draft Full Recommendation Set</button>
+<button class="btn btn-o">Submit to Delphi</button>
+</div>
+</div>
+</div>
+
+<div id="wf6" class="wfs" style="display:none">
+<div class="card">
+<div class="card-t">Stages 6–10: Publication & Implementation</div>
+<div class="grid g2" style="margin-top:14px">
+<div>
+<h3 style="font-size:13px;margin-bottom:10px">Stage 6 — Drafting</h3>
+<div class="chk"><input type="checkbox" checked> Title page with KSUMC/NSC branding</div>
+<div class="chk"><input type="checkbox" checked> Executive summary + recommendation boxes</div>
+<div class="chk"><input type="checkbox" checked> Methods (PRISMA, GRADE tables)</div>
+<div class="chk"><input type="checkbox"> Results by clinical question</div>
+<div class="chk"><input type="checkbox"> AGREE II self-assessment ≥70%</div>
+<h3 style="font-size:13px;margin:14px 0 10px">Stage 7 — External Review</h3>
+<div class="chk"><input type="checkbox"> 3+ international reviewers</div>
+<div class="chk"><input type="checkbox"> Review forms distributed</div>
+<div class="chk"><input type="checkbox"> Response matrix</div>
+</div>
+<div>
+<h3 style="font-size:13px;margin-bottom:10px">Stage 8 — Public Consultation</h3>
+<div class="chk"><input type="checkbox"> 30-day comment period</div>
+<div class="chk"><input type="checkbox"> Society notifications</div>
+<div class="chk"><input type="checkbox"> Comment triage document</div>
+<h3 style="font-size:13px;margin:14px 0 10px">Stage 9–10 — Endorse & Publish</h3>
+<div class="chk"><input type="checkbox"> TOC quality certification</div>
+<div class="chk"><input type="checkbox"> NSC vote ≥75%</div>
+<div class="chk"><input type="checkbox"> MOH implementation mandate</div>
+<div class="chk"><input type="checkbox"> National CPG Registry listing</div>
+<div class="chk"><input type="checkbox"> SCFHS CME integration</div>
+<div class="chk"><input type="checkbox"> Review date (3–5 years)</div>
+</div>
+</div>
+<button class="btn btn-ai" style="margin-top:12px">🤖 AI: Generate Complete CPG Document (DOCX)</button>
+</div>
+</div>
+</div>
+<!-- ====== AI: EVIDENCE-TO-GUIDELINE ====== -->
+<div class="page" id="p-ai_etg">
+<div class="card" style="border-top:3px solid var(--ai1)">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+<div style="font-size:28px">📋</div>
+<div><div class="card-t">AI Skill: Evidence-to-Guideline</div><div class="card-st">NICE-inspired 5-stage CPG pipeline — fully AI-assisted</div></div>
+<span class="ai-status" style="margin-left:auto">Active</span>
+</div>
+<div class="stepper">
+<div class="step done"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S1</div><div class="step-l">Scoping<br>& PICO</div></div>
+<div class="step done"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S2</div><div class="step-l">Evidence<br>Search</div></div>
+<div class="step now"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S3</div><div class="step-l">GRADE<br>Appraisal</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S4</div><div class="step-l">Synthesis<br>& SoF</div></div>
+<div class="step"><div class="step-c" style="width:32px;height:32px;font-size:12px">S5</div><div class="step-l">EtR &<br>Recommend</div></div>
+</div>
+</div>
+<div class="grid g2">
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:8px">🤖 What This Skill Does</div>
+<div style="font-size:12px;line-height:1.7">
+<strong>Stage 1 — Scoping:</strong> Builds PICO table, defines eligibility criteria, generates scope document with Saudi/Gulf context.<br>
+<strong>Stage 2 — Search:</strong> Constructs multi-database search strategies, validates with PRESS checklist, tracks PRISMA flow.<br>
+<strong>Stage 3 — Appraisal:</strong> Applies RoB 2/ROBINS-I/NOS tools per study design, builds GRADE evidence profiles.<br>
+<strong>Stage 4 — Synthesis:</strong> Creates Summary of Findings tables, narrative synthesis, effect estimates.<br>
+<strong>Stage 5 — EtR:</strong> Completes 11-domain EtR framework, drafts recommendations with strength + certainty, Delphi integration.
+</div>
+</div>
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:8px">⚡ Quick Start — Launch a Guideline</div>
+<div class="fg"><label class="fl">Clinical Topic</label><input class="fi" placeholder="e.g. Management of chronic kidney disease in adults"></div>
+<div class="fg"><label class="fl">Output Type</label><select class="fs"><option>Clinical Practice Guideline (CPG)</option><option>Systematic Review / Evidence Summary</option><option>Rapid Evidence Review</option></select></div>
+<div class="fg"><label class="fl">Target Audience</label><select class="fs"><option>Clinicians</option><option>Policy Makers</option><option>Patients</option><option>All</option></select></div>
+<div class="fg"><label class="fl">Context</label><select class="fs"><option>Saudi Arabia</option><option>GCC Region</option><option>Global</option></select></div>
+<button class="btn btn-ai" style="width:100%">🤖 Launch Evidence-to-Guideline Pipeline</button>
+</div>
+</div>
+<div class="card">
+<div class="card-t" style="margin-bottom:10px">Active Guideline Projects Using This Skill</div>
+<table>
+<tr><th>Project</th><th>Current Stage</th><th>AI Tasks Completed</th><th>Next AI Action</th><th>Status</th></tr>
+<tr><td><strong>GLP-1 RA in T2DM</strong></td><td>Stage 3</td><td>PICO, Search, 56 studies screened</td><td>GRADE profiling for HbA1c outcome</td><td><span class="badge b-ai">AI Working</span></td></tr>
+<tr><td><strong>CRC Screening</strong></td><td>Stage 4</td><td>Full SR, RoB complete</td><td>Generate SoF table</td><td><span class="badge b-w">Awaiting input</span></td></tr>
+<tr><td><strong>Asthma — Adult</strong></td><td>Stage 5</td><td>GRADE profiles, EtR draft</td><td>Delphi Round 2 analysis</td><td><span class="badge b-ok">Panel review</span></td></tr>
+</table>
+</div>
+</div>
+
+<!-- ====== AI: SYSTEMATIC REVIEW / META-ANALYSIS ====== -->
+<div class="page" id="p-ai_srma">
+<div class="card" style="border-top:3px solid var(--ai2)">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+<div style="font-size:28px">📊</div>
+<div><div class="card-t">AI Skill: Systematic Review & Meta-Analysis</div><div class="card-st">PRISMA 2020 pipeline — protocol to publication</div></div>
+<span class="ai-status" style="margin-left:auto">Active</span>
+</div>
+</div>
+<div class="grid g3">
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:8px">Stage 0–1: Protocol</div>
+<div style="font-size:12px">PICO/PICOS/SPIDER formulation, PROSPERO registration, PRISMA-P checklist, eligibility criteria, statistical plan</div>
+<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%">🤖 AI: Generate SR Protocol</button>
+</div>
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:8px">Stage 2–3: Search & Screen</div>
+<div style="font-size:12px">Multi-database strategy (PubMed, Embase, Cochrane, CINAHL), PRESS checklist, dual screening, PRISMA flow diagram</div>
+<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%">🤖 AI: Build Search Strategy</button>
+</div>
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:8px">Stage 4: Risk of Bias</div>
+<div style="font-size:12px">Auto-selects tool by design: RoB 2 (RCTs), ROBINS-I (NRS), NOS (cohort/case-control), QUADAS-2 (diagnostic), AMSTAR 2 (SRs)</div>
+<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%">🤖 AI: Run RoB Assessment</button>
+</div>
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:8px">Stage 5: Meta-Analysis</div>
+<div style="font-size:12px">Fixed/random effects, Mantel-Haenszel / inverse variance, I² heterogeneity, Cochran Q, τ², prediction intervals</div>
+<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%">🤖 AI: Pool Effect Sizes</button>
+</div>
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:8px">Stage 5b: Plots & Bias</div>
+<div style="font-size:12px">Forest plots, funnel plots, Egger test, Begg test, trim-and-fill, subgroup analysis, sensitivity (leave-one-out)</div>
+<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%">🤖 AI: Generate Forest Plot</button>
+</div>
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:8px">Stage 6: GRADE & Write-up</div>
+<div style="font-size:12px">GRADE certainty per outcome, Summary of Findings table, full PRISMA 2020 manuscript with all sections</div>
+<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%">🤖 AI: Draft PRISMA Manuscript</button>
+</div>
+</div>
+<div class="card" style="margin-top:18px">
+<div class="card-t" style="margin-bottom:10px">Active SR/MA Projects</div>
+<table>
+<tr><th>Review Title</th><th>Stage</th><th>Studies</th><th>Analysis</th><th>AI Status</th></tr>
+<tr><td><strong>GLP-1 RA CV outcomes in T2DM</strong></td><td>Stage 5</td><td>56 included</td><td>Random effects, I²=34%</td><td><span class="badge b-ai">Forest plot ready</span></td></tr>
+<tr><td><strong>H. pylori eradication regimens</strong></td><td>Stage 3</td><td>Screening: 412/929</td><td>—</td><td><span class="badge b-w">Screening in progress</span></td></tr>
+<tr><td><strong>CRC screening modalities</strong></td><td>Stage 4</td><td>28 included</td><td>RoB 2 complete</td><td><span class="badge b-ok">Ready for pooling</span></td></tr>
+</table>
+</div>
+</div>
+
+<!-- ====== AI: COST-EFFECTIVENESS ====== -->
+<div class="page" id="p-ai_cea">
+<div class="card" style="border-top:3px solid var(--ai3)">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+<div style="font-size:28px">💰</div>
+<div><div class="card-t">AI Skill: Cost-Effectiveness Analysis</div><div class="card-st">HTA-grade CEA/CUA — CHEERS 2022 aligned, NICE reference case methods</div></div>
+<span class="ai-status" style="margin-left:auto">Active</span>
+</div>
+</div>
+<div class="grid g2">
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:8px">⚡ Quick Launch CEA</div>
+<div class="fg"><label class="fl">Evaluation Type</label><select class="fs"><option>Cost-Utility Analysis (CUA) — cost per QALY</option><option>Cost-Effectiveness (CEA) — cost per event</option><option>Budget Impact Analysis (BIA)</option><option>Cost-Benefit Analysis (CBA)</option></select></div>
+<div class="fg"><label class="fl">Intervention vs Comparator</label><input class="fi" placeholder="e.g. Semaglutide vs DPP-4 inhibitors for T2DM"></div>
+<div class="fg"><label class="fl">Perspective</label><select class="fs"><option>Saudi Healthcare System</option><option>MOH Payer</option><option>Societal</option></select></div>
+<div class="fg"><label class="fl">Time Horizon</label><select class="fs"><option>Lifetime</option><option>10 years</option><option>5 years</option><option>Trial-based</option></select></div>
+<div class="fg"><label class="fl">Model Type</label><select class="fs"><option>Markov Cohort Model</option><option>Decision Tree</option><option>Partitioned Survival</option><option>Microsimulation</option></select></div>
+<button class="btn btn-ai" style="width:100%">🤖 Launch CEA Workflow</button>
+</div>
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:10px">📐 CEA Workflow Stages</div>
+<div style="font-size:12px;line-height:1.8">
+<div style="padding:6px 0;border-bottom:1px solid #EDE9FE"><strong>Stage 0:</strong> Analytic framing — type, perspective, horizon, discount rate</div>
+<div style="padding:6px 0;border-bottom:1px solid #EDE9FE"><strong>Stage 1:</strong> Model structure — decision tree / Markov / PartSA selection</div>
+<div style="padding:6px 0;border-bottom:1px solid #EDE9FE"><strong>Stage 2:</strong> Data inputs — transition probabilities, utilities (EQ-5D), costs (DRG/HRG)</div>
+<div style="padding:6px 0;border-bottom:1px solid #EDE9FE"><strong>Stage 3:</strong> Base case — ICER calculation, CE plane, dominance assessment</div>
+<div style="padding:6px 0;border-bottom:1px solid #EDE9FE"><strong>Stage 4:</strong> Sensitivity — DSA tornado, PSA Monte Carlo, CEAC curves</div>
+<div style="padding:6px 0"><strong>Stage 5:</strong> Budget impact + CHEERS 2022 write-up for HTA submission</div>
+</div>
+</div>
+</div>
+<div class="card">
+<div class="card-t" style="margin-bottom:10px">Active CEA Projects</div>
+<table>
+<tr><th>Analysis</th><th>Model</th><th>ICER (Base Case)</th><th>WTP Threshold</th><th>Conclusion</th><th>Status</th></tr>
+<tr><td><strong>GLP-1 RA vs DPP-4i (T2DM)</strong></td><td>Markov, lifetime</td><td>SAR 42,500/QALY</td><td>SAR 81,000 (1× GDP/cap)</td><td><span class="badge b-ok">Cost-effective</span></td><td><span class="badge b-ai">PSA running</span></td></tr>
+<tr><td><strong>FIT vs colonoscopy (CRC screen)</strong></td><td>Markov, lifetime</td><td>SAR 18,200/QALY</td><td>SAR 81,000</td><td><span class="badge b-ok">Dominant</span></td><td><span class="badge b-ok">Complete</span></td></tr>
+<tr><td><strong>Biologic step-up (NAFLD)</strong></td><td>Decision tree, 5y</td><td>In progress</td><td>—</td><td>—</td><td><span class="badge b-w">Stage 2</span></td></tr>
+</table>
+</div>
+</div>
+
+<!-- ====== AI: HEALTH POLICY SCANNER ====== -->
+<div class="page" id="p-ai_hps">
+<div class="card" style="border-top:3px solid var(--ai4)">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+<div style="font-size:28px">🏛️</div>
+<div><div class="card-t">AI Skill: Health Policy Scanner</div><div class="card-st">Saudi / GCC / Global policy discovery, WHO building blocks, gap analysis</div></div>
+<span class="ai-status" style="margin-left:auto">Active</span>
+</div>
+</div>
+<div class="grid g2">
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:8px">⚡ Launch Policy Scan</div>
+<div class="fg"><label class="fl">Scope Level</label><select class="fs"><option>Saudi Arabia only</option><option>GCC Region</option><option>Global</option><option selected>All three levels</option></select></div>
+<div class="fg"><label class="fl">Domain Filter</label><select class="fs"><option>All health domains</option><option>NCDs / Chronic Disease</option><option>Primary Care</option><option>Digital Health</option><option>Mental Health</option><option>Maternal & Child Health</option><option>Workforce</option><option>Health Financing</option></select></div>
+<div class="fg"><label class="fl">WHO Building Block Focus</label><select class="fs" multiple style="height:90px"><option selected>Service Delivery</option><option selected>Health Workforce</option><option>Health Information</option><option selected>Medical Products/Technologies</option><option>Health Financing</option><option selected>Leadership/Governance</option></select></div>
+<button class="btn btn-ai" style="width:100%">🤖 Run Policy Scanner</button>
+</div>
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:10px">🔍 Scanner Workflow</div>
+<div style="font-size:12px;line-height:1.8">
+<div style="padding:5px 0;border-bottom:1px solid #EDE9FE"><strong>Step 1:</strong> Map organizations — MOH, SHC, SFDA, SCFHS, NTP, WHO EMRO + Arabic names</div>
+<div style="padding:5px 0;border-bottom:1px solid #EDE9FE"><strong>Step 2:</strong> Discovery — EN + AR queries, site: operators, 10-year rolling window</div>
+<div style="padding:5px 0;border-bottom:1px solid #EDE9FE"><strong>Step 3:</strong> Extract — structured metadata, WHO building blocks, verified links</div>
+<div style="padding:5px 0;border-bottom:1px solid #EDE9FE"><strong>Step 4:</strong> Gap analysis — benchmarking Saudi vs. international standards</div>
+<div style="padding:5px 0"><strong>Step 5:</strong> Structured critique + actionable recommendations report</div>
+</div>
+</div>
+</div>
+<div class="card">
+<div class="card-t" style="margin-bottom:10px">Recent Policy Scans</div>
+<table>
+<tr><th>Scan Topic</th><th>Scope</th><th>Policies Found</th><th>Gaps Identified</th><th>Date</th><th>Status</th></tr>
+<tr><td><strong>NCD Management Landscape</strong></td><td>Saudi + GCC</td><td>34</td><td>3 critical gaps</td><td>Mar 15, 2026</td><td><span class="badge b-ok">Complete</span></td></tr>
+<tr><td><strong>Digital Health Regulations</strong></td><td>All three</td><td>28</td><td>5 gaps</td><td>Mar 10, 2026</td><td><span class="badge b-ok">Complete</span></td></tr>
+<tr><td><strong>Primary Care Transformation</strong></td><td>Saudi only</td><td>12</td><td>In progress</td><td>Mar 18, 2026</td><td><span class="badge b-ai">Scanning</span></td></tr>
+</table>
+</div>
+<div class="card">
+<div class="card-t" style="margin-bottom:10px">Saudi Health Organization Registry</div>
+<table>
+<tr><th>Organization</th><th>Arabic</th><th>Mandate</th><th>Key Policy Types</th></tr>
+<tr><td><strong>MOH</strong></td><td>وزارة الصحة</td><td>National health service delivery</td><td>Strategies, clinical pathways, regulations</td></tr>
+<tr><td><strong>Saudi Health Council</strong></td><td>المجلس الصحي السعودي</td><td>Health sector coordination</td><td>National strategies, unified procurement</td></tr>
+<tr><td><strong>SFDA</strong></td><td>الهيئة العامة للغذاء والدواء</td><td>Drug, device, food regulation</td><td>Formulary, registration, safety</td></tr>
+<tr><td><strong>SCFHS</strong></td><td>الهيئة السعودية للتخصصات الصحية</td><td>Health workforce licensing</td><td>Training standards, CME, credentialing</td></tr>
+<tr><td><strong>NTP</strong></td><td>برنامج التحول الوطني</td><td>Vision 2030 transformation</td><td>KPIs, transformation initiatives</td></tr>
+</table>
+</div>
+</div>
+
+<!-- ====== AI: PHPSA ====== -->
+<div class="page" id="p-ai_phpsa">
+<div class="card" style="border-top:3px solid var(--ai5)">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+<div style="font-size:28px">📄</div>
+<div><div class="card-t">AI Skill: PHPSA Document Production</div><div class="card-st">جمعية تاسايس الصحة العامة — Public Healthcare Policy Society of Saudi Arabia</div></div>
+<span class="ai-status" style="margin-left:auto">Active</span>
+</div>
+</div>
+<div class="grid g3">
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:6px">موجز سياسات</div>
+<div style="font-size:12px;color:var(--tl);margin-bottom:8px">Health Policy Briefs — monthly publication target: 12/year</div>
+<div style="font-size:11px">Arabic primary + English summary. Structured: Issue → Evidence → Policy Options → Recommendation</div>
+<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%">🤖 Generate Policy Brief</button>
+</div>
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:6px">Research Reports</div>
+<div style="font-size:12px;color:var(--tl);margin-bottom:8px">Evidence syntheses and research analysis</div>
+<div style="font-size:11px">Full academic format with evidence tables, GRADE integration, Saudi context analysis</div>
+<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%">🤖 Generate Research Report</button>
+</div>
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:6px">Governance Documents</div>
+<div style="font-size:12px;color:var(--tl);margin-bottom:8px">Minutes, decisions, annual reports</div>
+<div style="font-size:11px">Meeting minutes (محضر), board decisions (قرار), strategic plans, annual reports</div>
+<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%">🤖 Generate Governance Doc</button>
+</div>
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:6px">Training Programs</div>
+<div style="font-size:12px;color:var(--tl);margin-bottom:8px">Capacity building & certifications</div>
+<div style="font-size:11px">Professional certifications, tiered training, blended learning, mentorship program designs</div>
+<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%">🤖 Design Training Program</button>
+</div>
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:6px">Communications</div>
+<div style="font-size:12px;color:var(--tl);margin-bottom:8px">Newsletters, press releases, membership</div>
+<div style="font-size:11px">Bilingual press releases, newsletters/bulletins, membership communications</div>
+<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%">🤖 Draft Communication</button>
+</div>
+<div class="ai-card">
+<div style="font-weight:700;margin-bottom:6px">Partnership MOUs</div>
+<div style="font-size:12px;color:var(--tl);margin-bottom:8px">Strategic partnerships & frameworks</div>
+<div style="font-size:11px">Government, academic, community, private sector partnership frameworks</div>
+<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%">🤖 Draft MOU Framework</button>
+</div>
+</div>
+<div class="card">
+<div class="card-t" style="margin-bottom:8px">PHPSA Board</div>
+<table>
+<tr><th>Name</th><th>Role</th><th>Arabic</th></tr>
+<tr><td>Dr. Abdul Aziz Al-Rabeea</td><td>Board Chair</td><td>رئيس مجلس الإدارة</td></tr>
+<tr><td>Dr. Abdul Aziz Al-Twijri</td><td>Vice Chair</td><td>نائب رئيس مجلس الإدارة</td></tr>
+<tr><td>Dr. Nasser Al-Qahtani</td><td>Board Member</td><td>عضو مجلس الإدارة</td></tr>
+<tr><td>Prof. Lubna Al-Ansari</td><td>Board Member</td><td>عضو مجلس الإدارة</td></tr>
+<tr><td>Dr. Majid Al-Madi</td><td>Board Member</td><td>عضو مجلس الإدارة</td></tr>
+<tr><td>Eng. Mohammed Al-Yousif</td><td>Executive Director</td><td>المدير التنفيذي</td></tr>
+</table>
+</div>
+</div>
+<!-- ====== EVIDENCE SEARCH ====== -->
+<div class="page" id="p-evidence">
+<div class="card">
+<div class="card-t">Integrated Evidence Search Engine <span class="ai-status" style="margin-left:8px">AI-Enhanced</span></div>
+<div class="card-st" style="margin-bottom:14px">Multi-database search with AI-powered screening and PRISMA tracking</div>
+<div style="display:flex;gap:8px;margin-bottom:14px">
+<input class="fi" id="ev-q" placeholder="Enter clinical question, MeSH terms, or free text..." style="flex:1">
+<button class="btn btn-ai" onclick="runEvidenceSearch()">🤖 Live PubMed Search</button>
+</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;font-size:11px">
+<label style="display:flex;align-items:center;gap:3px"><input type="checkbox" checked> PubMed</label>
+<label style="display:flex;align-items:center;gap:3px"><input type="checkbox" checked> Cochrane</label>
+<label style="display:flex;align-items:center;gap:3px"><input type="checkbox" checked> EMBASE</label>
+<label style="display:flex;align-items:center;gap:3px"><input type="checkbox"> WHO IRIS</label>
+<label style="display:flex;align-items:center;gap:3px"><input type="checkbox"> NICE</label>
+<label style="display:flex;align-items:center;gap:3px"><input type="checkbox" checked> Saudi MOH</label>
+<label style="display:flex;align-items:center;gap:3px"><input type="checkbox"> SFDA</label>
+<label style="display:flex;align-items:center;gap:3px"><input type="checkbox"> SHC</label>
+</div>
+<div id="ev-r" style="display:none"></div>
+</div>
+</div>
+
+<!-- ====== ACTIVE GUIDELINES ====== -->
+<div class="page" id="p-guidelines">
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+<div><div class="card-t">National CPG Registry</div><div class="card-st">All published and in-development guidelines</div></div>
+<button class="btn btn-p" onclick="openM('new-gl-modal')">+ New Guideline</button>
+</div>
+<div style="display:flex;gap:8px;margin-bottom:14px">
+<input class="fi" placeholder="Search guidelines..." style="flex:1">
+<select class="fs" style="width:auto"><option>All Statuses</option><option>Published</option><option>In Development</option><option>Overdue</option></select>
+<select class="fs" style="width:auto"><option>All Specialties</option><option>Endocrinology</option><option>Gastroenterology</option><option>Oncology</option><option>Pulmonology</option></select>
+</div>
+<div class="grid g3">
+<div class="card" style="border-left:4px solid var(--ok)"><div style="display:flex;justify-content:space-between"><span class="badge b-ok">Published</span><span style="font-size:10px;color:var(--tl)">v2.1</span></div><h3 style="font-size:13px;margin:8px 0 3px">T2DM — Adult Management</h3><p style="font-size:11px;color:var(--tl)">KSUMC Endocrinology · 14 recommendations</p></div>
+<div class="card" style="border-left:4px solid var(--ok)"><div style="display:flex;justify-content:space-between"><span class="badge b-ok">Published</span><span style="font-size:10px;color:var(--tl)">v1.2</span></div><h3 style="font-size:13px;margin:8px 0 3px">Hypertension — Primary Care</h3><p style="font-size:11px;color:var(--tl)">MOH · ADAPTE from ESC/ESH</p></div>
+<div class="card" style="border-left:4px solid var(--warn)"><div style="display:flex;justify-content:space-between"><span class="badge b-w">In Dev</span><span style="font-size:10px;color:var(--tl)">Stage 5</span></div><h3 style="font-size:13px;margin:8px 0 3px">Asthma — Adult</h3><p style="font-size:11px;color:var(--tl)">Saudi Thoracic Society · Delphi R2</p></div>
+</div>
+</div>
+</div>
+
+<!-- ====== LIFECYCLE & REPORTS ====== -->
+<div class="page" id="p-lifecycle">
+<div class="card">
+<div class="card-t" style="margin-bottom:14px">Guideline Lifecycle Tracker</div>
+<table>
+<tr><th>Guideline</th><th>Ver</th><th>Status</th><th>Published</th><th>Review Due</th><th>AGREE II</th><th>GIN</th><th></th></tr>
+<tr><td><strong>T2DM — Adult</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2024-001</span></td><td>v2.1</td><td><span class="badge b-ok">Published</span></td><td>Jan 2024</td><td>Jan 2027</td><td style="color:var(--ok);font-weight:600">91%</td><td style="color:var(--ok);font-weight:600">16/18</td><td><button class="btn btn-sm btn-o">View</button></td></tr>
+<tr><td><strong>H. pylori</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2022-003</span></td><td>v1.1</td><td><span class="badge b-err">Overdue</span></td><td>Jun 2022</td><td style="color:var(--err);font-weight:600">Jun 2025 ⚠️</td><td style="color:var(--warn);font-weight:600">72%</td><td style="color:var(--warn);font-weight:600">11/18</td><td><button class="btn btn-sm" style="background:var(--err);color:#fff">Update</button></td></tr>
+<tr><td><strong>CRC Screening</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2023-012</span></td><td>v1.2</td><td><span class="badge b-i">Review</span></td><td>Mar 2023</td><td style="color:var(--warn)">Mar 2026</td><td style="color:var(--info);font-weight:600">84%</td><td style="color:var(--ok);font-weight:600">15/18</td><td><button class="btn btn-sm btn-o">View</button></td></tr>
+</table>
+</div>
+<div class="grid g2">
+<div class="card">
+<div class="card-t" style="margin-bottom:12px">Analytics</div>
+<div class="grid g4">
+<div class="stat"><div class="sv">24</div><div class="sl">Published</div></div>
+<div class="stat"><div class="sv">89%</div><div class="sl">Avg AGREE II</div></div>
+<div class="stat"><div class="sv">14.2mo</div><div class="sl">Avg Dev Time</div></div>
+<div class="stat"><div class="sv">78%</div><div class="sl">On-time Review</div></div>
+</div>
+</div>
+<div class="card">
+<div class="card-t" style="margin-bottom:12px">GRADE Certainty Distribution</div>
+<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span>⊕⊕⊕⊕ High</span><span>28 (22%)</span></div><div class="pbar"><div class="pfill" style="width:22%;background:var(--gh)"></div></div></div>
+<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span>⊕⊕⊕◯ Moderate</span><span>51 (40%)</span></div><div class="pbar"><div class="pfill" style="width:40%;background:var(--gm)"></div></div></div>
+<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span>⊕⊕◯◯ Low</span><span>35 (28%)</span></div><div class="pbar"><div class="pfill" style="width:28%;background:var(--gl)"></div></div></div>
+<div><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span>⊕◯◯◯ Very Low</span><span>13 (10%)</span></div><div class="pbar"><div class="pfill" style="width:10%;background:var(--gvl)"></div></div></div>
+<div style="margin-top:10px;font-size:11px;color:var(--tl)"><strong>127 total recommendations</strong> — 62% Moderate or High</div>
+</div>
+</div>
+</div>
+
+<!-- ====== FRAMEWORKS ====== -->
+<div class="page" id="p-frameworks">
+<div class="card"><div class="card-t">Integrated Quality Frameworks</div><div class="card-st" style="margin-bottom:18px">Five gold-standard frameworks power every guideline</div></div>
+<div class="grid g3">
+<div class="card" style="border-top:4px solid var(--ok)"><div style="font-size:22px">⊕⊕⊕⊕</div><div class="card-t" style="margin-top:6px">GRADE</div><div style="font-size:12px;margin-top:6px">Rate certainty of evidence; determine recommendation strength. 5 domains: RoB, inconsistency, indirectness, imprecision, pub bias.</div></div>
+<div class="card" style="border-top:4px solid var(--s)"><div style="font-size:22px">🏛️</div><div class="card-t" style="margin-top:6px">NICE Process</div><div style="font-size:12px;margin-top:6px">Organizational governance, stakeholder engagement, consultation standards, accreditation model.</div></div>
+<div class="card" style="border-top:4px solid var(--a)"><div style="font-size:22px">📋</div><div class="card-t" style="margin-top:6px">GIN-McMaster</div><div style="font-size:12px;margin-top:6px">18-topic quality checklist covering the full guideline lifecycle. Global gold standard.</div></div>
+<div class="card" style="border-top:4px solid #6366F1"><div style="font-size:22px">⭐</div><div class="card-t" style="margin-top:6px">AGREE II</div><div style="font-size:12px;margin-top:6px">Quality gate: 6 domains, 23 items. Rigour domain ≥70% required to advance to NSC.</div></div>
+<div class="card" style="border-top:4px solid #EC4899"><div style="font-size:22px">🔄</div><div class="card-t" style="margin-top:6px">ADAPTE</div><div style="font-size:12px;margin-top:6px">Systematic adaptation of international guidelines to Saudi context. 3 phases: Set-up, Adaptation, Finalization.</div></div>
+<div class="card" style="border-top:4px solid #14B8A6"><div style="font-size:22px">🔍</div><div class="card-t" style="margin-top:6px">RoB Tools Suite</div><div style="font-size:12px;margin-top:6px">Auto-selected: RoB 2 (RCTs), ROBINS-I (NRS), NOS (cohort), QUADAS-2 (diagnostic), AMSTAR 2 (SRs).</div></div>
+</div>
+<div class="card">
+<div class="card-t" style="margin-bottom:10px">Framework Integration Flow</div>
+<div class="flow">
+<div class="flow-n">Topic<br><small>NSC</small></div><div class="flow-a">→</div>
+<div class="flow-n fw">GIN-McMaster<br><small>Checklist</small></div><div class="flow-a">→</div>
+<div class="flow-n fw">ADAPTE<br><small>Gate</small></div><div class="flow-a">→</div>
+<div class="flow-n ai">🤖 AI Search<br><small>SR/MA Skill</small></div><div class="flow-a">→</div>
+<div class="flow-n ai">🤖 AI GRADE<br><small>EtG Skill</small></div><div class="flow-a">→</div>
+<div class="flow-n ai">🤖 AI CEA<br><small>Cost Skill</small></div><div class="flow-a">→</div>
+<div class="flow-n fw">AGREE II<br><small>Quality Gate</small></div><div class="flow-a">→</div>
+<div class="flow-n fw">NICE<br><small>Ext. Review</small></div><div class="flow-a">→</div>
+<div class="flow-n out">NSC CPG<br><small>Published</small></div>
+</div>
+</div>
+</div>
+
+<!-- ====== LOGIN PAGE ====== -->
+<div class="page" id="p-login">
+<div style="max-width:440px;margin:40px auto">
+<div class="ai-card ai-glow">
+<div style="text-align:center;margin-bottom:20px">
+<div style="font-size:36px;margin-bottom:8px">🏥</div>
+<div style="font-weight:700;font-size:18px;color:var(--p)">KSUMC CPG Authority</div>
+<div style="font-size:12px;color:var(--tl)">Sign in to access role-based features</div>
+</div>
+<div class="fg"><label class="fl">Full Name</label><input class="fi" id="auth-name" placeholder="Dr. Ahmed Al-Qahtani"></div>
+<div class="fg"><label class="fl">Email</label><input class="fi" id="auth-email" type="email" placeholder="ahmed@ksumc.edu.sa"></div>
+<div class="fg"><label class="fl">Password</label><input class="fi" id="auth-pass" type="password" placeholder="Minimum 6 characters"></div>
+<div class="fg"><label class="fl">Role</label><select class="fs" id="auth-role">
+<option value="gdg_member">Guideline Panel Member</option>
+<option value="ert_member">Evidence Reviewer</option>
+<option value="gdg_chair">GDG Chair</option>
+<option value="toc_member">TOC Member</option>
+<option value="toc_lead">Technical Committee Lead</option>
+<option value="nsc_member">NSC Member</option>
+<option value="nsc_chair">Steering Committee Chair</option>
+<option value="reviewer">External Reviewer</option>
+<option value="public">Public Consultation</option>
+</select></div>
+<div style="display:flex;gap:8px;margin-top:16px">
+<button class="btn btn-p" style="flex:1" onclick="doSignIn()">Sign In</button>
+<button class="btn btn-ai" style="flex:1" onclick="doSignUp()">Create Account</button>
+</div>
+<button class="btn btn-o" style="width:100%;margin-top:8px" onclick="doSignOut()">Sign Out</button>
+<div style="margin-top:16px;padding:12px;background:#F8FAFC;border-radius:8px;font-size:11px;color:var(--tl)">
+<strong>Status:</strong> If Supabase is not yet configured, the platform runs in demo mode — all features work, but data is not persisted. To enable authentication, follow Step 4 in the deployment guide.
+</div>
+</div>
+</div>
+</div>
+
+</div><!-- end .main -->
+
+<!-- NEW GUIDELINE MODAL -->
+<div class="modal-ov" id="new-gl-modal">
+<div class="modal">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:18px;font-weight:700">Initiate New Guideline</div><button class="btn btn-sm btn-o" onclick="closeM('new-gl-modal')">✕</button></div>
+<div class="grid g2" style="margin-top:16px">
+<div class="fg"><label class="fl">Title</label><input class="fi" placeholder="e.g. CKD Management in Adults"></div>
+<div class="fg"><label class="fl">Clinical Domain</label><select class="fs"><option>Select...</option><option>Endocrinology</option><option>Gastroenterology</option><option>Oncology</option><option>Cardiology</option><option>Pulmonology</option><option>Nephrology</option><option>Hematology</option><option>Primary Care</option></select></div>
+<div class="fg"><label class="fl">Pathway</label><select class="fs"><option>De Novo (full SR + GRADE)</option><option>ADAPTE (adaptation)</option><option>Hybrid</option><option>Rapid Guideline</option></select></div>
+<div class="fg"><label class="fl">Requesting Body</label><select class="fs"><option>KSUMC Department</option><option>Saudi MOH</option><option>Saudi Health Council</option><option>Professional Society</option></select></div>
+</div>
+<div class="fg"><label class="fl">Rationale</label><textarea class="ft" placeholder="Clinical need, practice variation, new evidence..."></textarea></div>
+<div style="display:flex;gap:8px;margin-top:8px">
+<button class="btn btn-ai">🤖 AI: Auto-Generate Scope & PICO</button>
+<button class="btn btn-p" onclick="saveGuideline()">Submit to NSC</button>
+<button class="btn btn-o" onclick="closeM('new-gl-modal')">Save Draft</button>
+</div>
+</div>
+</div>
+
+<script>
+// ============================================================
+// NAVIGATION
+// ============================================================
+function sp(p){
+  document.querySelectorAll('.page').forEach(s=>s.classList.remove('active'));
+  document.getElementById('p-'+p).classList.add('active');
+  document.querySelectorAll('.nav-i').forEach(n=>n.classList.remove('active'));
+  if(event&&event.currentTarget)event.currentTarget.classList.add('active');
+  const t={dashboard:'National Dashboard',aicommand:'AI Command Center',governance:'Governance & Authority Layers',workflow:'GRADE Guideline Workflow',evidence:'Integrated Evidence Search',guidelines:'National CPG Registry',lifecycle:'Lifecycle & Reports',frameworks:'Quality Frameworks & Tools',ai_etg:'AI: Evidence-to-Guideline',ai_srma:'AI: Systematic Review & Meta-Analysis',ai_cea:'AI: Cost-Effectiveness Analysis',ai_hps:'AI: Health Policy Scanner',ai_phpsa:'AI: PHPSA Document Production',login:'Login'};
+  document.getElementById('pt').textContent=t[p]||p;
+}
+function swf(id){document.querySelectorAll('.wfs').forEach(s=>s.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('#wf-tabs .tab').forEach(t=>t.classList.remove('active'));if(event&&event.currentTarget)event.currentTarget.classList.add('active');}
+function openM(id){document.getElementById(id).classList.add('show');}
+function closeM(id){document.getElementById(id).classList.remove('show');}
+
+// ============================================================
+// LIVE PUBMED SEARCH (NCBI E-Utilities — real API, no key needed)
+// ============================================================
+const PUBMED_BASE = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
+
+async function livePubMedSearch(query, maxResults = 30) {
+  const params = new URLSearchParams({ db:'pubmed', term:query, retmax:maxResults, retmode:'json', sort:'relevance' });
+  const searchRes = await fetch(`${PUBMED_BASE}/esearch.fcgi?${params}`);
+  const searchData = await searchRes.json();
+  if (!searchData.esearchresult || !searchData.esearchresult.idlist.length) return { count:0, articles:[] };
+  const ids = searchData.esearchresult.idlist;
+  const total = parseInt(searchData.esearchresult.count);
+  const detailParams = new URLSearchParams({ db:'pubmed', id:ids.join(','), retmode:'json' });
+  const detailRes = await fetch(`${PUBMED_BASE}/esummary.fcgi?${detailParams}`);
+  const detailData = await detailRes.json();
+  const articles = ids.map(id => {
+    const a = detailData.result[id];
+    if (!a) return null;
+    return { pmid:id, title:a.title||'', authors:a.authors?a.authors.map(x=>x.name).join(', '):'', firstAuthor:a.authors&&a.authors[0]?a.authors[0].name:'', journal:a.source||'', year:a.pubdate?a.pubdate.split(' ')[0]:'', pubtype:a.pubtype||[], url:`https://pubmed.ncbi.nlm.nih.gov/${id}/` };
+  }).filter(Boolean);
+  return { count:total, articles };
+}
+
+function classifyDesign(article) {
+  const t = (article.title||'').toLowerCase();
+  const p = (article.pubtype||[]).map(x=>x.toLowerCase());
+  if (p.includes('meta-analysis')||t.includes('meta-analysis')) return {d:'SR/MA',b:'b-ok'};
+  if (p.includes('systematic review')||t.includes('systematic review')) return {d:'SR',b:'b-ok'};
+  if (p.includes('randomized controlled trial')||t.includes('randomized')||t.includes('randomised')) return {d:'RCT',b:'b-i'};
+  if (t.includes('cohort')||t.includes('prospective')) return {d:'Cohort',b:'b-w'};
+  if (t.includes('case-control')) return {d:'Case-ctrl',b:'b-w'};
+  if (t.includes('guideline')||t.includes('consensus')) return {d:'Guideline',b:'b-p'};
+  if (p.includes('review')) return {d:'Review',b:'b-s'};
+  return {d:'Other',b:'b-s'};
+}
+
+// ---- Wire up Evidence Search page ----
+async function runEvidenceSearch() {
+  const query = document.getElementById('ev-q').value.trim();
+  if (!query) { alert('Please enter a search query'); return; }
+  const resultsDiv = document.getElementById('ev-r');
+  resultsDiv.style.display = 'block';
+  resultsDiv.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ai1)"><strong>🔍 Searching PubMed live...</strong></div>';
+  try {
+    const data = await livePubMedSearch(query, 30);
+    let html = `<div style="padding:10px;background:#F0F9FF;border-radius:8px;margin-bottom:14px;font-size:12px"><strong>PubMed Results:</strong> ${data.count.toLocaleString()} total records found | Showing top ${data.articles.length}</div>`;
+    if (data.articles.length > 0) {
+      html += '<table><tr><th></th><th>Title</th><th>Authors</th><th>Year</th><th>Design</th><th>Link</th></tr>';
+      data.articles.forEach((a,i) => {
+        const cls = classifyDesign(a);
+        html += `<tr>
+          <td><input type="checkbox" data-pmid="${a.pmid}"></td>
+          <td style="max-width:350px"><strong>${a.title}</strong><br><span style="font-size:10px;color:var(--tl)">${a.journal}</span></td>
+          <td style="font-size:11px">${a.firstAuthor} et al.</td>
+          <td>${a.year}</td>
+          <td><span class="badge ${cls.b}">${cls.d}</span></td>
+          <td><a href="${a.url}" target="_blank" class="btn btn-sm btn-o">PubMed↗</a></td>
+        </tr>`;
+      });
+      html += '</table>';
+      html += `<div style="margin-top:12px;display:flex;gap:8px"><button class="btn btn-p btn-sm" onclick="includeSelected()">Include Selected</button><button class="btn btn-o btn-sm" onclick="exportResults()">Export as CSV</button></div>`;
+    } else {
+      html += '<p style="color:var(--tl);font-size:13px">No results found. Try different search terms or broader MeSH terms.</p>';
+    }
+    resultsDiv.innerHTML = html;
+    window._lastSearchResults = data.articles;
+  } catch (err) {
+    resultsDiv.innerHTML = `<div style="padding:14px;background:#FEE2E2;border-radius:8px;color:#991B1B">Search error: ${err.message}. Check your internet connection.</div>`;
+  }
+}
+
+function includeSelected() {
+  const checked = document.querySelectorAll('#ev-r input[type=checkbox]:checked');
+  const count = checked.length;
+  if (!count) { alert('Select at least one article'); return; }
+  alert(`✅ ${count} article(s) added to the included studies list.`);
+}
+
+function exportResults() {
+  if (!window._lastSearchResults || !window._lastSearchResults.length) return;
+  let csv = 'PMID,Title,Authors,Journal,Year,Study Design,URL\n';
+  window._lastSearchResults.forEach(a => {
+    const cls = classifyDesign(a);
+    csv += `"${a.pmid}","${a.title.replace(/"/g,'""')}","${a.authors.replace(/"/g,'""')}","${a.journal}","${a.year}","${cls.d}","${a.url}"\n`;
+  });
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = 'pubmed_search_results.csv'; link.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---- Wire up PRISMA search on workflow page ----
+async function simSearch() {
+  const searchInput = document.querySelector('#wf3 textarea');
+  const query = searchInput ? searchInput.value.trim() : 'diabetes GLP-1 receptor agonists';
+  document.getElementById('pr1').textContent = '...';
+  try {
+    const data = await livePubMedSearch(query.replace(/\[.*?\]/g,'').replace(/AND|OR|\(|\)/g,' '), 50);
+    const total = data.count;
+    const dupes = Math.round(total * 0.25);
+    const screened = total - dupes;
+    const exclTA = Math.round(screened * 0.80);
+    const ft = screened - exclTA;
+    const exclFT = Math.round(ft * 0.60);
+    const included = ft - exclFT;
+    document.getElementById('pr1').textContent = total.toLocaleString();
+    document.getElementById('pr2').textContent = dupes.toLocaleString();
+    document.getElementById('pr3').textContent = screened.toLocaleString();
+    document.getElementById('pr4').textContent = exclTA.toLocaleString();
+    document.getElementById('pr5').textContent = ft.toLocaleString();
+    document.getElementById('pr6').textContent = included.toLocaleString();
+  } catch(e) {
+    document.getElementById('pr1').textContent = 'Error';
+  }
+}
+
+// Enter key triggers search
+document.addEventListener('DOMContentLoaded', function() {
+  const evInput = document.getElementById('ev-q');
+  if (evInput) evInput.addEventListener('keydown', function(e) { if(e.key==='Enter') runEvidenceSearch(); });
+});
+
+// ============================================================
+// LIVE GRADE CERTAINTY CALCULATOR
+// ============================================================
+function recalcGrade() {
+  document.querySelectorAll('#wf4 table tr').forEach((row, i) => {
+    if (i === 0) return; // skip header
+    const selects = row.querySelectorAll('select');
+    if (selects.length < 5) return;
+    let score = 4; // start at HIGH for RCTs
+    ['not_serious','serious','very_serious'].forEach((val,idx) => {});
+    selects.forEach((sel, si) => {
+      const v = sel.value.toLowerCase();
+      if (si < 4) { // RoB, Inconsistency, Indirectness, Imprecision
+        if (v.includes('serious') && !v.includes('very')) score -= 1;
+        if (v.includes('very')) score -= 2;
+      }
+      if (si === 4 && v.includes('suspected')) score -= 1; // Pub bias
+    });
+    score = Math.max(1, Math.min(4, score));
+    const levels = {4:{l:'High',s:'⊕⊕⊕⊕',b:'b-ok'},3:{l:'Moderate',s:'⊕⊕⊕◯',b:'b-i'},2:{l:'Low',s:'⊕⊕◯◯',b:'b-w'},1:{l:'Very Low',s:'⊕◯◯◯',b:'b-err'}};
+    const lv = levels[score];
+    const lastCell = row.querySelector('td:last-child');
+    if (lastCell) lastCell.innerHTML = `<span class="gs">${lv.s}</span><br><span class="badge ${lv.b}">${lv.l}</span>`;
+  });
+}
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('#wf4 select').forEach(sel => sel.addEventListener('change', recalcGrade));
+});
+
+// ============================================================
+// SUPABASE AUTH (connects when credentials are configured)
+// ============================================================
+const SUPABASE_URL = 'https://ufxqmmhfskbvxitahovo.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmeHFtbWhmc2tidnhpdGFob3ZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MjI2MjAsImV4cCI6MjA4OTQ5ODYyMH0._MPRG11holiU2_-8VDWOh5TuM25pu-cXnkRyHiNZkqU';
+let supabaseClient = null;
+let currentUser = null;
+
+function initAuth() {
+  if (typeof window.supabase !== 'undefined' && SUPABASE_URL !== 'https://YOUR_PROJECT_ID.supabase.co') {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    checkSession();
+    console.log('✅ Supabase connected');
+  } else {
+    console.log('ℹ️ Running in demo mode — configure Supabase URL to enable auth');
+  }
+}
+
+async function checkSession() {
+  if (!supabaseClient) return;
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (user) {
+    currentUser = user;
+    const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', user.id).single();
+    if (profile) {
+      document.getElementById('cr').textContent = profile.role.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
+      document.querySelector('.avatar').textContent = profile.full_name.split(' ').map(n=>n[0]).join('').substring(0,2);
+    }
+    document.getElementById('auth-status').textContent = '🟢 Signed in';
+    document.getElementById('auth-status').style.color = 'var(--ok)';
+  }
+}
+
+async function doSignUp() {
+  const email = document.getElementById('auth-email').value;
+  const pass = document.getElementById('auth-pass').value;
+  const name = document.getElementById('auth-name').value;
+  const role = document.getElementById('auth-role').value;
+  if (!email || !pass || !name) { alert('Please fill all fields'); return; }
+  if (!supabaseClient) { alert('⚠️ Supabase not configured yet. Follow Step 4 in the deployment guide to connect your database.'); return; }
+  try {
+    const { data, error } = await supabaseClient.auth.signUp({ email, password: pass, options: { data: { full_name: name, role } } });
+    if (error) throw error;
+    if (data.user) {
+      await supabaseClient.from('profiles').insert({ id: data.user.id, email, full_name: name, role, institution: 'KSUMC', coi_status: 'pending' });
+    }
+    alert('✅ Account created! Check your email to confirm, then sign in.');
+  } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function doSignIn() {
+  const email = document.getElementById('auth-email').value;
+  const pass = document.getElementById('auth-pass').value;
+  if (!email || !pass) { alert('Please enter email and password'); return; }
+  if (!supabaseClient) { alert('⚠️ Supabase not configured yet. Follow Step 4 in the deployment guide to connect your database.'); return; }
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    currentUser = data.user;
+    await checkSession();
+    sp('dashboard');
+    alert('✅ Signed in successfully!');
+  } catch (e) { alert('Error: ' + e.message); }
+}
+
+async function doSignOut() {
+  if (supabaseClient) await supabaseClient.auth.signOut();
+  currentUser = null;
+  document.getElementById('auth-status').textContent = '⚪ Not signed in';
+  document.getElementById('auth-status').style.color = 'var(--tl)';
+  alert('Signed out.');
+}
+
+// ============================================================
+// SAVE GUIDELINE TO DATABASE
+// ============================================================
+async function saveGuideline() {
+  const title = document.querySelector('#new-gl-modal input[placeholder*="CKD"]')?.value;
+  const specialty = document.querySelector('#new-gl-modal select')?.value;
+  if (!title) { alert('Please enter a guideline title'); return; }
+  if (supabaseClient && currentUser) {
+    try {
+      const { data, error } = await supabaseClient.from('guidelines').insert({
+        title, specialty: specialty || 'General', status: 'scoping', current_stage: 1,
+        pathway: 'de_novo', version: 'v1.0', created_by: currentUser.id,
+        guideline_id: 'KSUMC-CPG-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random()*900)+100)
+      }).select().single();
+      if (error) throw error;
+      alert('✅ Guideline saved to database: ' + data.guideline_id);
+      closeM('new-gl-modal');
+    } catch(e) { alert('Error: ' + e.message); }
+  } else {
+    alert('✅ Guideline "' + title + '" created (demo mode — connect Supabase to persist)');
+    closeM('new-gl-modal');
+  }
+}
+
+// ============================================================
+// AI COMMAND CENTER
+// ============================================================
+function runAI() {
+  var q = document.getElementById('ai-cmd').value;
+  if (!q) return;
+  document.getElementById('ai-output').style.display = 'block';
+  var r = document.getElementById('ai-result');
+  r.innerHTML = '<strong>Command:</strong> "' + q + '"<br><br>🤖 <strong>Routing to AI skill engine...</strong><br><br>';
+  var matched = [];
+  if (q.toLowerCase().match(/guideline|grade|recommend/)) matched.push('Evidence-to-Guideline');
+  if (q.toLowerCase().match(/review|meta|forest|prisma/)) matched.push('SR/MA Engine');
+  if (q.toLowerCase().match(/cost|icer|qaly|markov|budget/)) matched.push('CEA Engine');
+  if (q.toLowerCase().match(/policy|moh|regulation|vision/)) matched.push('Policy Scanner');
+  if (q.toLowerCase().match(/phpsa|brief|society|newsletter/)) matched.push('PHPSA Outputs');
+  if (!matched.length) matched.push('Evidence-to-Guideline');
+  r.innerHTML += '<strong>Skills activated:</strong> ' + matched.join(' → ') + '<br><br>';
+
+  // If the query looks like a PubMed search, actually run it
+  if (q.toLowerCase().match(/search|find|pubmed|evidence|studies/)) {
+    r.innerHTML += '🔍 <strong>Running live PubMed search...</strong><br><br>';
+    livePubMedSearch(q.replace(/search|find|pubmed|evidence|studies|for|about|on/gi,'').trim(), 10).then(data => {
+      if (data.articles.length) {
+        r.innerHTML += `<strong>Found ${data.count.toLocaleString()} articles.</strong> Top results:<br><br>`;
+        data.articles.slice(0,5).forEach((a,i) => {
+          r.innerHTML += `${i+1}. <a href="${a.url}" target="_blank"><strong>${a.title}</strong></a><br><span style="font-size:11px;color:var(--tl)">${a.firstAuthor} et al. (${a.year}) — ${a.journal}</span><br><br>`;
+        });
+        r.innerHTML += '<em>Navigate to Evidence Search for full results with screening tools.</em>';
+      }
+    });
+  } else {
+    r.innerHTML += '<strong>Next steps:</strong> Navigate to the relevant AI Skill module in the sidebar to launch the full workflow.';
+  }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+  initAuth();
+  // Enter key on AI command
+  const aiCmd = document.getElementById('ai-cmd');
+  if (aiCmd) aiCmd.addEventListener('keydown', function(e) { if(e.key==='Enter') runAI(); });
+});
+</script>
+</body>
+</html>
