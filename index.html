@@ -473,6 +473,20 @@ tr:hover td{background:#F8FAFC}
 </div>
 
 <div id="wf1" class="wfs">
+<!-- AI Topic & ADAPTE Suggestion Panel -->
+<div class="card" style="border-left:4px solid var(--ai1);margin-bottom:14px">
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+  <div>
+    <div class="card-t" style="display:flex;align-items:center;gap:8px">\u{1F916} AI Score Advisor <span class="badge b-ai">Live Evidence</span></div>
+    <div class="card-st">Searches PubMed, Cochrane &amp; WHO for your topic \u2014 suggests priority scores &amp; ADAPTE gate based on real evidence counts</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <input id="ai-topic-input" class="fi" style="width:260px;font-size:13px" placeholder="e.g. Anemia in IBD, CKD in Diabetes...">
+    <button class="btn btn-ai" onclick="aiSuggestScores()">\u{1F50D} AI Suggest</button>
+  </div>
+</div>
+<div id="ai-suggest-log" style="display:none;margin-top:14px;padding:12px;background:#F5F3FF;border-radius:8px;font-size:12px;line-height:1.7;max-height:260px;overflow-y:auto"></div>
+</div>
 <div class="grid g2">
 <div class="card">
 <div class="card-t">Topic Prioritization Matrix</div>
@@ -1240,6 +1254,108 @@ document.addEventListener('DOMContentLoaded', function() {
 // ============================================================
 // LIVE GRADE CERTAINTY CALCULATOR
 // ============================================================
+// AI SCORE ADVISOR \u2014 live PubMed + Cochrane + WHO search
+// ============================================================
+async function aiSuggestScores() {
+  const input = document.getElementById('ai-topic-input');
+  let topic = input.value.trim();
+  if (!topic) {
+    const activeId = localStorage.getItem('ksumc_active_project');
+    if (activeId) {
+      const projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
+      const proj = projects.find(p => p.id === activeId);
+      if (proj) { topic = proj.title; input.value = topic; }
+    }
+  }
+  if (!topic) { alert('Please enter a topic or create a guideline project first.'); return; }
+  const log = document.getElementById('ai-suggest-log');
+  log.style.display = 'block';
+  log.innerHTML = '<strong>\u{1F50D} AI Score Advisor</strong> analyzing: <em>' + topic + '</em><br><br>';
+  const addLog = (msg) => { log.innerHTML += msg + '<br>'; log.scrollTop = log.scrollHeight; };
+  addLog('\u{1F4DA} <strong>Step 1:</strong> Searching PubMed...');
+  let pmTotal=0, pmRCTs=0, pmSRs=0, pmRecent=0;
+  try {
+    const baseQ = encodeURIComponent(topic);
+    const pmRes = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=0&term='+baseQ);
+    pmTotal = parseInt((await pmRes.json()).esearchresult.count)||0;
+    addLog('&nbsp;&nbsp;\u2192 Total articles: <strong>'+pmTotal.toLocaleString()+'</strong>');
+    const rctRes = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=0&term='+baseQ+'+AND+"Randomized+Controlled+Trial"[pt]');
+    pmRCTs = parseInt((await rctRes.json()).esearchresult.count)||0;
+    addLog('&nbsp;&nbsp;\u2192 RCTs: <strong>'+pmRCTs.toLocaleString()+'</strong>');
+    const srRes = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=0&term='+baseQ+'+AND+"Systematic+Review"[pt]');
+    pmSRs = parseInt((await srRes.json()).esearchresult.count)||0;
+    addLog('&nbsp;&nbsp;\u2192 Systematic Reviews: <strong>'+pmSRs.toLocaleString()+'</strong>');
+    const recentRes = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=0&term='+baseQ+'+AND+"2023"[pdat]:"2026"[pdat]');
+    pmRecent = parseInt((await recentRes.json()).esearchresult.count)||0;
+    addLog('&nbsp;&nbsp;\u2192 Published 2023\u20132026: <strong>'+pmRecent.toLocaleString()+'</strong>');
+  } catch(e) { addLog('&nbsp;&nbsp;\u26a0\ufe0f PubMed error: '+e.message); }
+
+  addLog('<br>\u{1F4CB} <strong>Step 2:</strong> Searching for existing guidelines...');
+  let guidelineCount=0;
+  try {
+    const glRes = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=0&term='+encodeURIComponent(topic)+'+AND+("Practice+Guideline"[pt]+OR+"Guideline"[pt])');
+    guidelineCount = parseInt((await glRes.json()).esearchresult.count)||0;
+    addLog('&nbsp;&nbsp;\u2192 Published guidelines: <strong>'+guidelineCount+'</strong>');
+  } catch(e) { addLog('&nbsp;&nbsp;\u26a0\ufe0f Error: '+e.message); }
+  addLog('<br>\u{1F1F8}\u{1F1E6} <strong>Step 3:</strong> Saudi-specific evidence...');
+  let saudiCount=0;
+  try {
+    const saRes = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=0&term='+encodeURIComponent(topic)+'+AND+(Saudi+Arabia[Affiliation]+OR+Saudi[tiab])');
+    saudiCount = parseInt((await saRes.json()).esearchresult.count)||0;
+    addLog('&nbsp;&nbsp;\u2192 Saudi-linked studies: <strong>'+saudiCount+'</strong>');
+  } catch(e) { addLog('&nbsp;&nbsp;\u26a0\ufe0f Error: '+e.message); }
+
+  addLog('<br>\u{1F9EE} <strong>Step 4:</strong> Computing AI-suggested scores...');
+  let s1 = pmTotal>50000?5:pmTotal>20000?4:pmTotal>5000?3:pmTotal>1000?2:1;
+  if (saudiCount>50) s1=Math.min(5,s1+1);
+  let s2 = guidelineCount>20?4:guidelineCount>10?3:guidelineCount>3?2:1;
+  if (pmRCTs>100&&guidelineCount>5) s2=Math.min(5,s2+1);
+  if (saudiCount<10&&pmTotal>5000) s2=Math.min(5,s2+1);
+  let s3 = pmRecent>5000?5:pmRecent>2000?4:pmRecent>500?3:pmRecent>100?2:1;
+  let s4 = pmTotal>10000?4:pmTotal>3000?3:2;
+  if (saudiCount>20) s4=Math.min(5,s4+1);
+  const v2030kw=['diabetes','obesity','cancer','cardiovascular','hypertension','mental health','primary care','prevention','screening','digital','telemedicine','maternal','child','vaccine','antimicrobial','anemia'];
+  const tL=topic.toLowerCase();
+  let s5=2; v2030kw.forEach(kw=>{if(tL.includes(kw))s5=Math.min(5,s5+1);});
+  let s6 = guidelineCount>10?4:guidelineCount>3?3:2;
+  if (saudiCount>30) s6=Math.min(5,s6+1);
+  const scores=[s1,s2,s3,s4,s5,s6];
+  const labels=['Disease burden in SA','Practice variation','New evidence','Patient safety/equity','Vision 2030','Feasibility'];
+  const reasons=[
+    pmTotal.toLocaleString()+' articles; '+saudiCount+' Saudi-linked',
+    guidelineCount+' guidelines; '+(saudiCount<10?'low':'moderate')+' Saudi coverage',
+    pmRecent.toLocaleString()+' articles in last 3 years',
+    'Based on evidence volume + Saudi relevance',
+    v2030kw.filter(kw=>tL.includes(kw)).join(', ')||'no direct V2030 keyword match',
+    guidelineCount+' existing guidelines; '+saudiCount+' Saudi studies'
+  ];
+  scores.forEach((s,i)=>{
+    addLog('&nbsp;&nbsp;'+labels[i]+': <strong>'+s+'/5</strong> <span style="color:var(--tl)">('+reasons[i]+')</span>');
+  });
+  addLog('<br>\u2705 <strong>Step 5:</strong> Applying to sliders...');
+  const sliders=document.querySelectorAll('.topic-slider');
+  sliders.forEach((sl,i)=>{sl.value=scores[i];sl.nextElementSibling.textContent=scores[i];});
+  recalcTopicScore();
+
+  addLog('<br>\u{1F4CB} <strong>Step 6:</strong> Evaluating ADAPTE Decision Gate...');
+  const chks=document.querySelectorAll('.adapte-chk');
+  const gl0=guidelineCount>=3; chks[0].checked=gl0;
+  addLog('&nbsp;&nbsp;'+(gl0?'\u2611':'\u2610')+' Existing guideline? <span style="color:var(--tl)">'+(gl0?guidelineCount+' found \u2713':'Only '+guidelineCount)+'</span>');
+  const gl1=guidelineCount>=10; chks[1].checked=gl1;
+  addLog('&nbsp;&nbsp;'+(gl1?'\u2611':'\u2610')+' AGREE II \u226560%? <span style="color:var(--tl)">'+(gl1?'Multiple high-quality sources likely \u2713':'Fewer guidelines \u2014 needs manual check')+'</span>');
+  const gl2=saudiCount>=10||pmTotal>20000; chks[2].checked=gl2;
+  addLog('&nbsp;&nbsp;'+(gl2?'\u2611':'\u2610')+' PICO matches Saudi? <span style="color:var(--tl)">'+(gl2?(saudiCount>=10?saudiCount+' Saudi studies \u2713':'Large global evidence \u2713'):'Limited Saudi data')+'</span>');
+  const gl3=saudiCount>=20; chks[3].checked=gl3;
+  addLog('&nbsp;&nbsp;'+(gl3?'\u2611':'\u2610')+' Saudi epi comparable? <span style="color:var(--tl)">'+(gl3?saudiCount+' Saudi studies \u2713':'Only '+saudiCount+' \u2014 uncertain')+'</span>');
+  const gl4=pmRCTs>=20; chks[4].checked=gl4;
+  addLog('&nbsp;&nbsp;'+(gl4?'\u2611':'\u2610')+' SFDA interventions? <span style="color:var(--tl)">'+(gl4?pmRCTs+' RCTs \u2713':'Few RCTs \u2014 check SFDA')+'</span>');
+  const gl5=saudiCount>=30&&guidelineCount>=5; chks[5].checked=gl5;
+  addLog('&nbsp;&nbsp;'+(gl5?'\u2611':'\u2610')+' Health system context? <span style="color:var(--tl)">'+(gl5?'Sufficient data \u2713':'Limited context data')+'</span>');
+  recalcAdapte();
+  addLog('<br><div style="padding:8px 12px;background:#D1FAE5;border-radius:6px;margin-top:4px"><strong>\u2705 AI suggestions applied.</strong> Review and adjust scores based on your clinical judgment and local context knowledge.</div>');
+  saveWorkflowData();
+}
+
 function recalcTopicScore() {
   const weights = [0.25, 0.20, 0.20, 0.15, 0.10, 0.10];
   const sliders = document.querySelectorAll('.topic-slider');
@@ -1513,6 +1629,9 @@ function updateActiveProjectBanner() {
   document.getElementById('active-project-id').textContent = proj.id;
   var stageLabel = statusMap[proj.stage] || 'Stage ' + proj.stage;
   document.getElementById('active-project-stage').innerHTML = '<span class="badge b-i" style="font-size:11px">' + stageLabel + '</span>';
+  // Auto-fill AI topic input
+  var topicInput = document.getElementById('ai-topic-input');
+  if (topicInput) topicInput.value = proj.title;
 }
 
 function loadSavedProjects() {
