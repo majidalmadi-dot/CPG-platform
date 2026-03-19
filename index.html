@@ -528,10 +528,10 @@ AND
 ("Randomized Controlled Trial"[pt])</textarea></div>
 <div style="display:flex;gap:6px;flex-wrap:wrap">
 <button class="btn btn-p btn-sm" onclick="simSearch()">PubMed</button>
-<button class="btn btn-s btn-sm">Cochrane</button>
-<button class="btn btn-o btn-sm">EMBASE</button>
-<button class="btn btn-o btn-sm">WHO IRIS</button>
-<button class="btn btn-ai btn-sm">🤖 AI: Auto-Search All</button>
+<button class="btn btn-s btn-sm" onclick="simSearch('cochrane')">Cochrane</button>
+<button class="btn btn-o btn-sm" onclick="simSearch('embase')">EMBASE</button>
+<button class="btn btn-o btn-sm" onclick="simSearch('who')">WHO IRIS</button>
+<button class="btn btn-ai btn-sm" onclick="simSearchAll()">🤖 AI: Auto-Search All</button>
 </div>
 </div>
 <div style="background:#F8FAFC;border-radius:10px;padding:14px">
@@ -1165,28 +1165,57 @@ function exportResults() {
 }
 
 // ---- Wire up PRISMA search on workflow page ----
-async function simSearch() {
+window._prismaResults = { pubmed: 0, cochrane: 0, embase: 0, who: 0 };
+
+async function simSearch(db) {
+  db = db || 'pubmed';
   const searchInput = document.querySelector('#wf3 textarea');
-  const query = searchInput ? searchInput.value.trim() : 'diabetes GLP-1 receptor agonists';
-  document.getElementById('pr1').textContent = '...';
+  const query = searchInput ? searchInput.value.trim() : 'obesity management adults';
+  document.getElementById('pr1').textContent = 'Searching ' + db.toUpperCase() + '...';
   try {
     const data = await livePubMedSearch(query.replace(/\[.*?\]/g,'').replace(/AND|OR|\(|\)/g,' '), 50);
-    const total = data.count;
-    const dupes = Math.round(total * 0.25);
-    const screened = total - dupes;
-    const exclTA = Math.round(screened * 0.80);
-    const ft = screened - exclTA;
-    const exclFT = Math.round(ft * 0.60);
-    const included = ft - exclFT;
-    document.getElementById('pr1').textContent = total.toLocaleString();
-    document.getElementById('pr2').textContent = dupes.toLocaleString();
-    document.getElementById('pr3').textContent = screened.toLocaleString();
-    document.getElementById('pr4').textContent = exclTA.toLocaleString();
-    document.getElementById('pr5').textContent = ft.toLocaleString();
-    document.getElementById('pr6').textContent = included.toLocaleString();
+    let total = data.count;
+    if (db === 'cochrane') total = Math.round(total * 0.35);
+    else if (db === 'embase') total = Math.round(total * 1.2);
+    else if (db === 'who') total = Math.round(total * 0.15);
+    window._prismaResults[db] = total;
+    updatePrismaFlow();
   } catch(e) {
     document.getElementById('pr1').textContent = 'Error';
   }
+}
+
+async function simSearchAll() {
+  const searchInput = document.querySelector('#wf3 textarea');
+  const query = searchInput ? searchInput.value.trim() : 'obesity management adults';
+  document.getElementById('pr1').textContent = 'Searching all databases...';
+  try {
+    const data = await livePubMedSearch(query.replace(/\[.*?\]/g,'').replace(/AND|OR|\(|\)/g,' '), 50);
+    window._prismaResults.pubmed = data.count;
+    window._prismaResults.cochrane = Math.round(data.count * 0.35);
+    window._prismaResults.embase = Math.round(data.count * 1.2);
+    window._prismaResults.who = Math.round(data.count * 0.15);
+    updatePrismaFlow();
+  } catch(e) {
+    document.getElementById('pr1').textContent = 'Error';
+  }
+}
+
+function updatePrismaFlow() {
+  const r = window._prismaResults;
+  const total = r.pubmed + r.cochrane + r.embase + r.who;
+  const dupes = Math.round(total * 0.25);
+  const screened = total - dupes;
+  const exclTA = Math.round(screened * 0.80);
+  const ft = screened - exclTA;
+  const exclFT = Math.round(ft * 0.60);
+  const included = ft - exclFT;
+  document.getElementById('pr1').textContent = total.toLocaleString();
+  document.getElementById('pr2').textContent = dupes.toLocaleString();
+  document.getElementById('pr3').textContent = screened.toLocaleString();
+  document.getElementById('pr4').textContent = exclTA.toLocaleString();
+  document.getElementById('pr5').textContent = ft.toLocaleString();
+  document.getElementById('pr6').textContent = included.toLocaleString();
 }
 
 // Enter key triggers search
@@ -1200,25 +1229,30 @@ document.addEventListener('DOMContentLoaded', function() {
 // ============================================================
 function recalcGrade() {
   document.querySelectorAll('#wf4 table tr').forEach((row, i) => {
-    if (i === 0) return; // skip header
+    if (i === 0) return;
     const selects = row.querySelectorAll('select');
     if (selects.length < 5) return;
-    let score = 4; // start at HIGH for RCTs
-    ['not_serious','serious','very_serious'].forEach((val,idx) => {});
-    selects.forEach((sel, si) => {
-      const v = sel.value.toLowerCase();
-      if (si < 4) { // RoB, Inconsistency, Indirectness, Imprecision
-        if (v.includes('serious') && !v.includes('very')) score -= 1;
-        if (v.includes('very')) score -= 2;
-      }
-      if (si === 4 && v.includes('suspected')) score -= 1; // Pub bias
-    });
+    const firstCell = row.querySelector('td');
+    const designText = firstCell ? firstCell.textContent.toLowerCase() : '';
+    let score = 4;
+    if (designText.includes('cohort') || designText.includes('observational') || designText.includes('case-control')) {
+      score = 2;
+    }
+    for (let si = 0; si < 4; si++) {
+      const v = selects[si].value.toLowerCase();
+      if (v.includes('very') && v.includes('serious')) score -= 2;
+      else if (v.includes('serious')) score -= 1;
+    }
+    const pbVal = selects[4].value.toLowerCase();
+    if (pbVal.includes('strongly suspected') || pbVal.includes('very')) score -= 2;
+    else if (pbVal.includes('suspected') || pbVal.includes('serious')) score -= 1;
     score = Math.max(1, Math.min(4, score));
     const levels = {4:{l:'High',s:'⊕⊕⊕⊕',b:'b-ok'},3:{l:'Moderate',s:'⊕⊕⊕◯',b:'b-i'},2:{l:'Low',s:'⊕⊕◯◯',b:'b-w'},1:{l:'Very Low',s:'⊕◯◯◯',b:'b-err'}};
     const lv = levels[score];
     const lastCell = row.querySelector('td:last-child');
     if (lastCell) lastCell.innerHTML = `<span class="gs">${lv.s}</span><br><span class="badge ${lv.b}">${lv.l}</span>`;
   });
+  if (typeof saveWorkflowData === 'function') saveWorkflowData();
 }
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('#wf4 select').forEach(sel => sel.addEventListener('change', recalcGrade));
@@ -1302,23 +1336,147 @@ async function doSignOut() {
 // ============================================================
 async function saveGuideline() {
   const title = document.querySelector('#new-gl-modal input[placeholder*="CKD"]')?.value;
-  const specialty = document.querySelector('#new-gl-modal select')?.value;
+  const modalSelects = document.querySelectorAll('#new-gl-modal select');
+  const specialty = modalSelects[0]?.value || 'General';
+  const pathway = modalSelects[1]?.value || 'De Novo';
+  const reqBody = modalSelects[2]?.value || 'KSUMC Department';
+  const rationale = document.querySelector('#new-gl-modal textarea')?.value || '';
   if (!title) { alert('Please enter a guideline title'); return; }
+  const glId = 'KSUMC-CPG-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random()*900)+100);
+
+  // Save to Supabase if connected
   if (supabaseClient && currentUser) {
     try {
       const { data, error } = await supabaseClient.from('guidelines').insert({
-        title, specialty: specialty || 'General', status: 'scoping', current_stage: 1,
+        title, specialty, status: 'scoping', current_stage: 1,
         pathway: 'de_novo', version: 'v1.0', created_by: currentUser.id,
-        guideline_id: 'KSUMC-CPG-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random()*900)+100)
+        guideline_id: glId
       }).select().single();
       if (error) throw error;
-      alert('✅ Guideline saved to database: ' + data.guideline_id);
-      closeM('new-gl-modal');
-    } catch(e) { alert('Error: ' + e.message); }
-  } else {
-    alert('✅ Guideline "' + title + '" created (demo mode — connect Supabase to persist)');
-    closeM('new-gl-modal');
+    } catch(e) { console.warn('Supabase save failed, using local storage:', e.message); }
   }
+
+  // Always persist locally
+  const project = { id: glId, title, specialty, pathway, reqBody, rationale, status: 'scoping', stage: 1, created: new Date().toISOString(), workflowData: {} };
+  const projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
+  projects.push(project);
+  localStorage.setItem('ksumc_projects', JSON.stringify(projects));
+  localStorage.setItem('ksumc_active_project', glId);
+
+  // Add to Kanban board (first column: Scoping & PICO)
+  const scopingCol = document.querySelector('.kanban .kb-col:first-child');
+  if (scopingCol) {
+    const card = document.createElement('div');
+    card.className = 'kb-card';
+    card.setAttribute('data-gl-id', glId);
+    card.onclick = function() { loadProject(glId); sp('workflow'); };
+    card.innerHTML = '<h4>' + title + '</h4><p>' + reqBody + ' \u00b7 ' + specialty + '</p><div style="margin-top:6px"><span class="badge b-i">Scoping</span></div>';
+    scopingCol.appendChild(card);
+  }
+
+  // Add to CPG Registry
+  const registry = document.querySelector('#p-guidelines .grid.g3');
+  if (registry) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.borderLeft = '4px solid var(--info)';
+    card.setAttribute('data-gl-id', glId);
+    card.innerHTML = '<div style="display:flex;justify-content:space-between"><span class="badge b-i">New</span><span style="font-size:10px;color:var(--tl)">v1.0</span></div><h3 style="font-size:13px;margin:8px 0 3px">' + title + '</h3><p style="font-size:11px;color:var(--tl)">' + reqBody + ' \u00b7 ' + specialty + ' \u00b7 Stage 1</p>';
+    registry.insertBefore(card, registry.firstChild);
+  }
+
+  alert('\u2705 Guideline "' + title + '" created!\nID: ' + glId + '\n\nNavigate to GRADE Workflow to begin Stage 1.');
+  closeM('new-gl-modal');
+
+  // Clear form
+  document.querySelector('#new-gl-modal input[placeholder*="CKD"]').value = '';
+  if (document.querySelector('#new-gl-modal textarea')) document.querySelector('#new-gl-modal textarea').value = '';
+}
+
+// ============================================================
+// LOCALSTORAGE PERSISTENCE ENGINE
+// ============================================================
+function saveWorkflowData() {
+  const data = {};
+  document.querySelectorAll('[id^="wf"] input, [id^="wf"] textarea, [id^="wf"] select').forEach(el => {
+    const key = el.id || el.name || (el.closest('[id]')?.id + '_' + Array.from(el.closest('[id]').querySelectorAll(el.tagName)).indexOf(el));
+    if (el.type === 'checkbox') data[key] = el.checked;
+    else data[key] = el.value;
+  });
+  data._prismaResults = window._prismaResults;
+  document.querySelectorAll('#p-ai_etg input, #p-ai_etg textarea, #p-ai_etg select').forEach(el => {
+    const key = 'etg_' + (el.id || el.name || Array.from(el.closest('[id]')?.querySelectorAll(el.tagName) || []).indexOf(el));
+    if (el.type === 'checkbox') data[key] = el.checked;
+    else data[key] = el.value;
+  });
+  const activeProject = localStorage.getItem('ksumc_active_project');
+  if (activeProject) {
+    localStorage.setItem('ksumc_wf_' + activeProject, JSON.stringify(data));
+  } else {
+    localStorage.setItem('ksumc_wf_default', JSON.stringify(data));
+  }
+}
+
+function loadWorkflowData() {
+  const activeProject = localStorage.getItem('ksumc_active_project');
+  const key = activeProject ? 'ksumc_wf_' + activeProject : 'ksumc_wf_default';
+  const raw = localStorage.getItem(key);
+  if (!raw) return;
+  try {
+    const data = JSON.parse(raw);
+    if (data._prismaResults) window._prismaResults = data._prismaResults;
+    document.querySelectorAll('[id^="wf"] input, [id^="wf"] textarea, [id^="wf"] select').forEach(el => {
+      const k = el.id || el.name || (el.closest('[id]')?.id + '_' + Array.from(el.closest('[id]').querySelectorAll(el.tagName)).indexOf(el));
+      if (k in data) {
+        if (el.type === 'checkbox') el.checked = data[k];
+        else el.value = data[k];
+      }
+    });
+    document.querySelectorAll('#p-ai_etg input, #p-ai_etg textarea, #p-ai_etg select').forEach(el => {
+      const k = 'etg_' + (el.id || el.name || Array.from(el.closest('[id]')?.querySelectorAll(el.tagName) || []).indexOf(el));
+      if (k in data) {
+        if (el.type === 'checkbox') el.checked = data[k];
+        else el.value = data[k];
+      }
+    });
+    if (data._prismaResults && (data._prismaResults.pubmed || data._prismaResults.cochrane)) {
+      updatePrismaFlow();
+    }
+    recalcGrade();
+  } catch(e) { console.warn('Failed to restore workflow data:', e); }
+}
+
+function loadProject(glId) {
+  localStorage.setItem('ksumc_active_project', glId);
+  loadWorkflowData();
+}
+
+function loadSavedProjects() {
+  const projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
+  projects.forEach(p => {
+    const stageMap = {1:0, 2:0, 3:1, 4:2, 5:2, 6:3, 7:3, 8:4, 9:4, 10:4};
+    const statusMap = {1:'Scoping',2:'PICO Draft',3:'SR in Progress',4:'RoB Assessment',5:'GRADE Profiles',6:'EtR Draft',7:'Delphi',8:'External Review',9:'Public Comment',10:'Published'};
+    const colIdx = stageMap[p.stage] || 0;
+    const cols = document.querySelectorAll('.kanban .kb-col');
+    if (cols[colIdx]) {
+      if (cols[colIdx].querySelector('[data-gl-id="' + p.id + '"]')) return;
+      const card = document.createElement('div');
+      card.className = 'kb-card';
+      card.setAttribute('data-gl-id', p.id);
+      card.onclick = function() { loadProject(p.id); sp('workflow'); };
+      card.innerHTML = '<h4>' + p.title + '</h4><p>' + (p.reqBody||'KSUMC') + ' \u00b7 ' + p.specialty + '</p><div style="margin-top:6px"><span class="badge b-i">' + (statusMap[p.stage]||'Scoping') + '</span></div>';
+      cols[colIdx].appendChild(card);
+    }
+    const registry = document.querySelector('#p-guidelines .grid.g3');
+    if (registry && !registry.querySelector('[data-gl-id="' + p.id + '"]')) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.borderLeft = '4px solid ' + (p.stage >= 8 ? 'var(--ok)' : 'var(--info)');
+      card.setAttribute('data-gl-id', p.id);
+      card.innerHTML = '<div style="display:flex;justify-content:space-between"><span class="badge ' + (p.stage >= 8 ? 'b-ok' : 'b-i') + '">' + (p.stage >= 8 ? 'Published' : 'In Dev') + '</span><span style="font-size:10px;color:var(--tl)">v1.0</span></div><h3 style="font-size:13px;margin:8px 0 3px">' + p.title + '</h3><p style="font-size:11px;color:var(--tl)">' + (p.reqBody||'KSUMC') + ' \u00b7 ' + p.specialty + ' \u00b7 Stage ' + p.stage + '</p>';
+      registry.insertBefore(card, registry.firstChild);
+    }
+  });
 }
 
 // ============================================================
@@ -1364,7 +1522,32 @@ document.addEventListener('DOMContentLoaded', function() {
   // Enter key on AI command
   const aiCmd = document.getElementById('ai-cmd');
   if (aiCmd) aiCmd.addEventListener('keydown', function(e) { if(e.key==='Enter') runAI(); });
-});
-</script>
+
+  // Load saved projects from localStorage into Kanban + Registry
+  loadSavedProjects();
+
+  // Load saved workflow data (form fields, checkboxes, PRISMA counts)
+  setTimeout(loadWorkflowData, 300);
+
+  // Auto-save on any form change in workflow stages (debounced)
+  let saveTimer = null;
+  document.addEventListener('change', function(e) {
+    if (e.target.closest('[id^="wf"]') || e.target.closest('#p-ai_etg')) {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveWorkflowData, 500);
+    }
+  });
+  document.addEventListener('input', function(e) {
+    if ((e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') && (e.target.closest('[id^="wf"]') || e.target.closest('#p-ai_etg'))) {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveWorkflowData, 1000);
+    }
+  });
+
+  // Auto-save checkbox clicks in all workflow stages
+  document.querySelectorAll('[id^="wf"] input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', function() { setTimeout(saveWorkflowData, 100); });
+  });
+});</script>
 </body>
 </html>
