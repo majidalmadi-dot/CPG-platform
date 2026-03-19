@@ -1476,12 +1476,28 @@ function buildPicoSearchQuery(idx) {
 async function searchAllPicos() {
   var allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
   if (!allPicos.length) { alert('No PICO questions found. Generate PICOs in Stage 2 first.'); return; }
+  // First pass: search all PICOs with delay to respect PubMed rate limits
   for (var i = 0; i < allPicos.length; i++) {
     var idEl = document.getElementById('psr-id-' + i);
     if (idEl) idEl.textContent = '\u23F3 Searching ' + (i+1) + '/' + allPicos.length + '...';
     await picoSearchAll(i);
-    // PubMed rate limit: max 3 requests/sec without API key
-    if (i < allPicos.length - 1) await new Promise(function(r){ setTimeout(r, 500); });
+    await new Promise(function(r){ setTimeout(r, 800); });
+  }
+  // Retry pass: re-search any PICOs that got 0 results (likely rate-limited)
+  var retries = [];
+  for (var j = 0; j < allPicos.length; j++) {
+    var sr = window._picoSearchResults[j] || {pubmed:0};
+    if (sr.pubmed === 0) retries.push(j);
+  }
+  if (retries.length > 0 && retries.length < allPicos.length) {
+    await new Promise(function(r){ setTimeout(r, 2000); });
+    for (var k = 0; k < retries.length; k++) {
+      var ri = retries[k];
+      var idEl2 = document.getElementById('psr-id-' + ri);
+      if (idEl2) idEl2.textContent = '\u{1F504} Retrying ' + (ri+1) + '...';
+      await picoSearchAll(ri);
+      await new Promise(function(r){ setTimeout(r, 1000); });
+    }
   }
   renderPicoSearchPanels();
 }
