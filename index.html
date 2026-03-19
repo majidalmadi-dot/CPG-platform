@@ -1401,17 +1401,7 @@ async function picoSearch(idx, db) {
   db = db || 'pubmed';
   if (!window._picoSearchResults[idx]) window._picoSearchResults[idx] = {pubmed:0,cochrane:0,embase:0,who:0,strategy:''};
   var sr = window._picoSearchResults[idx];
-  var allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
-  var p = allPicos[idx];
-
-  // Build a clean search query from PICO fields directly (not from the MeSH strategy)
-  var queryParts = [];
-  if (p && p.P) queryParts.push(p.P.replace(/Adults with |patients with |in Saudi Arabia|\u226518y with/gi,'').trim());
-  if (p && p.I) queryParts.push(p.I.replace(/Novel |Pharmacological |Systematic |Preventive |Prognostic |Structured |Biomarker-guided |Patient education programs |Surgical\/procedural |Adapted management strategies for |interventions for |protocols for |factors |tools |modalities for /gi,'').trim());
-  if (p && p.domain && p.domain !== 'Custom') queryParts.push(p.domain.split('/')[0].trim());
-  var cleanQuery = queryParts.filter(Boolean).join(' ');
-  if (!cleanQuery && p) cleanQuery = (p.P || '') + ' ' + (p.I || '');
-
+  var cleanQuery = buildPicoSearchQuery(idx);
   var idEl = document.getElementById('psr-id-' + idx);
   if (idEl) idEl.textContent = '\u23F3 ' + db.toUpperCase() + '...';
   try {
@@ -1423,28 +1413,16 @@ async function picoSearch(idx, db) {
     sr[db] = total;
     updatePicoPrisma(idx);
     updateAggregatePrisma();
-    renderPicoSearchPanels();
     saveWorkflowData();
   } catch(e) {
     if (idEl) idEl.textContent = '\u26A0\uFE0F ' + e.message;
   }
 }
 
-
 async function picoSearchAll(idx) {
   if (!window._picoSearchResults[idx]) window._picoSearchResults[idx] = {pubmed:0,cochrane:0,embase:0,who:0,strategy:''};
   var sr = window._picoSearchResults[idx];
-  var allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
-  var p = allPicos[idx];
-
-  // Build clean query from PICO fields
-  var queryParts = [];
-  if (p && p.P) queryParts.push(p.P.replace(/Adults with |patients with |in Saudi Arabia|\u226518y with/gi,'').trim());
-  if (p && p.I) queryParts.push(p.I.replace(/Novel |Pharmacological |Systematic |Preventive |Prognostic |Structured |Biomarker-guided |Patient education programs |Surgical\/procedural |Adapted management strategies for |interventions for |protocols for |factors |tools |modalities for /gi,'').trim());
-  if (p && p.domain && p.domain !== 'Custom') queryParts.push(p.domain.split('/')[0].trim());
-  var cleanQuery = queryParts.filter(Boolean).join(' ');
-  if (!cleanQuery && p) cleanQuery = (p.P || '') + ' ' + (p.I || '');
-
+  var cleanQuery = buildPicoSearchQuery(idx);
   var idEl = document.getElementById('psr-id-' + idx);
   if (idEl) idEl.textContent = '\u23F3 Searching all...';
   try {
@@ -1455,11 +1433,43 @@ async function picoSearchAll(idx) {
     sr.who = Math.round(data.count * 0.15);
     updatePicoPrisma(idx);
     updateAggregatePrisma();
-    renderPicoSearchPanels();
     saveWorkflowData();
   } catch(e) {
     if (idEl) idEl.textContent = '\u26A0\uFE0F ' + e.message;
   }
+}
+
+// Build a clean, effective PubMed query from PICO fields
+function buildPicoSearchQuery(idx) {
+  var allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
+  var p = allPicos[idx];
+  if (!p) return '';
+
+  // Extract the core condition/topic from the active project or from P field
+  var activeId = localStorage.getItem('ksumc_active_project');
+  var projectTitle = '';
+  if (activeId) {
+    var projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
+    var proj = projects.find(function(pr){ return pr.id === activeId; });
+    if (proj) projectTitle = proj.title;
+  }
+
+  // The core condition is the project title (e.g. "Anemia in IBD") or extracted from P
+  var coreTopic = projectTitle || '';
+  if (!coreTopic && p.P) {
+    coreTopic = p.P.replace(/Adults with |patients with |in Saudi Arabia|\u226518y with/gi, '').trim();
+  }
+
+  // The domain provides the clinical angle (e.g. "Treatment", "Diagnosis", "Screening")
+  var domainName = (p.domain || '').split('/')[0].replace(/Guidelines|QoL/g, '').trim();
+
+  // Build query: "Anemia IBD treatment" — simple, effective
+  var query = coreTopic;
+  if (domainName && domainName !== 'Custom' && !coreTopic.toLowerCase().includes(domainName.toLowerCase())) {
+    query += ' ' + domainName;
+  }
+
+  return query.trim();
 }
 
 
@@ -1467,8 +1477,11 @@ async function searchAllPicos() {
   var allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
   if (!allPicos.length) { alert('No PICO questions found. Generate PICOs in Stage 2 first.'); return; }
   for (var i = 0; i < allPicos.length; i++) {
+    var idEl = document.getElementById('psr-id-' + i);
+    if (idEl) idEl.textContent = '\u23F3 Searching ' + (i+1) + '/' + allPicos.length + '...';
     await picoSearchAll(i);
-    if (i < allPicos.length - 1) await new Promise(function(r){ setTimeout(r, 350); });
+    // PubMed rate limit: max 3 requests/sec without API key
+    if (i < allPicos.length - 1) await new Promise(function(r){ setTimeout(r, 500); });
   }
   renderPicoSearchPanels();
 }
