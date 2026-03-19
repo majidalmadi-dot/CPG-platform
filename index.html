@@ -2116,7 +2116,8 @@ function recalcPicoGrade(idx) {
   var downs = ["rob","inconsistency","indirectness","imprecision"];
   downs.forEach(function(k) {
     var v = (gd[k] || "Not serious").toLowerCase();
-    if (v.indexOf("very") !== -1) score -= 2;
+    if (v.indexOf("not serious") !== -1) { /* no downgrade */ }
+    else if (v.indexOf("very") !== -1) score -= 2;
     else if (v.indexOf("serious") !== -1) score -= 1;
   });
   var pb = (gd.pubbias || "Undetected").toLowerCase();
