@@ -625,30 +625,23 @@ tr:hover td{background:#F8FAFC}
 
 </div>
 <div id="wf4" class="wfs" style="display:none">
-<div class="card">
+<div class="card" style="border-left:4px solid var(--ai1);margin-bottom:14px">
 <div class="card-t">GRADE Evidence Profile <span class="ai-status" style="margin-left:8px">AI-Assisted</span></div>
-<div class="card-st" style="margin-bottom:14px">Rate certainty across 5 GRADE domains per outcome</div>
-<table>
-<tr><th>Outcome</th><th>Studies</th><th>RoB</th><th>Inconsistency</th><th>Indirectness</th><th>Imprecision</th><th>Pub Bias</th><th>Effect</th><th>Certainty</th></tr>
-<tr><td><strong>HbA1c</strong><br><span class="badge b-err" style="font-size:9px">Critical</span></td><td>8 RCTs<br>(12,450)</td>
-<td><select class="fs" style="font-size:10px;padding:3px"><option>Not serious</option><option selected>Serious</option></select></td>
-<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Not serious</option><option>Serious</option></select></td>
-<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Not serious</option><option>Serious</option></select></td>
-<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Not serious</option><option>Serious</option></select></td>
-<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Undetected</option><option>Suspected</option></select></td>
-<td>MD −0.9%<br>(−1.1,−0.7)</td><td><span class="gs">⊕⊕⊕◯</span><br><span class="badge b-i">Moderate</span></td></tr>
-<tr><td><strong>CV events</strong><br><span class="badge b-err" style="font-size:9px">Critical</span></td><td>4 RCTs<br>(38,200)</td>
-<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Not serious</option></select></td>
-<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Not serious</option></select></td>
-<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Not serious</option></select></td>
-<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Not serious</option></select></td>
-<td><select class="fs" style="font-size:10px;padding:3px"><option selected>Undetected</option></select></td>
-<td>RR 0.88<br>(0.82,0.94)</td><td><span class="gs">⊕⊕⊕⊕</span><br><span class="badge b-ok">High</span></td></tr>
-</table>
-<div style="margin-top:14px;display:flex;gap:8px">
-<button class="btn btn-ai">🤖 AI: Auto-Calculate GRADE</button>
-<button class="btn btn-o">Generate SoF Table</button>
-<button class="btn btn-o">Export to GRADEpro</button>
+<div class="card-st" style="margin-bottom:10px">Per-PICO certainty assessment using GRADE methodology (5 downgrade + 3 upgrade domains)</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button class="btn btn-ai" onclick="autoGradeAllPicos()">🤖 AI: Auto-Assess All PICOs</button>
+<button class="btn btn-o" onclick="generateSoFTable()">Generate Summary of Findings</button>
+<button class="btn btn-o" onclick="exportGradeData()">Export GRADE Data</button>
+</div>
+</div>
+<div id="pico-grade-container"></div>
+<div class="card" style="margin-top:14px;border-left:4px solid var(--ok)">
+<div class="card-t">Aggregate GRADE Summary</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px">
+<div style="text-align:center;padding:10px;background:#F0FDF4;border-radius:8px"><div style="font-size:20px;font-weight:700" id="agg-high">0</div><div style="font-size:10px;color:#666">High</div></div>
+<div style="text-align:center;padding:10px;background:#EFF6FF;border-radius:8px"><div style="font-size:20px;font-weight:700" id="agg-mod">0</div><div style="font-size:10px;color:#666">Moderate</div></div>
+<div style="text-align:center;padding:10px;background:#FFFBEB;border-radius:8px"><div style="font-size:20px;font-weight:700" id="agg-low">0</div><div style="font-size:10px;color:#666">Low</div></div>
+<div style="text-align:center;padding:10px;background:#FEF2F2;border-radius:8px"><div style="font-size:20px;font-weight:700" id="agg-vlow">0</div><div style="font-size:10px;color:#666">Very Low</div></div>
 </div>
 </div>
 </div>
@@ -1159,6 +1152,8 @@ function swf(id){
     const proj = projects.find(p => p.id === activeId);
     if (proj && stage > proj.stage) { proj.stage = stage; localStorage.setItem('ksumc_projects', JSON.stringify(projects)); }
   }
+  if (id === "wf3" && typeof renderPicoSearchPanels === "function") renderPicoSearchPanels();
+  if (id === "wf4" && typeof renderPicoGradePanels === "function") renderPicoGradePanels();
 }
 function openM(id){document.getElementById(id).classList.add('show');}
 function closeM(id){document.getElementById(id).classList.remove('show');}
@@ -2085,36 +2080,216 @@ function recalcAdapte() {
   saveWorkflowData();
 }
 
-function recalcGrade() {
-  document.querySelectorAll('#wf4 table tr').forEach((row, i) => {
-    if (i === 0) return;
-    const selects = row.querySelectorAll('select');
-    if (selects.length < 5) return;
-    const firstCell = row.querySelector('td');
-    const designText = firstCell ? firstCell.textContent.toLowerCase() : '';
-    let score = 4;
-    if (designText.includes('cohort') || designText.includes('observational') || designText.includes('case-control')) {
-      score = 2;
-    }
-    for (let si = 0; si < 4; si++) {
-      const v = selects[si].value.toLowerCase();
-      if (v.includes('very') && v.includes('serious')) score -= 2;
-      else if (v.includes('serious')) score -= 1;
-    }
-    const pbVal = selects[4].value.toLowerCase();
-    if (pbVal.includes('strongly suspected') || pbVal.includes('very')) score -= 2;
-    else if (pbVal.includes('suspected') || pbVal.includes('serious')) score -= 1;
-    score = Math.max(1, Math.min(4, score));
-    const levels = {4:{l:'High',s:'⊕⊕⊕⊕',b:'b-ok'},3:{l:'Moderate',s:'⊕⊕⊕◯',b:'b-i'},2:{l:'Low',s:'⊕⊕◯◯',b:'b-w'},1:{l:'Very Low',s:'⊕◯◯◯',b:'b-err'}};
-    const lv = levels[score];
-    const lastCell = row.querySelector('td:last-child');
-    if (lastCell) lastCell.innerHTML = `<span class="gs">${lv.s}</span><br><span class="badge ${lv.b}">${lv.l}</span>`;
-  });
-  if (typeof saveWorkflowData === 'function') saveWorkflowData();
+// ============================================================
+// PER-PICO GRADE EVIDENCE PROFILE SYSTEM
+// ============================================================
+window._picoGradeData = window._picoGradeData || {};
+
+function getDomainColor(domain) {
+  var colors = {"Treatment/Pharmacotherapy":"#3B82F6","Diagnosis":"#8B5CF6","Screening":"#EC4899","Prevention":"#10B981","Prognosis":"#F59E0B","Management/Guidelines":"#6366F1","Monitoring":"#14B8A6","Patient Education/QoL":"#F97316","Surgical/Procedural":"#EF4444","Special Populations":"#06B6D4"};
+  return colors[domain] || "#6366F1";
 }
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('#wf4 select').forEach(sel => sel.addEventListener('change', recalcGrade));
-});
+
+function truncStr(s, max) { return s && s.length > max ? s.substring(0, max) + "..." : (s || ""); }
+
+function toggleGradePanel(idx) {
+  var panel = document.getElementById("grade-panel-" + idx);
+  var chevron = document.getElementById("grade-chevron-" + idx);
+  if (!panel) return;
+  if (panel.style.display === "none") { panel.style.display = "block"; chevron.textContent = "\u25BE"; }
+  else { panel.style.display = "none"; chevron.textContent = "\u25B8"; }
+  if (!window._picoGradeData[idx]) window._picoGradeData[idx] = {};
+  window._picoGradeData[idx].collapsed = (panel.style.display === "none");
+}
+
+function updateGradeField(idx, field, value) {
+  if (!window._picoGradeData[idx]) window._picoGradeData[idx] = {};
+  window._picoGradeData[idx][field] = value;
+  saveWorkflowData();
+}
+
+function recalcPicoGrade(idx) {
+  var gd = window._picoGradeData[idx] || {};
+  var design = gd.studyDesign || "RCT";
+  var score = 4;
+  if (design === "Cohort" || design === "Case-control" || design === "Cross-sectional" || design === "Case series") score = 2;
+  var downs = ["rob","inconsistency","indirectness","imprecision"];
+  downs.forEach(function(k) {
+    var v = (gd[k] || "Not serious").toLowerCase();
+    if (v.indexOf("very") !== -1) score -= 2;
+    else if (v.indexOf("serious") !== -1) score -= 1;
+  });
+  var pb = (gd.pubbias || "Undetected").toLowerCase();
+  if (pb.indexOf("strongly") !== -1) score -= 2;
+  else if (pb.indexOf("suspected") !== -1) score -= 1;
+  if (gd.largeEffect === "Yes") score += 1;
+  if (gd.doseResponse === "Yes") score += 1;
+  if (gd.confounders === "Yes") score += 1;
+  score = Math.max(1, Math.min(4, score));
+  var levels = {4:{l:"High",s:"\u2295\u2295\u2295\u2295",b:"b-ok",bg:"#F0FDF4"},3:{l:"Moderate",s:"\u2295\u2295\u2295\u25EF",b:"b-i",bg:"#EFF6FF"},2:{l:"Low",s:"\u2295\u2295\u25EF\u25EF",b:"b-w",bg:"#FFFBEB"},1:{l:"Very Low",s:"\u2295\u25EF\u25EF\u25EF",b:"b-err",bg:"#FEF2F2"}};
+  var lv = levels[score];
+  var resultEl = document.getElementById("grade-result-" + idx);
+  if (resultEl) resultEl.innerHTML = "<span class=\"gs\">" + lv.s + "</span> <span class=\"badge " + lv.b + "\">" + lv.l + "</span>";
+  var badgeEl = document.getElementById("grade-badge-" + idx);
+  if (badgeEl) badgeEl.innerHTML = "<span class=\"gs\" style=\"font-size:12px\">" + lv.s + "</span> <span class=\"badge " + lv.b + "\" style=\"font-size:9px\">" + lv.l + "</span>";
+  if (!window._picoGradeData[idx]) window._picoGradeData[idx] = {};
+  window._picoGradeData[idx]._certainty = lv.l;
+  window._picoGradeData[idx]._score = score;
+  updateAggregateGrade();
+}
+
+function updateAggregateGrade() {
+  var counts = {High:0, Moderate:0, Low:0, "Very Low":0};
+  var allPicos = [];
+  if (window._picoData) {
+    if (window._picoData.ai) allPicos = allPicos.concat(window._picoData.ai);
+    if (window._picoData.manual) allPicos = allPicos.concat(window._picoData.manual);
+  }
+  allPicos.forEach(function(p, idx) {
+    var gd = window._picoGradeData[idx];
+    if (gd && gd._certainty) counts[gd._certainty] = (counts[gd._certainty]||0) + 1;
+  });
+  var h = document.getElementById("agg-high"); if(h) h.textContent = counts.High;
+  var m = document.getElementById("agg-mod"); if(m) m.textContent = counts.Moderate;
+  var l = document.getElementById("agg-low"); if(l) l.textContent = counts.Low;
+  var v = document.getElementById("agg-vlow"); if(v) v.textContent = counts["Very Low"];
+}
+
+function recalcGrade() { renderPicoGradePanels(); }
+
+function renderPicoGradePanels() {
+  var container = document.getElementById("pico-grade-container");
+  if (!container) return;
+  var allPicos = [];
+  if (window._picoData) {
+    if (window._picoData.ai) allPicos = allPicos.concat(window._picoData.ai);
+    if (window._picoData.manual) allPicos = allPicos.concat(window._picoData.manual);
+  }
+  if (!allPicos.length) {
+    container.innerHTML = '<div class="card" style="text-align:center;padding:30px;color:#999"><div style="font-size:32px;margin-bottom:10px">\uD83D\uDCCB</div><div style="font-size:13px">No PICO questions defined yet.<br>Go to <strong>Stage 2 (PICO)</strong> to generate or add PICO questions first.</div></div>';
+    return;
+  }
+  var html = "";
+  allPicos.forEach(function(pico, idx) {
+    html += buildFullGradeCard(idx, pico);
+  });
+  container.innerHTML = html;
+  allPicos.forEach(function(p, idx) { recalcPicoGrade(idx); });
+}
+
+function buildFullGradeCard(idx, pico) {
+  var gd = window._picoGradeData[idx] || {};
+  var collapsed = gd.collapsed ? "none" : "block";
+  var chevChar = gd.collapsed ? "\u25B8" : "\u25BE";
+  var h = '<div class="card" style="margin-bottom:10px;border-left:4px solid ' + getDomainColor(pico.domain) + '">';
+  h += '<div onclick="toggleGradePanel(' + idx + ')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center">';
+  h += '<div><span style="font-weight:700;font-size:13px">' + (pico.icon||"\uD83D\uDCCB") + " PICO " + (idx+1) + ": " + (pico.domain||"General") + '</span>';
+  h += '<div style="font-size:11px;color:#666;margin-top:2px"><strong>P:</strong> ' + truncStr(pico.P,60) + ' <strong>I:</strong> ' + truncStr(pico.I,50) + '</div></div>';
+  h += '<div style="display:flex;align-items:center;gap:8px"><span id="grade-badge-' + idx + '"></span><span style="font-size:16px" id="grade-chevron-' + idx + '">' + chevChar + '</span></div></div>';
+  h += '<div id="grade-panel-' + idx + '" style="display:' + collapsed + ';margin-top:12px">';
+  // Study info
+  var sd = gd.studyDesign || "RCT";
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">';
+  h += '<div><label style="font-size:10px;font-weight:600;color:#666">Study Design</label>';
+  h += '<select class="fs" style="font-size:11px;width:100%;padding:4px" onchange="updateGradeField(' + idx + ',\x27studyDesign\x27,this.value);recalcPicoGrade(' + idx + ')">';
+  ["RCT","SR/MA","Cohort","Case-control","Cross-sectional","Case series"].forEach(function(o){h+='<option'+(sd===o?" selected":"")+'>'+o+'</option>';});
+  h += '</select></div>';
+  h += '<div><label style="font-size:10px;font-weight:600;color:#666">No. of Studies</label><input class="fi" style="font-size:11px;width:100%;padding:4px" value="' + (gd.numStudies||"") + '" onchange="updateGradeField(' + idx + ',\x27numStudies\x27,this.value)" placeholder="e.g. 8"></div>';
+  h += '<div><label style="font-size:10px;font-weight:600;color:#666">Participants</label><input class="fi" style="font-size:11px;width:100%;padding:4px" value="' + (gd.participants||"") + '" onchange="updateGradeField(' + idx + ',\x27participants\x27,this.value)" placeholder="e.g. 12,450"></div></div>';
+  // Downgrade domains
+  h += '<div style="font-size:11px;font-weight:700;color:#DC2626;margin-bottom:6px">\u2B07 Downgrade Domains</div>';
+  h += '<table style="width:100%;font-size:11px;border-collapse:collapse"><tr style="background:#FEF2F2"><th style="padding:4px 6px;text-align:left;width:30%">Domain</th><th style="padding:4px 6px;text-align:left">Rating</th><th style="padding:4px 6px;text-align:left;width:35%">Reason / Notes</th></tr>';
+  var dds = [{k:"rob",l:"Risk of Bias"},{k:"inconsistency",l:"Inconsistency"},{k:"indirectness",l:"Indirectness"},{k:"imprecision",l:"Imprecision"},{k:"pubbias",l:"Publication Bias"}];
+  dds.forEach(function(d){
+    var val = gd[d.k] || (d.k==="pubbias"?"Undetected":"Not serious");
+    var opts = d.k==="pubbias"?["Undetected","Suspected","Strongly suspected"]:["Not serious","Serious","Very serious"];
+    h += '<tr style="border-bottom:1px solid #eee"><td style="padding:4px 6px;font-weight:600">' + d.l + '</td><td style="padding:4px 6px"><select class="fs" style="font-size:10px;padding:3px;width:100%" onchange="updateGradeField(' + idx + ',\x27' + d.k + '\x27,this.value);recalcPicoGrade(' + idx + ')">';
+    opts.forEach(function(o){h+='<option'+(val===o?" selected":"")+'>'+o+'</option>';});
+    h += '</select></td><td style="padding:4px 6px"><input class="fi" style="font-size:10px;width:100%;padding:3px" placeholder="Optional note" value="' + (gd[d.k+"Note"]||"") + '" onchange="updateGradeField(' + idx + ',\x27' + d.k + 'Note\x27,this.value)"></td></tr>';
+  });
+  h += '</table>';
+  // Upgrade domains
+  h += '<div style="font-size:11px;font-weight:700;color:#059669;margin:10px 0 6px">\u2B06 Upgrade Domains (observational studies only)</div>';
+  h += '<table style="width:100%;font-size:11px;border-collapse:collapse"><tr style="background:#F0FDF4"><th style="padding:4px 6px;text-align:left;width:30%">Domain</th><th style="padding:4px 6px;text-align:left">Rating</th><th style="padding:4px 6px;text-align:left;width:35%">Reason / Notes</th></tr>';
+  var uds = [{k:"largeEffect",l:"Large Effect"},{k:"doseResponse",l:"Dose-Response"},{k:"confounders",l:"All Plausible Confounders"}];
+  uds.forEach(function(d){
+    var val = gd[d.k] || "No";
+    h += '<tr style="border-bottom:1px solid #eee"><td style="padding:4px 6px;font-weight:600">' + d.l + '</td><td style="padding:4px 6px"><select class="fs" style="font-size:10px;padding:3px;width:100%" onchange="updateGradeField(' + idx + ',\x27' + d.k + '\x27,this.value);recalcPicoGrade(' + idx + ')"><option'+(val==="No"?" selected":"")+'>No</option><option'+(val==="Yes"?" selected":"")+'>Yes</option></select></td>';
+    h += '<td style="padding:4px 6px"><input class="fi" style="font-size:10px;width:100%;padding:3px" placeholder="Optional note" value="' + (gd[d.k+"Note"]||"") + '" onchange="updateGradeField(' + idx + ',\x27' + d.k + 'Note\x27,this.value)"></td></tr>';
+  });
+  h += '</table>';
+  // Effect + result
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">';
+  h += '<div><label style="font-size:10px;font-weight:600;color:#666">Effect Estimate</label><input class="fi" style="font-size:11px;width:100%;padding:4px" value="' + (gd.effectEstimate||"") + '" onchange="updateGradeField(' + idx + ',\x27effectEstimate\x27,this.value)" placeholder="e.g. MD -0.9% (-1.1, -0.7)"></div>';
+  h += '<div><label style="font-size:10px;font-weight:600;color:#666">Overall Certainty</label><div id="grade-result-' + idx + '" style="padding:6px;background:#f8f8f8;border-radius:6px;text-align:center;font-size:12px">\u2014</div></div></div>';
+  // Notes
+  h += '<div style="margin-top:8px"><label style="font-size:10px;font-weight:600;color:#666">Panel Notes / Justification</label><textarea class="fi" style="font-size:11px;width:100%;padding:4px;min-height:40px" onchange="updateGradeField(' + idx + ',\x27notes\x27,this.value)" placeholder="Justification for ratings...">' + (gd.notes||"") + '</textarea></div>';
+  h += '</div></div>';
+  return h;
+}
+
+function autoGradeAllPicos() {
+  var allPicos = [];
+  if (window._picoData) {
+    if (window._picoData.ai) allPicos = allPicos.concat(window._picoData.ai);
+    if (window._picoData.manual) allPicos = allPicos.concat(window._picoData.manual);
+  }
+  if (!allPicos.length) { alert("No PICO questions found. Generate PICOs in Stage 2 first."); return; }
+  allPicos.forEach(function(pico, idx) {
+    if (!window._picoGradeData[idx]) window._picoGradeData[idx] = {};
+    var gd = window._picoGradeData[idx];
+    var domain = pico.domain || "";
+    // Smart defaults based on domain
+    if (!gd.studyDesign) {
+      if (domain.indexOf("Treatment") !== -1 || domain.indexOf("Prevention") !== -1) gd.studyDesign = "RCT";
+      else if (domain.indexOf("Prognosis") !== -1) gd.studyDesign = "Cohort";
+      else if (domain.indexOf("Diagnosis") !== -1 || domain.indexOf("Screening") !== -1) gd.studyDesign = "RCT";
+      else gd.studyDesign = "RCT";
+    }
+    // Set moderate defaults for AI assessment
+    if (!gd.rob) gd.rob = "Serious";
+    if (!gd.inconsistency) gd.inconsistency = "Not serious";
+    if (!gd.indirectness) gd.indirectness = "Not serious";
+    if (!gd.imprecision) gd.imprecision = "Serious";
+    if (!gd.pubbias) gd.pubbias = "Undetected";
+    if (!gd.largeEffect) gd.largeEffect = "No";
+    if (!gd.doseResponse) gd.doseResponse = "No";
+    if (!gd.confounders) gd.confounders = "No";
+    // Set evidence count from search results if available
+    if (window._picoSearchResults && window._picoSearchResults[idx]) {
+      var sr = window._picoSearchResults[idx];
+      gd.numStudies = String(sr.pubmed || 0);
+    }
+  });
+  saveWorkflowData();
+  renderPicoGradePanels();
+}
+
+function generateSoFTable() {
+  var allPicos = [];
+  if (window._picoData) {
+    if (window._picoData.ai) allPicos = allPicos.concat(window._picoData.ai);
+    if (window._picoData.manual) allPicos = allPicos.concat(window._picoData.manual);
+  }
+  if (!allPicos.length) { alert("No PICO questions to summarize."); return; }
+  var txt = "Summary of Findings Table\\n";
+  txt += "========================\\n\\n";
+  txt += "PICO | Domain | Design | Studies | Certainty\\n";
+  txt += "-----|--------|--------|---------|----------\\n";
+  allPicos.forEach(function(p, idx) {
+    var gd = window._picoGradeData[idx] || {};
+    txt += "PICO " + (idx+1) + " | " + (p.domain||"-") + " | " + (gd.studyDesign||"-") + " | " + (gd.numStudies||"-") + " | " + (gd._certainty||"-") + "\\n";
+  });
+  alert(txt);
+}
+
+function exportGradeData() {
+  var data = { picoGrade: window._picoGradeData, exported: new Date().toISOString() };
+  var blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+  var a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = "grade-evidence-profile.json"; a.click();
+}
+
 
 // ============================================================
 // SUPABASE AUTH (connects when credentials are configured)
@@ -2268,6 +2443,7 @@ function saveWorkflowData() {
     else data[key] = el.value;
   });
   data._picoData = window._picoData;
+  data._picoGradeData = window._picoGradeData;
   data._picoSearchResults = window._picoSearchResults;
   const activeProject = localStorage.getItem('ksumc_active_project');
   if (activeProject) {
@@ -2305,7 +2481,8 @@ function loadWorkflowData() {
       window._picoSearchResults = data._picoSearchResults;
     }
     // Restore PICO data
-    if (data._picoData) {
+        if (data._picoGradeData) { window._picoGradeData = data._picoGradeData; }
+if (data._picoData) {
       window._picoData = data._picoData;
       if (data._picoData.ai && data._picoData.ai.length) renderAIPicos(data._picoData.ai);
       if (data._picoData.manual && data._picoData.manual.length) renderManualPicos();
