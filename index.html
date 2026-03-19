@@ -532,6 +532,12 @@ tr:hover td{background:#F8FAFC}
       <option value="5" selected>5 PICOs</option>
       <option value="8">8 PICOs</option>
       <option value="10">10 PICOs</option>
+      <option value="15">15 PICOs</option>
+      <option value="20">20 PICOs</option>
+      <option value="25">25 PICOs</option>
+      <option value="30">30 PICOs</option>
+      <option value="35">35 PICOs</option>
+      <option value="40">40 PICOs</option>
     </select>
     <button class="btn btn-ai" onclick="aiGeneratePICOs()">🔍 Generate</button>
   </div>
@@ -1368,7 +1374,7 @@ async function aiGeneratePICOs() {
   }
 
   if (picos.length < numPicos) {
-    const genericDomains = ['Epidemiology & Burden','Cost-Effectiveness','Health Equity'];
+    const genericDomains = ['Epidemiology & Burden','Cost-Effectiveness','Health Equity','Rehabilitation','Nutrition & Diet','Psychosocial Support','Palliative Care','Comorbidity Management','Digital Health & Telemedicine','Pharmacovigilance','Health Literacy','Caregiver Support','Workforce & Training','Implementation Science','Cultural & Religious Considerations','Emergency & Acute Care','Transition of Care','Shared Decision-Making','Bioethics & Consent','Community-Based Interventions','Environmental & Occupational Factors','Genomics & Personalized Medicine','Vaccination & Immunization','Antimicrobial Stewardship','Maternal & Neonatal','Adolescent Health','Geriatric Care','Rural & Remote Access','Quality Improvement','Patient Safety'];
     for (let i = picos.length; i < numPicos && (i - picos.length) < genericDomains.length; i++) {
       picos.push({
         id: 'pico-ai-' + (i+1), num: i + 1,
