@@ -1285,7 +1285,7 @@ async function aiSuggestScores() {
     const srRes = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=0&term='+baseQ+'+AND+"Systematic+Review"[pt]');
     pmSRs = parseInt((await srRes.json()).esearchresult.count)||0;
     addLog('&nbsp;&nbsp;\u2192 Systematic Reviews: <strong>'+pmSRs.toLocaleString()+'</strong>');
-    const recentRes = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=0&term='+baseQ+'+AND+"2023"[pdat]:"2026"[pdat]');
+    const recentRes = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=0&term='+baseQ+'+AND+2023:2026[pdat]');
     pmRecent = parseInt((await recentRes.json()).esearchresult.count)||0;
     addLog('&nbsp;&nbsp;\u2192 Published 2023\u20132026: <strong>'+pmRecent.toLocaleString()+'</strong>');
   } catch(e) { addLog('&nbsp;&nbsp;\u26a0\ufe0f PubMed error: '+e.message); }
