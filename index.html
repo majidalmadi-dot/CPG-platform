@@ -517,30 +517,63 @@ tr:hover td{background:#F8FAFC}
 </div>
 
 <div id="wf2" class="wfs" style="display:none">
-<div class="card">
-<div class="card-t">PICO Framework Builder <span class="ai-status" style="margin-left:8px">AI-Assisted</span></div>
-<div class="card-st" style="margin-bottom:14px">GRADE/GIN-McMaster structured question</div>
-<div class="grid g2">
-<div>
-<div class="fg"><label class="fl">P — Population</label><input class="fi" placeholder="e.g. Adults ≥18y with T2DM in Saudi Arabia"></div>
-<div class="fg"><label class="fl">I — Intervention</label><input class="fi" placeholder="e.g. GLP-1 receptor agonists"></div>
-<div class="fg"><label class="fl">C — Comparator</label><input class="fi" placeholder="e.g. DPP-4 inhibitors or standard insulin"></div>
-<div class="fg"><label class="fl">O — Outcomes (rank)</label><textarea class="ft" placeholder="Critical: HbA1c reduction, CV events&#10;Important: Weight, hypoglycemia&#10;Low: GI side effects"></textarea></div>
+
+<!-- AI PICO Generator Panel -->
+<div class="card" style="border-left:4px solid var(--ai1);margin-bottom:14px">
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+  <div>
+    <div class="card-t" style="display:flex;align-items:center;gap:8px">🤖 AI PICO Generator <span class="badge b-ai">Multi-Domain</span></div>
+    <div class="card-st">Searches PubMed for your topic, identifies key clinical domains, and generates structured PICO questions covering diagnosis, treatment, screening, prognosis &amp; more</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <input id="pico-topic-input" class="fi" style="width:240px;font-size:13px" placeholder="e.g. Anemia in IBD">
+    <select id="pico-count-select" class="fs" style="width:80px;font-size:12px">
+      <option value="3">3 PICOs</option>
+      <option value="5" selected>5 PICOs</option>
+      <option value="8">8 PICOs</option>
+      <option value="10">10 PICOs</option>
+    </select>
+    <button class="btn btn-ai" onclick="aiGeneratePICOs()">🔍 Generate</button>
+  </div>
 </div>
-<div>
-<div class="fg"><label class="fl">S — Setting</label><input class="fi" placeholder="e.g. MOH tertiary and secondary hospitals"></div>
-<div class="fg"><label class="fl">T — Time Horizon</label><input class="fi" placeholder="e.g. ≥52 weeks"></div>
-<div class="fg"><label class="fl">Study Designs</label><select class="fs"><option>RCTs only</option><option>RCTs + cohorts</option><option>All designs</option></select></div>
-<div class="fg"><label class="fl">Saudi/Gulf Context</label><textarea class="ft" placeholder="e.g. 24% diabetes prevalence, Ramadan fasting, SFDA coverage"></textarea></div>
+<div id="pico-gen-log" style="display:none;margin-top:14px;padding:12px;background:#F5F3FF;border-radius:8px;font-size:12px;line-height:1.7;max-height:200px;overflow-y:auto"></div>
 </div>
+
+<!-- AI-Generated PICO Questions -->
+<div id="ai-picos-container">
+  <div style="text-align:center;padding:30px;color:var(--tl);font-size:13px">
+    <div style="font-size:28px;margin-bottom:8px">📋</div>
+    Click <strong>"Generate"</strong> above to create evidence-based PICO questions, or add your own manually below.
+  </div>
 </div>
-<div style="display:flex;gap:8px;margin-top:8px">
-<button class="btn btn-ai">🤖 AI: Auto-Generate Scope Document</button>
-<button class="btn btn-o">Export as DOCX</button>
+
+<!-- Manual PICO Entry -->
+<div class="card" style="margin-top:14px">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+  <div>
+    <div class="card-t">✍️ Manual PICO Entry</div>
+    <div class="card-st">Add custom PICO questions based on your clinical expertise</div>
+  </div>
+  <button class="btn btn-p btn-sm" onclick="addManualPICO()">+ Add PICO</button>
 </div>
+<div id="manual-picos-container"></div>
+</div>
+
+<!-- Summary & Export -->
+<div class="card" style="margin-top:14px">
+<div style="display:flex;align-items:center;justify-content:space-between">
+  <div>
+    <div class="card-t">PICO Summary</div>
+    <div class="card-st" id="pico-summary-text">0 AI-generated · 0 manual · 0 total PICO questions</div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-ai" onclick="aiGeneratePICOs()">🤖 Regenerate</button>
+    <button class="btn btn-o" onclick="exportPICOs()">Export as DOCX</button>
+  </div>
 </div>
 </div>
 
+</div>
 <div id="wf3" class="wfs" style="display:none">
 <div class="card">
 <div class="card-t">Systematic Evidence Search <span class="ai-status" style="margin-left:8px">AI-Assisted</span></div>
@@ -1268,6 +1301,299 @@ document.addEventListener('DOMContentLoaded', function() {
 // ============================================================
 // LIVE GRADE CERTAINTY CALCULATOR
 // ============================================================
+// AI PICO GENERATOR — multi-domain evidence-based
+// ============================================================
+window._picoData = { ai: [], manual: [] };
+
+async function aiGeneratePICOs() {
+  const input = document.getElementById('pico-topic-input');
+  let topic = input.value.trim();
+  if (!topic) {
+    const activeId = localStorage.getItem('ksumc_active_project');
+    if (activeId) {
+      const projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
+      const proj = projects.find(p => p.id === activeId);
+      if (proj) { topic = proj.title; input.value = topic; }
+    }
+  }
+  if (!topic) { alert('Please enter a topic.'); return; }
+  const numPicos = parseInt(document.getElementById('pico-count-select').value) || 5;
+  const log = document.getElementById('pico-gen-log');
+  log.style.display = 'block';
+  log.innerHTML = '<strong>\u{1F50D} AI PICO Generator</strong> analyzing: <em>' + topic + '</em> (' + numPicos + ' questions)<br><br>';
+  const addLog = (msg) => { log.innerHTML += msg + '<br>'; log.scrollTop = log.scrollHeight; };
+
+  addLog('\u{1F4DA} <strong>Step 1:</strong> Identifying clinical domains...');
+  const domains = [
+    { name: 'Diagnosis', queries: ['diagnosis','diagnostic accuracy','sensitivity specificity'], icon: '\u{1FA7A}' },
+    { name: 'Treatment/Pharmacotherapy', queries: ['treatment','therapy','drug','pharmacotherapy','randomized'], icon: '\u{1F48A}' },
+    { name: 'Screening', queries: ['screening','early detection','surveillance'], icon: '\u{1F52C}' },
+    { name: 'Prevention', queries: ['prevention','prophylaxis','risk reduction'], icon: '\u{1F6E1}\uFE0F' },
+    { name: 'Prognosis', queries: ['prognosis','mortality','survival','outcomes'], icon: '\u{1F4C8}' },
+    { name: 'Management/Guidelines', queries: ['management','guideline','protocol','pathway'], icon: '\u{1F4CB}' },
+    { name: 'Monitoring', queries: ['monitoring','follow-up','biomarker','laboratory'], icon: '\u{1F9EA}' },
+    { name: 'Patient Education/QoL', queries: ['quality of life','patient education','self-management','adherence'], icon: '\u{1F465}' },
+    { name: 'Surgical/Procedural', queries: ['surgery','surgical','procedure','endoscopy','intervention'], icon: '\u{1F3E5}' },
+    { name: 'Special Populations', queries: ['pediatric','pregnancy','elderly','comorbid','renal'], icon: '\u{1F476}' }
+  ];
+
+  const domainCounts = [];
+  for (const d of domains) {
+    try {
+      const q = encodeURIComponent(topic + ' AND (' + d.queries.join(' OR ') + ')');
+      const res = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=0&term=' + q);
+      const data = await res.json();
+      const count = parseInt(data.esearchresult.count) || 0;
+      domainCounts.push({ ...d, count });
+      if (count > 0) addLog('&nbsp;&nbsp;' + d.icon + ' ' + d.name + ': <strong>' + count.toLocaleString() + '</strong> articles');
+    } catch(e) { domainCounts.push({ ...d, count: 0 }); }
+  }
+
+  domainCounts.sort((a, b) => b.count - a.count);
+  const topDomains = domainCounts.filter(d => d.count > 0).slice(0, numPicos);
+  addLog('<br>\u{1F3AF} <strong>Step 2:</strong> Selected top ' + topDomains.length + ' domains by evidence volume');
+
+  addLog('<br>\u{1F9E0} <strong>Step 3:</strong> Generating PICO questions...');
+  const picos = [];
+  const topicParts = topic.split(/\s+in\s+|\s+and\s+|\s+with\s+|\s+for\s+/i);
+  const condition = topicParts[0] || topic;
+  const context = topicParts[1] || '';
+
+  for (let i = 0; i < topDomains.length; i++) {
+    const d = topDomains[i];
+    let pico = generatePICOForDomain(topic, condition, context, d, i + 1);
+    pico.evidenceCount = d.count;
+    picos.push(pico);
+    addLog('&nbsp;&nbsp;' + d.icon + ' PICO ' + (i+1) + ': <strong>' + d.name + '</strong> \u2014 ' + d.count.toLocaleString() + ' studies');
+  }
+
+  if (picos.length < numPicos) {
+    const genericDomains = ['Epidemiology & Burden','Cost-Effectiveness','Health Equity'];
+    for (let i = picos.length; i < numPicos && (i - picos.length) < genericDomains.length; i++) {
+      picos.push({
+        id: 'pico-ai-' + (i+1), num: i + 1,
+        domain: genericDomains[i - topDomains.length], icon: '\u{1F4CA}',
+        P: 'Adults with ' + topic + ' in Saudi Arabia',
+        I: '[To be defined by guideline panel]',
+        C: 'Standard care / no intervention',
+        O: 'Disease burden, resource utilization, equity outcomes',
+        S: 'Saudi healthcare system', T: 'Variable',
+        designs: 'All designs', context: 'Saudi/GCC healthcare context', evidenceCount: 0
+      });
+    }
+  }
+
+  window._picoData.ai = picos;
+  renderAIPicos(picos);
+  updatePicoSummary();
+  addLog('<br><div style="padding:8px 12px;background:#D1FAE5;border-radius:6px">\u2705 <strong>' + picos.length + ' PICO questions generated.</strong> Review and edit each one \u2014 click any field to modify.</div>');
+  saveWorkflowData();
+}
+
+function generatePICOForDomain(topic, condition, context, domain, num) {
+  const pop = context ? condition + ' in patients with ' + context : 'Adults with ' + condition + ' in Saudi Arabia';
+  const picoTemplates = {
+    'Diagnosis': {
+      I: 'Novel diagnostic biomarkers / imaging modalities for ' + condition,
+      C: 'Standard diagnostic criteria / conventional testing',
+      O: 'Critical: Sensitivity, specificity, diagnostic accuracy\nImportant: Time to diagnosis, cost\nLow: Patient acceptability'
+    },
+    'Treatment/Pharmacotherapy': {
+      I: 'Pharmacological interventions for ' + condition,
+      C: 'Standard of care / placebo / active comparator',
+      O: 'Critical: Disease remission, symptom improvement\nImportant: Adverse events, quality of life\nLow: Treatment adherence'
+    },
+    'Screening': {
+      I: 'Systematic screening protocols for ' + condition,
+      C: 'No screening / opportunistic screening',
+      O: 'Critical: Early detection rate, stage at diagnosis\nImportant: False positive rate, cost per case detected\nLow: Patient anxiety'
+    },
+    'Prevention': {
+      I: 'Preventive strategies (pharmacological/behavioral) for ' + condition,
+      C: 'No prevention / standard care',
+      O: 'Critical: Incidence reduction, NNT\nImportant: Adverse effects, adherence\nLow: Cost-effectiveness'
+    },
+    'Prognosis': {
+      I: 'Prognostic factors / risk stratification tools for ' + condition,
+      C: 'No risk stratification / standard follow-up',
+      O: 'Critical: Mortality, disease progression\nImportant: Hospitalization, complications\nLow: Healthcare utilization'
+    },
+    'Management/Guidelines': {
+      I: 'Structured management pathways / clinical protocols for ' + condition,
+      C: 'Usual care / unstructured management',
+      O: 'Critical: Clinical outcomes, guideline adherence\nImportant: Patient satisfaction, resource use\nLow: Provider workload'
+    },
+    'Monitoring': {
+      I: 'Biomarker-guided monitoring / structured follow-up for ' + condition,
+      C: 'Symptom-based monitoring / standard intervals',
+      O: 'Critical: Disease control, early relapse detection\nImportant: Unnecessary testing reduction\nLow: Patient convenience'
+    },
+    'Patient Education/QoL': {
+      I: 'Patient education programs / self-management interventions for ' + condition,
+      C: 'Standard information / no structured education',
+      O: 'Critical: Quality of life, self-efficacy\nImportant: Symptom burden, treatment adherence\nLow: Healthcare utilization'
+    },
+    'Surgical/Procedural': {
+      I: 'Surgical/procedural interventions for ' + condition,
+      C: 'Conservative management / medical therapy alone',
+      O: 'Critical: Procedure success, complication rate\nImportant: Recovery time, long-term outcomes\nLow: Cost, hospital stay'
+    },
+    'Special Populations': {
+      I: 'Adapted management strategies for ' + condition + ' in special populations',
+      C: 'Standard adult management protocols',
+      O: 'Critical: Safety, efficacy in target population\nImportant: Dosing adjustments, monitoring frequency\nLow: Caregiver burden'
+    }
+  };
+  const t = picoTemplates[domain.name] || picoTemplates['Treatment/Pharmacotherapy'];
+  return {
+    id: 'pico-ai-' + num, num: num, domain: domain.name, icon: domain.icon,
+    P: pop, I: t.I, C: t.C, O: t.O,
+    S: 'MOH / KSUMC tertiary and secondary hospitals',
+    T: domain.name === 'Prognosis' ? '\u226512 months' : '\u226524 weeks',
+    designs: domain.name === 'Diagnosis' ? 'Cross-sectional / cohort' : domain.name === 'Treatment/Pharmacotherapy' ? 'RCTs only' : 'RCTs + cohorts',
+    context: 'Saudi/GCC epidemiology, SFDA formulary, Ramadan considerations',
+    evidenceCount: 0
+  };
+}
+
+function renderAIPicos(picos) {
+  const container = document.getElementById('ai-picos-container');
+  if (!picos.length) {
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--tl);font-size:13px"><div style="font-size:28px;margin-bottom:8px">\u{1F4CB}</div>Click <strong>"Generate"</strong> above to create evidence-based PICO questions.</div>';
+    return;
+  }
+  let html = '';
+  picos.forEach((p, i) => {
+    html += '<div class="card" style="border-left:4px solid var(--ai1);margin-bottom:10px" id="' + p.id + '">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
+    html += '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">' + p.icon + '</span><strong>PICO ' + p.num + ' \u2014 ' + p.domain + '</strong> <span class="badge b-ai" style="font-size:10px">' + (p.evidenceCount ? p.evidenceCount.toLocaleString() + ' studies' : 'AI-generated') + '</span></div>';
+    html += '<button class="btn btn-o btn-sm" onclick="removeAIPico(' + i + ')" style="font-size:11px;padding:3px 8px">\u2715</button>';
+    html += '</div>';
+    html += '<div class="grid g2" style="gap:10px">';
+    html += '<div>';
+    html += '<div class="fg"><label class="fl" style="font-size:10px">P \u2014 Population</label><input class="fi pico-field" data-pico="' + i + '" data-field="P" value="' + escHtml(p.P) + '" style="font-size:12px"></div>';
+    html += '<div class="fg"><label class="fl" style="font-size:10px">I \u2014 Intervention</label><input class="fi pico-field" data-pico="' + i + '" data-field="I" value="' + escHtml(p.I) + '" style="font-size:12px"></div>';
+    html += '<div class="fg"><label class="fl" style="font-size:10px">C \u2014 Comparator</label><input class="fi pico-field" data-pico="' + i + '" data-field="C" value="' + escHtml(p.C) + '" style="font-size:12px"></div>';
+    html += '</div><div>';
+    html += '<div class="fg"><label class="fl" style="font-size:10px">O \u2014 Outcomes (ranked)</label><textarea class="ft pico-field" data-pico="' + i + '" data-field="O" style="font-size:11px;min-height:60px">' + escHtml(p.O) + '</textarea></div>';
+    html += '<div style="display:flex;gap:8px">';
+    html += '<div class="fg" style="flex:1"><label class="fl" style="font-size:10px">Setting</label><input class="fi pico-field" data-pico="' + i + '" data-field="S" value="' + escHtml(p.S) + '" style="font-size:11px"></div>';
+    html += '<div class="fg" style="flex:1"><label class="fl" style="font-size:10px">Study Designs</label><input class="fi pico-field" data-pico="' + i + '" data-field="designs" value="' + escHtml(p.designs) + '" style="font-size:11px"></div>';
+    html += '</div>';
+    html += '</div></div></div>';
+  });
+  container.innerHTML = html;
+  container.querySelectorAll('.pico-field').forEach(el => {
+    el.addEventListener('input', function() {
+      const idx = parseInt(this.dataset.pico);
+      const field = this.dataset.field;
+      if (window._picoData.ai[idx]) window._picoData.ai[idx][field] = this.value;
+      saveWorkflowData();
+    });
+  });
+}
+
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function removeAIPico(idx) {
+  window._picoData.ai.splice(idx, 1);
+  window._picoData.ai.forEach((p, i) => { p.num = i + 1; p.id = 'pico-ai-' + (i + 1); });
+  renderAIPicos(window._picoData.ai);
+  updatePicoSummary();
+  saveWorkflowData();
+}
+
+function addManualPICO() {
+  const num = window._picoData.manual.length + 1;
+  const activeId = localStorage.getItem('ksumc_active_project');
+  let topic = '';
+  if (activeId) {
+    const projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
+    const proj = projects.find(p => p.id === activeId);
+    if (proj) topic = proj.title;
+  }
+  window._picoData.manual.push({
+    id: 'pico-manual-' + num, num: num, domain: 'Custom', icon: '\u270D\uFE0F',
+    P: topic ? 'Adults with ' + topic + ' in Saudi Arabia' : '',
+    I: '', C: '', O: '', S: 'KSUMC / MOH facilities', T: '', designs: 'RCTs + cohorts', context: ''
+  });
+  renderManualPicos();
+  updatePicoSummary();
+  saveWorkflowData();
+}
+
+function renderManualPicos() {
+  const container = document.getElementById('manual-picos-container');
+  const picos = window._picoData.manual;
+  if (!picos.length) { container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--tl);font-size:12px">No manual PICOs yet. Click "+ Add PICO" to create one.</div>'; return; }
+  let html = '';
+  picos.forEach((p, i) => {
+    html += '<div class="card" style="border-left:4px solid var(--p);margin-bottom:10px;padding:14px">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+    html += '<strong>\u270D\uFE0F Manual PICO ' + (i+1) + '</strong>';
+    html += '<button class="btn btn-o btn-sm" onclick="removeManualPico(' + i + ')" style="font-size:11px;padding:3px 8px">\u2715</button>';
+    html += '</div>';
+    html += '<div class="grid g2" style="gap:8px">';
+    html += '<div>';
+    html += '<div class="fg"><label class="fl" style="font-size:10px">P \u2014 Population</label><input class="fi mpico-field" data-idx="' + i + '" data-field="P" value="' + escHtml(p.P) + '" style="font-size:12px" placeholder="e.g. Adults \u226518y with..."></div>';
+    html += '<div class="fg"><label class="fl" style="font-size:10px">I \u2014 Intervention</label><input class="fi mpico-field" data-idx="' + i + '" data-field="I" value="' + escHtml(p.I) + '" style="font-size:12px" placeholder="e.g. Drug X, procedure Y"></div>';
+    html += '<div class="fg"><label class="fl" style="font-size:10px">C \u2014 Comparator</label><input class="fi mpico-field" data-idx="' + i + '" data-field="C" value="' + escHtml(p.C) + '" style="font-size:12px" placeholder="e.g. Placebo, standard care"></div>';
+    html += '</div><div>';
+    html += '<div class="fg"><label class="fl" style="font-size:10px">O \u2014 Outcomes (ranked)</label><textarea class="ft mpico-field" data-idx="' + i + '" data-field="O" style="font-size:11px;min-height:60px" placeholder="Critical: ...&#10;Important: ...&#10;Low: ...">' + escHtml(p.O) + '</textarea></div>';
+    html += '<div style="display:flex;gap:8px">';
+    html += '<div class="fg" style="flex:1"><label class="fl" style="font-size:10px">Setting</label><input class="fi mpico-field" data-idx="' + i + '" data-field="S" value="' + escHtml(p.S) + '" style="font-size:11px"></div>';
+    html += '<div class="fg" style="flex:1"><label class="fl" style="font-size:10px">Study Designs</label><input class="fi mpico-field" data-idx="' + i + '" data-field="designs" value="' + escHtml(p.designs) + '" style="font-size:11px"></div>';
+    html += '</div></div></div></div>';
+  });
+  container.innerHTML = html;
+  container.querySelectorAll('.mpico-field').forEach(el => {
+    el.addEventListener('input', function() {
+      const idx = parseInt(this.dataset.idx);
+      const field = this.dataset.field;
+      if (window._picoData.manual[idx]) window._picoData.manual[idx][field] = this.value;
+      saveWorkflowData();
+    });
+  });
+}
+
+function removeManualPico(idx) {
+  window._picoData.manual.splice(idx, 1);
+  renderManualPicos();
+  updatePicoSummary();
+  saveWorkflowData();
+}
+
+function updatePicoSummary() {
+  const aiCount = window._picoData.ai.length;
+  const manualCount = window._picoData.manual.length;
+  const total = aiCount + manualCount;
+  const el = document.getElementById('pico-summary-text');
+  if (el) el.textContent = aiCount + ' AI-generated \u00b7 ' + manualCount + ' manual \u00b7 ' + total + ' total PICO questions';
+}
+
+function exportPICOs() {
+  const allPicos = [...window._picoData.ai, ...window._picoData.manual];
+  if (!allPicos.length) { alert('No PICO questions to export. Generate or add some first.'); return; }
+  let text = 'PICO QUESTIONS \u2014 GRADE GUIDELINE DEVELOPMENT\n';
+  text += '='.repeat(50) + '\n\n';
+  allPicos.forEach((p, i) => {
+    text += 'PICO ' + (i+1) + ' \u2014 ' + p.domain + (p.evidenceCount ? ' (' + p.evidenceCount + ' studies)' : '') + '\n';
+    text += '-'.repeat(40) + '\n';
+    text += 'P (Population):  ' + p.P + '\n';
+    text += 'I (Intervention): ' + p.I + '\n';
+    text += 'C (Comparator):  ' + p.C + '\n';
+    text += 'O (Outcomes):    ' + (p.O||'').replace(/\n/g, '\n                 ') + '\n';
+    text += 'Setting:         ' + (p.S||'') + '\n';
+    text += 'Study Designs:   ' + (p.designs||'') + '\n\n';
+  });
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'PICO_Questions_' + new Date().toISOString().slice(0,10) + '.txt';
+  a.click();
+}
+
+// ============================================================
 // AI SCORE ADVISOR \u2014 live PubMed + Cochrane + WHO search
 // ============================================================
 async function aiSuggestScores() {
@@ -1585,6 +1911,7 @@ function saveWorkflowData() {
     if (el.type === 'checkbox') data[key] = el.checked;
     else data[key] = el.value;
   });
+  data._picoData = window._picoData;
   const activeProject = localStorage.getItem('ksumc_active_project');
   if (activeProject) {
     localStorage.setItem('ksumc_wf_' + activeProject, JSON.stringify(data));
@@ -1617,6 +1944,13 @@ function loadWorkflowData() {
     });
     if (data._prismaResults && (data._prismaResults.pubmed || data._prismaResults.cochrane)) {
       updatePrismaFlow();
+    }
+    // Restore PICO data
+    if (data._picoData) {
+      window._picoData = data._picoData;
+      if (data._picoData.ai && data._picoData.ai.length) renderAIPicos(data._picoData.ai);
+      if (data._picoData.manual && data._picoData.manual.length) renderManualPicos();
+      updatePicoSummary();
     }
     recalcGrade();
   } catch(e) { console.warn('Failed to restore workflow data:', e); }
@@ -1662,6 +1996,7 @@ function updateActiveProjectBanner() {
   document.getElementById('active-project-stage').innerHTML = '<span class="badge b-i" style="font-size:11px">' + stageLabel + '</span>';
   // Auto-fill AI topic input
   var topicInput = document.getElementById('ai-topic-input');
+    var picoTopicInput = document.getElementById('pico-topic-input'); if (picoTopicInput) picoTopicInput.value = proj.title;
   if (topicInput) topicInput.value = proj.title;
   updateStepper(proj.stage || 1);
 }
