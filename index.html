@@ -450,10 +450,10 @@ tr:hover td{background:#F8FAFC}
 <div class="card-t">GRADE Guideline Development Workflow</div>
 <div class="card-st" style="margin-bottom:18px">Integrated GRADE · NICE · GIN-McMaster · AGREE II · ADAPTE — 10-stage pipeline</div>
 <div class="stepper">
-<div class="step done"><div class="step-cn"></div><div class="step-c">1</div><div class="step-l">Topic<br>Selection</div></div>
-<div class="step done"><div class="step-cn"></div><div class="step-c">2</div><div class="step-l">Scoping<br>& PICO</div></div>
-<div class="step done"><div class="step-cn"></div><div class="step-c">3</div><div class="step-l">Evidence<br>Search</div></div>
-<div class="step now"><div class="step-cn"></div><div class="step-c">4</div><div class="step-l">GRADE<br>Appraisal</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c">1</div><div class="step-l">Topic<br>Selection</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c">2</div><div class="step-l">Scoping<br>& PICO</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c">3</div><div class="step-l">Evidence<br>Search</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c">4</div><div class="step-l">GRADE<br>Appraisal</div></div>
 <div class="step"><div class="step-cn"></div><div class="step-c">5</div><div class="step-l">EtR &<br>Consensus</div></div>
 <div class="step"><div class="step-cn"></div><div class="step-c">6</div><div class="step-l">Drafting</div></div>
 <div class="step"><div class="step-cn"></div><div class="step-c">7</div><div class="step-l">External<br>Review</div></div>
@@ -1095,7 +1095,21 @@ function sp(p){
   const t={dashboard:'National Dashboard',aicommand:'AI Command Center',governance:'Governance & Authority Layers',workflow:'GRADE Guideline Workflow',evidence:'Integrated Evidence Search',guidelines:'National CPG Registry',lifecycle:'Lifecycle & Reports',frameworks:'Quality Frameworks & Tools',ai_etg:'AI: Evidence-to-Guideline',ai_srma:'AI: Systematic Review & Meta-Analysis',ai_cea:'AI: Cost-Effectiveness Analysis',ai_hps:'AI: Health Policy Scanner',ai_phpsa:'AI: PHPSA Document Production',login:'Login'};
   document.getElementById('pt').textContent=t[p]||p;
 }
-function swf(id){document.querySelectorAll('.wfs').forEach(s=>s.style.display='none');document.getElementById(id).style.display='block';document.querySelectorAll('#wf-tabs .tab').forEach(t=>t.classList.remove('active'));if(event&&event.currentTarget)event.currentTarget.classList.add('active');}
+function swf(id){
+  document.querySelectorAll('.wfs').forEach(s=>s.style.display='none');
+  document.getElementById(id).style.display='block';
+  document.querySelectorAll('#wf-tabs .tab').forEach(t=>t.classList.remove('active'));
+  if(event&&event.currentTarget)event.currentTarget.classList.add('active');
+  const tabStageMap = {wf1:1, wf2:2, wf3:3, wf4:4, wf5:5, wf6:6};
+  const stage = tabStageMap[id] || 1;
+  updateStepper(stage);
+  const activeId = localStorage.getItem('ksumc_active_project');
+  if (activeId) {
+    const projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
+    const proj = projects.find(p => p.id === activeId);
+    if (proj && stage > proj.stage) { proj.stage = stage; localStorage.setItem('ksumc_projects', JSON.stringify(projects)); }
+  }
+}
 function openM(id){document.getElementById(id).classList.add('show');}
 function closeM(id){document.getElementById(id).classList.remove('show');}
 
@@ -1612,6 +1626,23 @@ function loadProject(glId) {
   localStorage.setItem('ksumc_active_project', glId);
   loadWorkflowData();
   updateActiveProjectBanner();
+  var projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
+  var proj = projects.find(function(p) { return p.id === glId; });
+  if (proj) updateStepper(proj.stage || 1);
+}
+
+function updateStepper(currentStage) {
+  var steps = document.querySelectorAll('#p-workflow .stepper .step');
+  if (!steps.length) return;
+  var mainSteps = Array.from(steps).slice(0, 10);
+  mainSteps.forEach(function(step, i) {
+    var stageNum = i + 1;
+    step.classList.remove('done', 'now');
+    if (stageNum < currentStage) step.classList.add('done');
+    else if (stageNum === currentStage) step.classList.add('now');
+    var cn = step.querySelector('.step-cn');
+    if (cn) cn.style.background = stageNum < currentStage ? 'var(--ok)' : 'var(--b)';
+  });
 }
 
 function updateActiveProjectBanner() {
@@ -1632,6 +1663,7 @@ function updateActiveProjectBanner() {
   // Auto-fill AI topic input
   var topicInput = document.getElementById('ai-topic-input');
   if (topicInput) topicInput.value = proj.title;
+  updateStepper(proj.stage || 1);
 }
 
 function loadSavedProjects() {
@@ -1710,7 +1742,16 @@ document.addEventListener('DOMContentLoaded', function() {
   loadSavedProjects();
 
   // Load saved workflow data (form fields, checkboxes, PRISMA counts)
-  setTimeout(function() { loadWorkflowData(); updateActiveProjectBanner(); }, 300);
+  setTimeout(function() {
+    loadWorkflowData();
+    updateActiveProjectBanner();
+    var activeId = localStorage.getItem('ksumc_active_project');
+    if (activeId) {
+      var projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
+      var proj = projects.find(function(p) { return p.id === activeId; });
+      if (proj) updateStepper(proj.stage || 1);
+    }
+  }, 300);
 
   // Auto-save on any form change in workflow stages (debounced)
   let saveTimer = null;
