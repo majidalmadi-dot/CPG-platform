@@ -1351,23 +1351,45 @@ function generatePicoStrategy(idx) {
   const allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
   const p = allPicos[idx];
   if (!p) return;
-  let strategy = '';
-  if (p.P) strategy += '(' + p.P.replace(/Adults with /i,'').replace(/ in Saudi Arabia/i,'').replace(/ in patients with /i,'" AND "') + '[tiab])';
-  if (p.I) {
-    const intervention = p.I.replace(/Novel |Pharmacological |Systematic |Preventive |Prognostic |Structured |Biomarker-guided |Patient education |Surgical\/procedural |Adapted /gi, '').replace(/ for .*/i, '');
-    strategy += '\nAND\n(' + intervention.split(/[,\/]/).map(t => '"' + t.trim() + '"[tiab]').join(' OR ') + ')';
+
+  // Extract clean terms from PICO fields
+  function cleanTerms(text) {
+    return (text || '').replace(/Adults with |patients with |in Saudi Arabia|Novel |Pharmacological |Systematic |Preventive |Prognostic |Structured |Biomarker-guided |Patient education programs |Surgical\/procedural |Adapted management strategies for |interventions for |protocols for |factors |tools |modalities for |strategies \(pharmacological\/behavioral\) for |pathways |follow-up for /gi, '')
+      .replace(/\s+/g, ' ').trim();
   }
-  if (p.designs) {
-    const designMap = {'RCTs only': '"Randomized Controlled Trial"[pt]', 'RCTs + cohorts': '("Randomized Controlled Trial"[pt] OR "Cohort Studies"[MeSH])', 'Cross-sectional / cohort': '("Cross-Sectional Studies"[MeSH] OR "Cohort Studies"[MeSH])', 'All designs': ''};
-    const dFilter = designMap[p.designs] || '';
-    if (dFilter) strategy += '\nAND\n' + dFilter;
+
+  // Build a structured PubMed search
+  var popTerms = cleanTerms(p.P);
+  var intTerms = cleanTerms(p.I);
+  var compTerms = cleanTerms(p.C);
+
+  var parts = [];
+  if (popTerms) parts.push('("' + popTerms.split(/\s+(?:in|and|with|or)\s+/i).filter(Boolean).join('"[tiab] AND "') + '"[tiab])');
+  if (intTerms) {
+    var iTerms = intTerms.split(/[,\/;]/).map(function(t){ return t.trim(); }).filter(Boolean);
+    if (iTerms.length > 1) parts.push('(' + iTerms.map(function(t){ return '"' + t + '"[tiab]'; }).join(' OR ') + ')');
+    else if (iTerms.length === 1) parts.push('("' + iTerms[0] + '"[tiab])');
   }
+
+  // Add study design filter
+  var designMap = {
+    'RCTs only': '("Randomized Controlled Trial"[pt])',
+    'RCTs + cohorts': '("Randomized Controlled Trial"[pt] OR "Cohort Studies"[MeSH])',
+    'Cross-sectional / cohort': '("Cross-Sectional Studies"[MeSH] OR "Cohort Studies"[MeSH])',
+    'All designs': ''
+  };
+  var dFilter = (p.designs && designMap[p.designs]) || '';
+  if (dFilter) parts.push(dFilter);
+
+  var strategy = parts.join('\nAND\n');
+
   if (!window._picoSearchResults[idx]) window._picoSearchResults[idx] = {pubmed:0,cochrane:0,embase:0,who:0,strategy:''};
   window._picoSearchResults[idx].strategy = strategy;
-  const textarea = document.querySelector('#pico-search-' + idx + ' .pico-strategy');
+  var textarea = document.querySelector('#pico-search-' + idx + ' .pico-strategy');
   if (textarea) textarea.value = strategy;
   saveWorkflowData();
 }
+
 
 function generateAllPicoSearches() {
   const allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
@@ -1378,64 +1400,78 @@ function generateAllPicoSearches() {
 async function picoSearch(idx, db) {
   db = db || 'pubmed';
   if (!window._picoSearchResults[idx]) window._picoSearchResults[idx] = {pubmed:0,cochrane:0,embase:0,who:0,strategy:''};
-  const sr = window._picoSearchResults[idx];
-  const textarea = document.querySelector('#pico-search-' + idx + ' .pico-strategy');
-  let query = textarea ? textarea.value.trim() : '';
-  if (!query) {
-    const allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
-    const p = allPicos[idx];
-    if (p) query = (p.P || '') + ' ' + (p.I || '');
-  }
-  const idEl = document.getElementById('psr-id-' + idx);
+  var sr = window._picoSearchResults[idx];
+  var allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
+  var p = allPicos[idx];
+
+  // Build a clean search query from PICO fields directly (not from the MeSH strategy)
+  var queryParts = [];
+  if (p && p.P) queryParts.push(p.P.replace(/Adults with |patients with |in Saudi Arabia|\u226518y with/gi,'').trim());
+  if (p && p.I) queryParts.push(p.I.replace(/Novel |Pharmacological |Systematic |Preventive |Prognostic |Structured |Biomarker-guided |Patient education programs |Surgical\/procedural |Adapted management strategies for |interventions for |protocols for |factors |tools |modalities for /gi,'').trim());
+  if (p && p.domain && p.domain !== 'Custom') queryParts.push(p.domain.split('/')[0].trim());
+  var cleanQuery = queryParts.filter(Boolean).join(' ');
+  if (!cleanQuery && p) cleanQuery = (p.P || '') + ' ' + (p.I || '');
+
+  var idEl = document.getElementById('psr-id-' + idx);
   if (idEl) idEl.textContent = '\u23F3 ' + db.toUpperCase() + '...';
   try {
-    const cleanQ = query.replace(/\[.*?\]/g,'').replace(/AND|OR|\(|\)/g,' ').trim();
-    const data = await livePubMedSearch(cleanQ, 50);
-    let total = data.count;
+    var data = await livePubMedSearch(cleanQuery, 50);
+    var total = data.count;
     if (db === 'cochrane') total = Math.round(total * 0.35);
     else if (db === 'embase') total = Math.round(total * 1.2);
     else if (db === 'who') total = Math.round(total * 0.15);
     sr[db] = total;
     updatePicoPrisma(idx);
     updateAggregatePrisma();
+    renderPicoSearchPanels();
     saveWorkflowData();
   } catch(e) {
-    if (idEl) idEl.textContent = 'Error: ' + e.message;
+    if (idEl) idEl.textContent = '\u26A0\uFE0F ' + e.message;
   }
 }
 
+
 async function picoSearchAll(idx) {
   if (!window._picoSearchResults[idx]) window._picoSearchResults[idx] = {pubmed:0,cochrane:0,embase:0,who:0,strategy:''};
-  const sr = window._picoSearchResults[idx];
-  const textarea = document.querySelector('#pico-search-' + idx + ' .pico-strategy');
-  let query = textarea ? textarea.value.trim() : '';
-  if (!query) {
-    const allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
-    const p = allPicos[idx];
-    if (p) query = (p.P || '') + ' ' + (p.I || '');
-  }
-  const idEl = document.getElementById('psr-id-' + idx);
+  var sr = window._picoSearchResults[idx];
+  var allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
+  var p = allPicos[idx];
+
+  // Build clean query from PICO fields
+  var queryParts = [];
+  if (p && p.P) queryParts.push(p.P.replace(/Adults with |patients with |in Saudi Arabia|\u226518y with/gi,'').trim());
+  if (p && p.I) queryParts.push(p.I.replace(/Novel |Pharmacological |Systematic |Preventive |Prognostic |Structured |Biomarker-guided |Patient education programs |Surgical\/procedural |Adapted management strategies for |interventions for |protocols for |factors |tools |modalities for /gi,'').trim());
+  if (p && p.domain && p.domain !== 'Custom') queryParts.push(p.domain.split('/')[0].trim());
+  var cleanQuery = queryParts.filter(Boolean).join(' ');
+  if (!cleanQuery && p) cleanQuery = (p.P || '') + ' ' + (p.I || '');
+
+  var idEl = document.getElementById('psr-id-' + idx);
   if (idEl) idEl.textContent = '\u23F3 Searching all...';
   try {
-    const cleanQ = query.replace(/\[.*?\]/g,'').replace(/AND|OR|\(|\)/g,' ').trim();
-    const data = await livePubMedSearch(cleanQ, 50);
+    var data = await livePubMedSearch(cleanQuery, 50);
     sr.pubmed = data.count;
     sr.cochrane = Math.round(data.count * 0.35);
     sr.embase = Math.round(data.count * 1.2);
     sr.who = Math.round(data.count * 0.15);
     updatePicoPrisma(idx);
     updateAggregatePrisma();
+    renderPicoSearchPanels();
     saveWorkflowData();
   } catch(e) {
-    if (idEl) idEl.textContent = 'Error: ' + e.message;
+    if (idEl) idEl.textContent = '\u26A0\uFE0F ' + e.message;
   }
 }
 
-async function searchAllPicos() {
-  const allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
-  for (let i = 0; i < allPicos.length; i++) { await picoSearchAll(i); }
-}
 
+async function searchAllPicos() {
+  var allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
+  if (!allPicos.length) { alert('No PICO questions found. Generate PICOs in Stage 2 first.'); return; }
+  for (var i = 0; i < allPicos.length; i++) {
+    await picoSearchAll(i);
+    if (i < allPicos.length - 1) await new Promise(function(r){ setTimeout(r, 350); });
+  }
+  renderPicoSearchPanels();
+}
 
 function updatePicoPrisma(idx) {
   const sr = window._picoSearchResults[idx] || {pubmed:0,cochrane:0,embase:0,who:0};
