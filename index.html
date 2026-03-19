@@ -1461,7 +1461,20 @@ function buildPicoSearchQuery(idx) {
   }
 
   // The domain provides the clinical angle (e.g. "Treatment", "Diagnosis", "Screening")
-  var domainName = (p.domain || '').split('/')[0].replace(/Guidelines|QoL/g, '').trim();
+  // Map domain names to effective PubMed search terms
+  var domainSearchMap = {
+    'Treatment/Pharmacotherapy': 'treatment',
+    'Diagnosis': 'diagnosis',
+    'Screening': 'screening',
+    'Prevention': 'prevention',
+    'Prognosis': 'prognosis',
+    'Management/Guidelines': 'management guidelines',
+    'Monitoring': 'monitoring biomarker',
+    'Patient Education/QoL': 'quality of life',
+    'Surgical/Procedural': 'surgery',
+    'Special Populations': 'pediatric pregnancy elderly'
+  };
+  var domainName = domainSearchMap[p.domain] || (p.domain || '').split('/')[0].replace(/Guidelines|QoL/g, '').trim();
 
   // Build query: "Anemia IBD treatment" — simple, effective
   var query = coreTopic;
