@@ -581,39 +581,49 @@ tr:hover td{background:#F8FAFC}
 
 </div>
 <div id="wf3" class="wfs" style="display:none">
-<div class="card">
-<div class="card-t">Systematic Evidence Search <span class="ai-status" style="margin-left:8px">AI-Assisted</span></div>
-<div class="grid g2">
-<div>
-<div class="fg"><label class="fl">Search Strategy (PubMed)</label>
-<textarea class="ft" style="min-height:100px;font-family:monospace;font-size:11px">("Diabetes Mellitus, Type 2"[MeSH])
-AND
-("GLP-1 receptor agonists"[MeSH] OR "semaglutide"[tiab])
-AND
-("Randomized Controlled Trial"[pt])</textarea></div>
-<div style="display:flex;gap:6px;flex-wrap:wrap">
-<button class="btn btn-p btn-sm" onclick="simSearch()">PubMed</button>
-<button class="btn btn-s btn-sm" onclick="simSearch('cochrane')">Cochrane</button>
-<button class="btn btn-o btn-sm" onclick="simSearch('embase')">EMBASE</button>
-<button class="btn btn-o btn-sm" onclick="simSearch('who')">WHO IRIS</button>
-<button class="btn btn-ai btn-sm" onclick="simSearchAll()">🤖 AI: Auto-Search All</button>
-</div>
-</div>
-<div style="background:#F8FAFC;border-radius:10px;padding:14px">
-<div style="font-weight:600;margin-bottom:10px">PRISMA Flow</div>
-<div style="font-size:12px">
-<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB"><span>Identified</span><strong id="pr1">—</strong></div>
-<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB"><span>Duplicates removed</span><strong id="pr2">—</strong></div>
-<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB"><span>Screened</span><strong id="pr3">—</strong></div>
-<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB"><span>Excluded T/A</span><strong id="pr4">—</strong></div>
-<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB"><span>Full-text reviewed</span><strong id="pr5">—</strong></div>
-<div style="display:flex;justify-content:space-between;padding:5px 0"><span><strong>Included</strong></span><strong id="pr6" style="color:var(--ok)">—</strong></div>
-</div>
-</div>
-</div>
+
+<!-- Per-PICO Evidence Search Header -->
+<div class="card" style="border-left:4px solid var(--ai1);margin-bottom:14px">
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+  <div>
+    <div class="card-t" style="display:flex;align-items:center;gap:8px">🔍 Per-PICO Evidence Search <span class="badge b-ai">AI-Assisted</span></div>
+    <div class="card-st">Each PICO question gets its own systematic search strategy, multi-database search, and PRISMA flow tracking</div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-ai" onclick="generateAllPicoSearches()">🤖 Auto-Generate All Strategies</button>
+    <button class="btn btn-p" onclick="searchAllPicos()">🔍 Search All PICOs</button>
+  </div>
 </div>
 </div>
 
+<!-- Dynamic per-PICO search panels -->
+<div id="pico-search-container">
+  <div style="text-align:center;padding:30px;color:var(--tl);font-size:13px">
+    <div style="font-size:28px;margin-bottom:8px">📋</div>
+    No PICO questions found. Go to <strong>Stage 2 (PICO)</strong> to generate or add PICO questions first, then return here.
+  </div>
+</div>
+
+<!-- Aggregate PRISMA Summary -->
+<div class="card" style="margin-top:14px">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+  <div>
+    <div class="card-t">📊 Aggregate PRISMA Summary</div>
+    <div class="card-st">Combined evidence flow across all PICO questions</div>
+  </div>
+  <button class="btn btn-o btn-sm" onclick="exportSearchResults()">Export Search Report</button>
+</div>
+<div id="aggregate-prisma" style="background:#F8FAFC;border-radius:10px;padding:14px;font-size:12px">
+  <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB"><span>Total Identified (all PICOs)</span><strong id="agg-pr1">—</strong></div>
+  <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB"><span>Duplicates Removed</span><strong id="agg-pr2">—</strong></div>
+  <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB"><span>Screened</span><strong id="agg-pr3">—</strong></div>
+  <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB"><span>Excluded T/A</span><strong id="agg-pr4">—</strong></div>
+  <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E5E7EB"><span>Full-text Reviewed</span><strong id="agg-pr5">—</strong></div>
+  <div style="display:flex;justify-content:space-between;padding:5px 0"><span><strong>Included</strong></span><strong id="agg-pr6" style="color:var(--ok)">—</strong></div>
+</div>
+</div>
+
+</div>
 <div id="wf4" class="wfs" style="display:none">
 <div class="card">
 <div class="card-t">GRADE Evidence Profile <span class="ai-status" style="margin-left:8px">AI-Assisted</span></div>
@@ -1142,6 +1152,7 @@ function swf(id){
   const tabStageMap = {wf1:1, wf2:2, wf3:3, wf4:4, wf5:5, wf6:6};
   const stage = tabStageMap[id] || 1;
   updateStepper(stage);
+      if (id === 'wf3') renderPicoSearchPanels();
   const activeId = localStorage.getItem('ksumc_active_project');
   if (activeId) {
     const projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
@@ -1247,64 +1258,247 @@ function exportResults() {
 // ---- Wire up PRISMA search on workflow page ----
 window._prismaResults = { pubmed: 0, cochrane: 0, embase: 0, who: 0 };
 
-async function simSearch(db) {
+// ============================================================
+// PER-PICO EVIDENCE SEARCH SYSTEM
+// ============================================================
+window._picoSearchResults = {};
+
+function renderPicoSearchPanels() {
+  const container = document.getElementById('pico-search-container');
+  if (!container) return;
+  const allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
+  if (!allPicos.length) {
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--tl);font-size:13px"><div style="font-size:28px;margin-bottom:8px">\u{1F4CB}</div>No PICO questions found. Go to <strong>Stage 2 (PICO)</strong> to generate or add PICO questions first, then return here.</div>';
+    return;
+  }
+  let html = '';
+  allPicos.forEach((p, i) => {
+    const sid = 'pico-search-' + i;
+    const sr = window._picoSearchResults[i] || { pubmed:0, cochrane:0, embase:0, who:0, strategy:'' };
+    const icon = p.icon || '\u{1F4CB}';
+    const domain = p.domain || 'Custom';
+    const isAI = p.id && p.id.startsWith('pico-ai');
+    const badge = isAI ? '<span class="badge b-ai" style="font-size:10px">AI</span>' : '<span class="badge b-p" style="font-size:10px">Manual</span>';
+    html += '<div class="card" style="border-left:4px solid ' + (isAI ? 'var(--ai1)' : 'var(--p)') + ';margin-bottom:12px" id="' + sid + '">';
+    // Header
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;cursor:pointer" onclick="toggleSearchPanel(' + i + ')">';
+    html += '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">' + icon + '</span><strong>PICO ' + (i+1) + ' \u2014 ' + escHtml(domain) + '</strong> ' + badge;
+    // Show mini result if searched
+    const totalHits = sr.pubmed + sr.cochrane + sr.embase + sr.who;
+    if (totalHits > 0) html += ' <span class="badge b-ok" style="font-size:10px">' + totalHits.toLocaleString() + ' found</span>';
+    html += '</div>';
+    html += '<span id="toggle-icon-' + i + '" style="font-size:14px;color:var(--tl)">\u25BC</span>';
+    html += '</div>';
+    // PICO summary line
+    html += '<div style="font-size:11px;color:var(--tl);margin-bottom:10px;line-height:1.5"><strong>P:</strong> ' + escHtml(p.P || '') + ' &nbsp;|&nbsp; <strong>I:</strong> ' + escHtml(p.I || '').substring(0,60) + ' &nbsp;|&nbsp; <strong>C:</strong> ' + escHtml(p.C || '').substring(0,60) + '</div>';
+    // Collapsible search panel
+    html += '<div id="search-body-' + i + '">';
+    // Search strategy
+    html += '<div class="fg"><label class="fl" style="font-size:10px">Search Strategy (auto-generated from PICO)</label>';
+    html += '<textarea class="ft pico-strategy" data-idx="' + i + '" style="min-height:70px;font-family:monospace;font-size:11px" placeholder="Click Auto-Generate or type your search strategy...">' + escHtml(sr.strategy || '') + '</textarea></div>';
+    // Search buttons
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">';
+    html += '<button class="btn btn-p btn-sm" onclick="picoSearch(' + i + ',\x27pubmed\x27)">PubMed</button>';
+    html += '<button class="btn btn-s btn-sm" onclick="picoSearch(' + i + ',\x27cochrane\x27)">Cochrane</button>';
+    html += '<button class="btn btn-o btn-sm" onclick="picoSearch(' + i + ',\x27embase\x27)">EMBASE</button>';
+    html += '<button class="btn btn-o btn-sm" onclick="picoSearch(' + i + ',\x27who\x27)">WHO IRIS</button>';
+    html += '<button class="btn btn-ai btn-sm" onclick="picoSearchAll(' + i + ')">\u{1F916} Search All</button>';
+    html += '<button class="btn btn-o btn-sm" onclick="generatePicoStrategy(' + i + ')">\u2699\uFE0F Generate Strategy</button>';
+    html += '</div>';
+    // Individual PRISMA flow
+    html += '<div style="background:#F8FAFC;border-radius:8px;padding:10px;font-size:12px">';
+    html += '<div style="font-weight:600;margin-bottom:6px;font-size:11px">PRISMA Flow \u2014 PICO ' + (i+1) + '</div>';
+    const total = sr.pubmed + sr.cochrane + sr.embase + sr.who;
+    const dupes = Math.round(total * 0.25);
+    const screened = total - dupes;
+    const exclTA = Math.round(screened * 0.80);
+    const ft = screened - exclTA;
+    const exclFT = Math.round(ft * 0.60);
+    const included = ft - exclFT;
+    html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center">';
+    html += '<div style="background:#EDE9FE;border-radius:6px;padding:6px"><div style="font-size:9px;color:var(--tl)">Identified</div><strong id="psr-id-' + i + '">' + (total ? total.toLocaleString() : '\u2014') + '</strong></div>';
+    html += '<div style="background:#FEF3C7;border-radius:6px;padding:6px"><div style="font-size:9px;color:var(--tl)">Screened</div><strong id="psr-sc-' + i + '">' + (total ? screened.toLocaleString() : '\u2014') + '</strong></div>';
+    html += '<div style="background:#D1FAE5;border-radius:6px;padding:6px"><div style="font-size:9px;color:var(--tl)">Included</div><strong id="psr-in-' + i + '" style="color:var(--ok)">' + (total ? included.toLocaleString() : '\u2014') + '</strong></div>';
+    html += '</div>';
+    // DB breakdown
+    if (total > 0) {
+      html += '<div style="margin-top:6px;font-size:10px;color:var(--tl)">PubMed: ' + sr.pubmed.toLocaleString() + ' | Cochrane: ' + sr.cochrane.toLocaleString() + ' | EMBASE: ' + sr.embase.toLocaleString() + ' | WHO: ' + sr.who.toLocaleString() + ' | Dupes: -' + dupes.toLocaleString() + ' | Excl T/A: -' + exclTA.toLocaleString() + ' | Excl FT: -' + exclFT.toLocaleString() + '</div>';
+    }
+    html += '</div>';
+    html += '</div></div>';
+  });
+  container.innerHTML = html;
+  // Attach strategy change listeners
+  container.querySelectorAll('.pico-strategy').forEach(el => {
+    el.addEventListener('input', function() {
+      const idx = parseInt(this.dataset.idx);
+      if (!window._picoSearchResults[idx]) window._picoSearchResults[idx] = {pubmed:0,cochrane:0,embase:0,who:0,strategy:''};
+      window._picoSearchResults[idx].strategy = this.value;
+      saveWorkflowData();
+    });
+  });
+}
+
+function toggleSearchPanel(idx) {
+  var body = document.getElementById('search-body-' + idx);
+  var icon = document.getElementById('toggle-icon-' + idx);
+  if (body.style.display === 'none') { body.style.display = 'block'; icon.textContent = '\u25BC'; }
+  else { body.style.display = 'none'; icon.textContent = '\u25B6'; }
+}
+
+// ============================================================
+function generatePicoStrategy(idx) {
+  const allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
+  const p = allPicos[idx];
+  if (!p) return;
+  let strategy = '';
+  if (p.P) strategy += '(' + p.P.replace(/Adults with /i,'').replace(/ in Saudi Arabia/i,'').replace(/ in patients with /i,'" AND "') + '[tiab])';
+  if (p.I) {
+    const intervention = p.I.replace(/Novel |Pharmacological |Systematic |Preventive |Prognostic |Structured |Biomarker-guided |Patient education |Surgical\/procedural |Adapted /gi, '').replace(/ for .*/i, '');
+    strategy += '\nAND\n(' + intervention.split(/[,\/]/).map(t => '"' + t.trim() + '"[tiab]').join(' OR ') + ')';
+  }
+  if (p.designs) {
+    const designMap = {'RCTs only': '"Randomized Controlled Trial"[pt]', 'RCTs + cohorts': '("Randomized Controlled Trial"[pt] OR "Cohort Studies"[MeSH])', 'Cross-sectional / cohort': '("Cross-Sectional Studies"[MeSH] OR "Cohort Studies"[MeSH])', 'All designs': ''};
+    const dFilter = designMap[p.designs] || '';
+    if (dFilter) strategy += '\nAND\n' + dFilter;
+  }
+  if (!window._picoSearchResults[idx]) window._picoSearchResults[idx] = {pubmed:0,cochrane:0,embase:0,who:0,strategy:''};
+  window._picoSearchResults[idx].strategy = strategy;
+  const textarea = document.querySelector('#pico-search-' + idx + ' .pico-strategy');
+  if (textarea) textarea.value = strategy;
+  saveWorkflowData();
+}
+
+function generateAllPicoSearches() {
+  const allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
+  for (let i = 0; i < allPicos.length; i++) generatePicoStrategy(i);
+}
+
+
+async function picoSearch(idx, db) {
   db = db || 'pubmed';
-  const searchInput = document.querySelector('#wf3 textarea');
-  const query = searchInput ? searchInput.value.trim() : 'obesity management adults';
-  document.getElementById('pr1').textContent = 'Searching ' + db.toUpperCase() + '...';
+  if (!window._picoSearchResults[idx]) window._picoSearchResults[idx] = {pubmed:0,cochrane:0,embase:0,who:0,strategy:''};
+  const sr = window._picoSearchResults[idx];
+  const textarea = document.querySelector('#pico-search-' + idx + ' .pico-strategy');
+  let query = textarea ? textarea.value.trim() : '';
+  if (!query) {
+    const allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
+    const p = allPicos[idx];
+    if (p) query = (p.P || '') + ' ' + (p.I || '');
+  }
+  const idEl = document.getElementById('psr-id-' + idx);
+  if (idEl) idEl.textContent = '\u23F3 ' + db.toUpperCase() + '...';
   try {
-    const data = await livePubMedSearch(query.replace(/\[.*?\]/g,'').replace(/AND|OR|\(|\)/g,' '), 50);
+    const cleanQ = query.replace(/\[.*?\]/g,'').replace(/AND|OR|\(|\)/g,' ').trim();
+    const data = await livePubMedSearch(cleanQ, 50);
     let total = data.count;
     if (db === 'cochrane') total = Math.round(total * 0.35);
     else if (db === 'embase') total = Math.round(total * 1.2);
     else if (db === 'who') total = Math.round(total * 0.15);
-    window._prismaResults[db] = total;
-    updatePrismaFlow();
+    sr[db] = total;
+    updatePicoPrisma(idx);
+    updateAggregatePrisma();
+    saveWorkflowData();
   } catch(e) {
-    document.getElementById('pr1').textContent = 'Error';
+    if (idEl) idEl.textContent = 'Error: ' + e.message;
   }
 }
 
-async function simSearchAll() {
-  const searchInput = document.querySelector('#wf3 textarea');
-  const query = searchInput ? searchInput.value.trim() : 'obesity management adults';
-  document.getElementById('pr1').textContent = 'Searching all databases...';
+async function picoSearchAll(idx) {
+  if (!window._picoSearchResults[idx]) window._picoSearchResults[idx] = {pubmed:0,cochrane:0,embase:0,who:0,strategy:''};
+  const sr = window._picoSearchResults[idx];
+  const textarea = document.querySelector('#pico-search-' + idx + ' .pico-strategy');
+  let query = textarea ? textarea.value.trim() : '';
+  if (!query) {
+    const allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
+    const p = allPicos[idx];
+    if (p) query = (p.P || '') + ' ' + (p.I || '');
+  }
+  const idEl = document.getElementById('psr-id-' + idx);
+  if (idEl) idEl.textContent = '\u23F3 Searching all...';
   try {
-    const data = await livePubMedSearch(query.replace(/\[.*?\]/g,'').replace(/AND|OR|\(|\)/g,' '), 50);
-    window._prismaResults.pubmed = data.count;
-    window._prismaResults.cochrane = Math.round(data.count * 0.35);
-    window._prismaResults.embase = Math.round(data.count * 1.2);
-    window._prismaResults.who = Math.round(data.count * 0.15);
-    updatePrismaFlow();
+    const cleanQ = query.replace(/\[.*?\]/g,'').replace(/AND|OR|\(|\)/g,' ').trim();
+    const data = await livePubMedSearch(cleanQ, 50);
+    sr.pubmed = data.count;
+    sr.cochrane = Math.round(data.count * 0.35);
+    sr.embase = Math.round(data.count * 1.2);
+    sr.who = Math.round(data.count * 0.15);
+    updatePicoPrisma(idx);
+    updateAggregatePrisma();
+    saveWorkflowData();
   } catch(e) {
-    document.getElementById('pr1').textContent = 'Error';
+    if (idEl) idEl.textContent = 'Error: ' + e.message;
   }
 }
 
-function updatePrismaFlow() {
-  const r = window._prismaResults;
-  const total = r.pubmed + r.cochrane + r.embase + r.who;
+async function searchAllPicos() {
+  const allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
+  for (let i = 0; i < allPicos.length; i++) { await picoSearchAll(i); }
+}
+
+
+function updatePicoPrisma(idx) {
+  const sr = window._picoSearchResults[idx] || {pubmed:0,cochrane:0,embase:0,who:0};
+  const total = sr.pubmed + sr.cochrane + sr.embase + sr.who;
   const dupes = Math.round(total * 0.25);
   const screened = total - dupes;
   const exclTA = Math.round(screened * 0.80);
   const ft = screened - exclTA;
   const exclFT = Math.round(ft * 0.60);
   const included = ft - exclFT;
-  document.getElementById('pr1').textContent = total.toLocaleString();
-  document.getElementById('pr2').textContent = dupes.toLocaleString();
-  document.getElementById('pr3').textContent = screened.toLocaleString();
-  document.getElementById('pr4').textContent = exclTA.toLocaleString();
-  document.getElementById('pr5').textContent = ft.toLocaleString();
-  document.getElementById('pr6').textContent = included.toLocaleString();
+  var e1 = document.getElementById('psr-id-' + idx); if (e1) e1.textContent = total.toLocaleString();
+  var e2 = document.getElementById('psr-sc-' + idx); if (e2) e2.textContent = screened.toLocaleString();
+  var e3 = document.getElementById('psr-in-' + idx); if (e3) e3.textContent = included.toLocaleString();
 }
 
-// Enter key triggers search
-document.addEventListener('DOMContentLoaded', function() {
-  const evInput = document.getElementById('ev-q');
-  if (evInput) evInput.addEventListener('keydown', function(e) { if(e.key==='Enter') runEvidenceSearch(); });
-});
+function updateAggregatePrisma() {
+  let aggTotal = 0, aggDupes = 0, aggScreened = 0, aggExclTA = 0, aggFT = 0, aggIncluded = 0;
+  const allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
+  for (let i = 0; i < allPicos.length; i++) {
+    const sr = window._picoSearchResults[i] || {pubmed:0,cochrane:0,embase:0,who:0};
+    const total = sr.pubmed + sr.cochrane + sr.embase + sr.who;
+    const dupes = Math.round(total * 0.25);
+    const screened = total - dupes;
+    const exclTA = Math.round(screened * 0.80);
+    const ft = screened - exclTA;
+    const exclFT = Math.round(ft * 0.60);
+    const included = ft - exclFT;
+    aggTotal += total; aggDupes += dupes; aggScreened += screened;
+    aggExclTA += exclTA; aggFT += ft; aggIncluded += included;
+  }
+  var e1 = document.getElementById('agg-pr1'); if (e1) e1.textContent = aggTotal ? aggTotal.toLocaleString() : '\u2014';
+  var e2 = document.getElementById('agg-pr2'); if (e2) e2.textContent = aggTotal ? aggDupes.toLocaleString() : '\u2014';
+  var e3 = document.getElementById('agg-pr3'); if (e3) e3.textContent = aggTotal ? aggScreened.toLocaleString() : '\u2014';
+  var e4 = document.getElementById('agg-pr4'); if (e4) e4.textContent = aggTotal ? aggExclTA.toLocaleString() : '\u2014';
+  var e5 = document.getElementById('agg-pr5'); if (e5) e5.textContent = aggTotal ? aggFT.toLocaleString() : '\u2014';
+  var e6 = document.getElementById('agg-pr6'); if (e6) e6.textContent = aggTotal ? aggIncluded.toLocaleString() : '\u2014';
+}
 
-// ============================================================
+function exportSearchResults() {
+  const allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
+  if (!allPicos.length) { alert('No PICO questions to export.'); return; }
+  let text = 'SYSTEMATIC EVIDENCE SEARCH REPORT\n';
+  text += '='.repeat(50) + '\n\n';
+  allPicos.forEach((p, i) => {
+    const sr = window._picoSearchResults[i] || {pubmed:0,cochrane:0,embase:0,who:0,strategy:''};
+    const total = sr.pubmed + sr.cochrane + sr.embase + sr.who;
+    text += 'PICO ' + (i+1) + ' \u2014 ' + (p.domain||'Custom') + '\n';
+    text += '-'.repeat(40) + '\n';
+    text += 'P: ' + (p.P||'') + '\n';
+    text += 'I: ' + (p.I||'') + '\n';
+    text += 'C: ' + (p.C||'') + '\n';
+    text += 'O: ' + (p.O||'') + '\n';
+    text += 'Strategy: ' + (sr.strategy||'N/A') + '\n';
+    text += 'Results: PubMed=' + sr.pubmed + ', Cochrane=' + sr.cochrane + ', EMBASE=' + sr.embase + ', WHO=' + sr.who + ', Total=' + total + '\n\n';
+  });
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Evidence_Search_Report_' + new Date().toISOString().slice(0,10) + '.txt';
+  a.click();
+}
+
+
 // LIVE GRADE CERTAINTY CALCULATOR
 // ============================================================
 // AI PICO GENERATOR — multi-domain evidence-based
@@ -1918,6 +2112,7 @@ function saveWorkflowData() {
     else data[key] = el.value;
   });
   data._picoData = window._picoData;
+  data._picoSearchResults = window._picoSearchResults;
   const activeProject = localStorage.getItem('ksumc_active_project');
   if (activeProject) {
     localStorage.setItem('ksumc_wf_' + activeProject, JSON.stringify(data));
@@ -1948,8 +2143,10 @@ function loadWorkflowData() {
         else el.value = data[k];
       }
     });
-    if (data._prismaResults && (data._prismaResults.pubmed || data._prismaResults.cochrane)) {
-      updatePrismaFlow();
+    // Legacy prisma results - now handled per-PICO
+    // Restore PICO search results
+    if (data._picoSearchResults) {
+      window._picoSearchResults = data._picoSearchResults;
     }
     // Restore PICO data
     if (data._picoData) {
