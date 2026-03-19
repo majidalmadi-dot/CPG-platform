@@ -479,25 +479,25 @@ tr:hover td{background:#F8FAFC}
 <div class="card-st" style="margin-bottom:12px">GIN-McMaster & NICE criteria</div>
 <table>
 <tr><th>Criterion</th><th>Weight</th><th>Score</th></tr>
-<tr><td>Disease burden in Saudi Arabia</td><td>25%</td><td><input type="range" min="1" max="5" value="4" style="width:70px" oninput="this.nextElementSibling.textContent=this.value"> <span>4</span></td></tr>
-<tr><td>Practice variation</td><td>20%</td><td><input type="range" min="1" max="5" value="3" style="width:70px" oninput="this.nextElementSibling.textContent=this.value"> <span>3</span></td></tr>
-<tr><td>New evidence available</td><td>20%</td><td><input type="range" min="1" max="5" value="5" style="width:70px" oninput="this.nextElementSibling.textContent=this.value"> <span>5</span></td></tr>
-<tr><td>Patient safety/equity</td><td>15%</td><td><input type="range" min="1" max="5" value="4" style="width:70px" oninput="this.nextElementSibling.textContent=this.value"> <span>4</span></td></tr>
-<tr><td>Vision 2030 alignment</td><td>10%</td><td><input type="range" min="1" max="5" value="3" style="width:70px" oninput="this.nextElementSibling.textContent=this.value"> <span>3</span></td></tr>
-<tr><td>Implementation feasibility</td><td>10%</td><td><input type="range" min="1" max="5" value="4" style="width:70px" oninput="this.nextElementSibling.textContent=this.value"> <span>4</span></td></tr>
+<tr><td>Disease burden in Saudi Arabia</td><td>25%</td><td><input type="range" min="1" max="5" value="4" style="width:70px" class="topic-slider" oninput="this.nextElementSibling.textContent=this.value;recalcTopicScore()"> <span>4</span></td></tr>
+<tr><td>Practice variation</td><td>20%</td><td><input type="range" min="1" max="5" value="3" style="width:70px" class="topic-slider" oninput="this.nextElementSibling.textContent=this.value;recalcTopicScore()"> <span>3</span></td></tr>
+<tr><td>New evidence available</td><td>20%</td><td><input type="range" min="1" max="5" value="5" style="width:70px" class="topic-slider" oninput="this.nextElementSibling.textContent=this.value;recalcTopicScore()"> <span>5</span></td></tr>
+<tr><td>Patient safety/equity</td><td>15%</td><td><input type="range" min="1" max="5" value="4" style="width:70px" class="topic-slider" oninput="this.nextElementSibling.textContent=this.value;recalcTopicScore()"> <span>4</span></td></tr>
+<tr><td>Vision 2030 alignment</td><td>10%</td><td><input type="range" min="1" max="5" value="3" style="width:70px" class="topic-slider" oninput="this.nextElementSibling.textContent=this.value;recalcTopicScore()"> <span>3</span></td></tr>
+<tr><td>Implementation feasibility</td><td>10%</td><td><input type="range" min="1" max="5" value="4" style="width:70px" class="topic-slider" oninput="this.nextElementSibling.textContent=this.value;recalcTopicScore()"> <span>4</span></td></tr>
 </table>
-<div style="margin-top:12px;padding:10px;background:#F0FDF4;border-radius:8px;font-size:12px"><strong>Score: 3.90/5.00</strong> — <span class="badge b-ok">High Priority</span></div>
+<div id="topic-score-display" style="margin-top:12px;padding:10px;background:#F0FDF4;border-radius:8px;font-size:12px"><strong>Score: 3.90/5.00</strong> — <span class="badge b-ok">High Priority</span></div>
 </div>
 <div class="card">
 <div class="card-t">ADAPTE Decision Gate</div>
 <div class="card-st" style="margin-bottom:12px">Adapt existing or develop de novo?</div>
-<div class="chk"><input type="checkbox" checked> Existing international guideline found?</div>
-<div class="chk"><input type="checkbox" checked> Source AGREE II ≥60% Rigour?</div>
-<div class="chk"><input type="checkbox"> Source PICO matches Saudi population?</div>
-<div class="chk"><input type="checkbox"> Saudi epidemiology comparable?</div>
-<div class="chk"><input type="checkbox" checked> SFDA-approved interventions match?</div>
-<div class="chk"><input type="checkbox"> Health system context comparable?</div>
-<div style="margin-top:12px;padding:10px;background:#FEF3C7;border-radius:8px;font-size:12px"><strong>4/6 met</strong> — <span class="badge b-w">Partial Adaptation</span></div>
+<div class="chk"><input type="checkbox" checked class="adapte-chk" onchange="recalcAdapte()"> Existing international guideline found?</div>
+<div class="chk"><input type="checkbox" checked class="adapte-chk" onchange="recalcAdapte()"> Source AGREE II ≥60% Rigour?</div>
+<div class="chk"><input type="checkbox" class="adapte-chk" onchange="recalcAdapte()"> Source PICO matches Saudi population?</div>
+<div class="chk"><input type="checkbox" class="adapte-chk" onchange="recalcAdapte()"> Saudi epidemiology comparable?</div>
+<div class="chk"><input type="checkbox" checked class="adapte-chk" onchange="recalcAdapte()"> SFDA-approved interventions match?</div>
+<div class="chk"><input type="checkbox" class="adapte-chk" onchange="recalcAdapte()"> Health system context comparable?</div>
+<div id="adapte-score-display" style="margin-top:12px;padding:10px;background:#FEF3C7;border-radius:8px;font-size:12px"><strong>3/6 met</strong> — <span class="badge b-w">Partial Adaptation</span></div>
 </div>
 </div>
 </div>
@@ -1240,6 +1240,39 @@ document.addEventListener('DOMContentLoaded', function() {
 // ============================================================
 // LIVE GRADE CERTAINTY CALCULATOR
 // ============================================================
+function recalcTopicScore() {
+  const weights = [0.25, 0.20, 0.20, 0.15, 0.10, 0.10];
+  const sliders = document.querySelectorAll('.topic-slider');
+  let score = 0;
+  sliders.forEach(function(s, i) { score += parseInt(s.value) * (weights[i] || 0); });
+  const display = document.getElementById('topic-score-display');
+  if (!display) return;
+  let badge, bg;
+  if (score >= 4.0) { badge = '<span class="badge b-ok">High Priority</span>'; bg = '#F0FDF4'; }
+  else if (score >= 3.0) { badge = '<span class="badge b-i">Moderate Priority</span>'; bg = '#EFF6FF'; }
+  else if (score >= 2.0) { badge = '<span class="badge b-w">Low Priority</span>'; bg = '#FEF3C7'; }
+  else { badge = '<span class="badge b-err">Very Low</span>'; bg = '#FEE2E2'; }
+  display.style.background = bg;
+  display.innerHTML = '<strong>Score: ' + score.toFixed(2) + '/5.00</strong> \u2014 ' + badge;
+  saveWorkflowData();
+}
+
+function recalcAdapte() {
+  const checks = document.querySelectorAll('.adapte-chk');
+  let met = 0;
+  checks.forEach(function(c) { if (c.checked) met++; });
+  const total = checks.length;
+  const display = document.getElementById('adapte-score-display');
+  if (!display) return;
+  let badge, bg;
+  if (met >= 5) { badge = '<span class="badge b-ok">Full ADAPTE Recommended</span>'; bg = '#F0FDF4'; }
+  else if (met >= 3) { badge = '<span class="badge b-w">Partial Adaptation</span>'; bg = '#FEF3C7'; }
+  else { badge = '<span class="badge b-err">De Novo Recommended</span>'; bg = '#FEE2E2'; }
+  display.style.background = bg;
+  display.innerHTML = '<strong>' + met + '/' + total + ' met</strong> \u2014 ' + badge;
+  saveWorkflowData();
+}
+
 function recalcGrade() {
   document.querySelectorAll('#wf4 table tr').forEach((row, i) => {
     if (i === 0) return;
