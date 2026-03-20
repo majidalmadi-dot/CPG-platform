@@ -1523,69 +1523,61 @@ function buildPicoSearchQuery(idx) {
   var p = allPicos[idx];
   if (!p) return '';
 
-  // Extract the core condition/topic
+  // Get the core condition from the project title
   var activeId = localStorage.getItem('ksumc_active_project');
-  var projectTitle = '';
+  var coreTopic = '';
   if (activeId) {
     var projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
     var proj = projects.find(function(pr){ return pr.id === activeId; });
-    if (proj) projectTitle = proj.title;
+    if (proj) coreTopic = proj.title;
   }
-
-  var coreTopic = projectTitle || '';
   if (!coreTopic && p.P) {
-    coreTopic = p.P.replace(/Adults with |patients with |in Saudi Arabia|\u226518y with/gi, '').trim();
+    coreTopic = p.P.replace(/Adults with |patients with |in Saudi Arabia/gi, '').trim();
   }
 
-  // Extract key terms from intervention (I) field — remove generic filler words
-  var iTerms = '';
+  // Domain-to-keyword map — short, PubMed-friendly terms
+  var domainKeywords = {
+    'Treatment/Pharmacotherapy': 'treatment therapy drug',
+    'Diagnosis': 'diagnosis diagnostic sensitivity specificity',
+    'Screening': 'screening early detection',
+    'Prevention': 'prevention prophylaxis',
+    'Prognosis': 'prognosis survival outcomes',
+    'Management/Guidelines': 'management guideline clinical pathway',
+    'Monitoring': 'monitoring follow-up biomarker',
+    'Patient Education/QoL': 'quality of life patient education',
+    'Surgical/Procedural': 'surgery surgical endoscopy',
+    'Special Populations': 'pediatric pregnancy elderly',
+    'Rehabilitation': 'rehabilitation physical therapy recovery',
+    'Psychosocial': 'psychological mental health depression',
+    'Cost-Effectiveness': 'cost-effectiveness economic evaluation',
+    'Implementation': 'implementation quality improvement'
+  };
+
+  // Extract specific drug/procedure names from I field (e.g., from parenthetical examples)
+  var specificTerms = [];
   if (p.I) {
-    iTerms = p.I
-      .replace(/for\s+(adults|patients|people|individuals|those)\s+(with|having|diagnosed)/gi, 'for')
-      .replace(/(first-line|second-line|novel|emerging|validated|structured|routine|optimal)\s+/gi, '')
-      .replace(/\b(pharmacological agents|interventions|strategies|approaches|programs|modalities|instruments|protocols)\b/gi, '')
-      .replace(/\bfor\s+/gi, '')
-      .replace(new RegExp(coreTopic.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '')
-      .replace(/\s+/g, ' ').trim();
-    // Keep only first 4-5 meaningful words
-    var words = iTerms.split(/\s+/).filter(function(w) { return w.length > 2; });
-    iTerms = words.slice(0, 5).join(' ');
+    // Extract terms from "(e.g., term1, term2)" patterns
+    var egMatch = p.I.match(/\(e\.g\.?,?\s*([^)]+)\)/i);
+    if (egMatch) {
+      var egTerms = egMatch[1].split(/,/).map(function(t) { return t.trim(); }).filter(function(t) {
+        return t.length > 2 && !/^(and|the|for|with|from|that|this|more)$/i.test(t);
+      });
+      specificTerms = egTerms.slice(0, 2);
+    }
+    // Also look for "versus X" patterns in I field
+    var vsMatch = p.I.match(/versus\s+([\w\s]+?)(?:\s+for|\s+in|$)/i);
+    if (vsMatch && vsMatch[1].trim().length > 3) {
+      specificTerms.push(vsMatch[1].trim().split(/\s+/).slice(0,2).join(' '));
+    }
   }
 
-  // Extract comparator terms if meaningful
-  var cTerms = '';
-  if (p.C && !/placebo|standard care|no intervention|usual care|no formal|N\/A/i.test(p.C)) {
-    cTerms = p.C
-      .replace(new RegExp(coreTopic.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '')
-      .replace(/\s+/g, ' ').trim();
-    var cWords = cTerms.split(/\s+/).filter(function(w) { return w.length > 2; });
-    cTerms = cWords.slice(0, 3).join(' ');
-  }
+  // Build clean query: condition + domain keywords + specific terms
+  var parts = [coreTopic];
+  var dk = domainKeywords[p.domain];
+  if (dk) parts.push(dk);
+  if (specificTerms.length > 0) parts.push(specificTerms.join(' '));
 
-  // Build a PICO-specific query
-  var query = coreTopic;
-  if (iTerms) query += ' ' + iTerms;
-  if (cTerms) query += ' ' + cTerms;
-
-  // Fallback: if no I terms extracted, use domain name
-  if (!iTerms) {
-    var domainSearchMap = {
-      'Treatment/Pharmacotherapy': 'treatment',
-      'Diagnosis': 'diagnosis',
-      'Screening': 'screening',
-      'Prevention': 'prevention',
-      'Prognosis': 'prognosis',
-      'Management/Guidelines': 'management guidelines',
-      'Monitoring': 'monitoring',
-      'Patient Education/QoL': 'quality of life',
-      'Surgical/Procedural': 'surgery',
-      'Special Populations': 'special populations'
-    };
-    var domainName = domainSearchMap[p.domain] || (p.domain || '').split('/')[0].trim();
-    if (domainName && domainName !== 'Custom') query += ' ' + domainName;
-  }
-
-  return query.trim();
+  return parts.join(' ').trim();
 }
 
 
