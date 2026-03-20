@@ -220,7 +220,7 @@ function sp(p){
   document.querySelectorAll('.nav-i').forEach(n=>n.classList.remove('active'));
   if(event&&event.currentTarget)event.currentTarget.classList.add('active');
   if(p==='workflow') updateActiveProjectBanner();
-  const t={dashboard:'National Dashboard',aicommand:'AI Command Center',governance:'Governance & Authority Layers',workflow:'GRADE Guideline Workflow',evidence:'Integrated Evidence Search',guidelines:'National CPG Registry',lifecycle:'Lifecycle & Reports',frameworks:'Quality Frameworks & Tools',ai_etg:'AI: Evidence-to-Guideline',ai_srma:'AI: Systematic Review & Meta-Analysis',ai_cea:'AI: Cost-Effectiveness Analysis',ai_hps:'AI: Health Policy Scanner',ai_phpsa:'AI: PHPSA Document Production',login:'Login'};
+  const t={dashboard:'National Dashboard',aicommand:'AI Command Center',governance:'Governance & Authority Layers',workflow:'GRADE Guideline Workflow',evidence:'Integrated Evidence Search',guidelines:'National CPG Registry',lifecycle:'Lifecycle & Reports',frameworks:'Quality Frameworks & Tools',ai_etg:'AI: Evidence-to-Guideline',ai_srma:'AI: Systematic Review & Meta-Analysis',ai_cea:'AI: Cost-Effectiveness Analysis',ai_hps:'AI: Health Policy Scanner',ai_phpsa:'AI: PHPSA Document Production',login:'Account & User Management'};
   document.getElementById('pt').textContent=t[p]||p;
 }
 function swf(id){
@@ -3377,67 +3377,183 @@ function exportEtRData() {
 
 
 // ============================================================
-// SUPABASE AUTH (connects when credentials are configured)
+// SUPABASE AUTH WITH LOGIN GATE
 // ============================================================
 const SUPABASE_URL = 'https://ufxqmmhfskbvxitahovo.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmeHFtbWhmc2tidnhpdGFob3ZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MjI2MjAsImV4cCI6MjA4OTQ5ODYyMH0._MPRG11holiU2_-8VDWOh5TuM25pu-cXnkRyHiNZkqU';
 let supabaseClient = null;
 let currentUser = null;
 
+// Admin email — only this account can invite new users
+const ADMIN_EMAIL = 'majid.almadi@gmail.com';
+
+function isAdmin() {
+  return currentUser && currentUser.email === ADMIN_EMAIL;
+}
+
+// Lock/unlock the UI based on auth state
+function enforceLoginGate(authenticated) {
+  const sidebar = document.querySelector('.sidebar');
+  const header = document.querySelector('.header');
+  const mainContent = document.getElementById('main-content');
+  const loginGate = document.getElementById('login-gate');
+  const demoBanner = document.querySelector('.demo-banner');
+
+  if (authenticated) {
+    // Show full platform
+    if (sidebar) sidebar.style.display = '';
+    if (header) header.style.display = '';
+    if (mainContent) mainContent.style.display = '';
+    if (loginGate) loginGate.style.display = 'none';
+    if (demoBanner) demoBanner.style.display = '';
+    // Show admin panel if admin
+    const adminPanel = document.getElementById('admin-panel');
+    if (adminPanel) adminPanel.style.display = isAdmin() ? 'block' : 'none';
+  } else {
+    // Hide everything except login gate
+    if (sidebar) sidebar.style.display = 'none';
+    if (header) header.style.display = 'none';
+    if (mainContent) mainContent.style.display = 'none';
+    if (loginGate) loginGate.style.display = 'flex';
+    if (demoBanner) demoBanner.style.display = 'none';
+  }
+}
+
 function initAuth() {
   if (typeof window.supabase !== 'undefined' && SUPABASE_URL !== 'https://YOUR_PROJECT_ID.supabase.co') {
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     checkSession();
+    // Listen for auth state changes (login/logout/token refresh)
+    supabaseClient.auth.onAuthStateChange(function(event, session) {
+      if (event === 'SIGNED_IN' && session) {
+        currentUser = session.user;
+        enforceLoginGate(true);
+        checkSession();
+      } else if (event === 'SIGNED_OUT') {
+        currentUser = null;
+        enforceLoginGate(false);
+      }
+    });
     console.log('✅ Supabase connected');
   } else {
     console.log('ℹ️ Running in demo mode — configure Supabase URL to enable auth');
+    // In demo mode, show platform without gate
+    enforceLoginGate(true);
   }
 }
 
 async function checkSession() {
   if (!supabaseClient) return;
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (user) {
-    currentUser = user;
-    const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', user.id).single();
-    if (profile) {
-      document.getElementById('cr').textContent = profile.role.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
-      document.querySelector('.avatar').textContent = profile.full_name.split(' ').map(n=>n[0]).join('').substring(0,2);
+  try {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (user) {
+      currentUser = user;
+      const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', user.id).single();
+      if (profile) {
+        document.getElementById('cr').textContent = profile.role.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
+        document.querySelector('.avatar').textContent = profile.full_name.split(' ').map(n=>n[0]).join('').substring(0,2);
+      }
+      document.getElementById('auth-status').textContent = '🟢 ' + (user.email || 'Signed in');
+      document.getElementById('auth-status').style.color = 'var(--ok)';
+      enforceLoginGate(true);
+    } else {
+      enforceLoginGate(false);
     }
-    document.getElementById('auth-status').textContent = '🟢 Signed in';
-    document.getElementById('auth-status').style.color = 'var(--ok)';
+  } catch (e) {
+    console.warn('Session check failed:', e.message);
+    enforceLoginGate(false);
   }
 }
 
-async function doSignUp() {
-  const email = document.getElementById('auth-email').value;
-  const pass = document.getElementById('auth-pass').value;
-  const name = document.getElementById('auth-name').value;
-  const role = document.getElementById('auth-role').value;
-  if (!email || !pass || !name) { alert('Please fill all fields'); return; }
-  if (!supabaseClient) { alert('⚠️ Supabase not configured yet. Follow Step 4 in the deployment guide to connect your database.'); return; }
+// Admin: invite a new user by creating their account
+async function adminInviteUser() {
+  if (!isAdmin()) { alert('Only the admin can invite users.'); return; }
+  const email = document.getElementById('invite-email').value;
+  const name = document.getElementById('invite-name').value;
+  const role = document.getElementById('invite-role').value;
+  const pass = document.getElementById('invite-pass').value;
+  if (!email || !name || !pass) { alert('Please fill all fields'); return; }
+  if (pass.length < 6) { alert('Password must be at least 6 characters'); return; }
+  if (!supabaseClient) { alert('Supabase not connected'); return; }
   try {
-    const { data, error } = await supabaseClient.auth.signUp({ email, password: pass, options: { data: { full_name: name, role } } });
+    // Create the user account via sign-up (they can change password later)
+    const { data, error } = await supabaseClient.auth.signUp({
+      email, password: pass,
+      options: { data: { full_name: name, role } }
+    });
     if (error) throw error;
     if (data.user) {
-      await supabaseClient.from('profiles').insert({ id: data.user.id, email, full_name: name, role, institution: 'KSUMC', coi_status: 'pending' });
+      await supabaseClient.from('profiles').insert({
+        id: data.user.id, email, full_name: name, role,
+        institution: 'KSUMC', coi_status: 'pending'
+      });
     }
-    alert('✅ Account created! Check your email to confirm, then sign in.');
+    alert('✅ User invited! Send them their credentials:\nEmail: ' + email + '\nPassword: ' + pass + '\nThey can sign in at the platform URL.');
+    document.getElementById('invite-email').value = '';
+    document.getElementById('invite-name').value = '';
+    document.getElementById('invite-pass').value = '';
+    loadUserList();
   } catch (e) { alert('Error: ' + e.message); }
 }
 
+// Admin: load list of registered users
+async function loadUserList() {
+  if (!isAdmin() || !supabaseClient) return;
+  const listEl = document.getElementById('user-list');
+  if (!listEl) return;
+  try {
+    const { data, error } = await supabaseClient.from('profiles').select('email, full_name, role, created_at').order('created_at', { ascending: false });
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      listEl.innerHTML = '<p style="color:var(--tl);font-size:12px">No registered users yet.</p>';
+      return;
+    }
+    let html = '<table style="width:100%;font-size:12px;border-collapse:collapse"><tr style="background:#F1F5F9"><th style="padding:6px;text-align:left">Name</th><th style="padding:6px;text-align:left">Email</th><th style="padding:6px;text-align:left">Role</th></tr>';
+    data.forEach(function(u) {
+      const roleName = (u.role || 'unknown').replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+      html += '<tr style="border-bottom:1px solid #E2E8F0"><td style="padding:6px">' + (u.full_name || '-') + '</td><td style="padding:6px">' + (u.email || '-') + '</td><td style="padding:6px">' + roleName + '</td></tr>';
+    });
+    html += '</table>';
+    listEl.innerHTML = html;
+  } catch (e) {
+    listEl.innerHTML = '<p style="color:var(--err);font-size:12px">Could not load users: ' + e.message + '</p>';
+  }
+}
+
 async function doSignIn() {
-  const email = document.getElementById('auth-email').value;
-  const pass = document.getElementById('auth-pass').value;
+  const email = document.getElementById('gate-email').value;
+  const pass = document.getElementById('gate-pass').value;
   if (!email || !pass) { alert('Please enter email and password'); return; }
-  if (!supabaseClient) { alert('⚠️ Supabase not configured yet. Follow Step 4 in the deployment guide to connect your database.'); return; }
+  if (!supabaseClient) { alert('Supabase not connected. Contact the administrator.'); return; }
+  const btn = document.getElementById('gate-signin-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing in...'; }
   try {
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
     currentUser = data.user;
     await checkSession();
     sp('dashboard');
-    alert('✅ Signed in successfully!');
+    showToast('Signed in successfully', 'success');
+  } catch (e) {
+    alert('Sign-in failed: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
+  }
+}
+
+// Legacy sign-in from the settings login page
+async function doSignInLegacy() {
+  const email = document.getElementById('auth-email').value;
+  const pass = document.getElementById('auth-pass').value;
+  if (!email || !pass) { alert('Please enter email and password'); return; }
+  if (!supabaseClient) { alert('Supabase not connected.'); return; }
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    currentUser = data.user;
+    await checkSession();
+    sp('dashboard');
+    showToast('Signed in successfully', 'success');
   } catch (e) { alert('Error: ' + e.message); }
 }
 
@@ -3446,7 +3562,27 @@ async function doSignOut() {
   currentUser = null;
   document.getElementById('auth-status').textContent = '⚪ Not signed in';
   document.getElementById('auth-status').style.color = 'var(--tl)';
-  alert('Signed out.');
+  enforceLoginGate(false);
+  showToast('Signed out', 'info');
+}
+
+// Update account info card on the Account page
+function updateAccountInfo() {
+  const el = document.getElementById('account-info');
+  if (!el) return;
+  if (currentUser) {
+    const email = currentUser.email || 'Unknown';
+    const meta = currentUser.user_metadata || {};
+    const name = meta.full_name || email.split('@')[0];
+    const role = (meta.role || 'member').replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+    el.innerHTML = '<div style="display:flex;gap:16px;align-items:center">'
+      + '<div style="width:56px;height:56px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700">' + name.split(' ').map(function(n){return n[0]}).join('').substring(0,2) + '</div>'
+      + '<div><div style="font-weight:700;font-size:16px">' + name + '</div>'
+      + '<div style="font-size:13px;color:var(--tl)">' + email + '</div>'
+      + '<div style="font-size:12px;color:var(--ai1);font-weight:600;margin-top:2px">' + role + (isAdmin() ? ' · Admin' : '') + '</div></div></div>';
+  } else {
+    el.innerHTML = '<p style="color:var(--tl);font-size:13px">Not signed in.</p>';
+  }
 }
 
 // ============================================================
@@ -3691,6 +3827,8 @@ function runAI() {
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
+  // Start with login gate visible (will be hidden once auth confirms session)
+  enforceLoginGate(false);
   initAuth();
   // Enter key on AI command
   const aiCmd = document.getElementById('ai-cmd');

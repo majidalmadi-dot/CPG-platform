@@ -15,6 +15,24 @@
 </head>
 <body>
 
+<!-- LOGIN GATE — shown when not authenticated -->
+<div id="login-gate" style="display:flex;align-items:center;justify-content:center;position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#0D5C3E 0%,#1a7a56 50%,#0D5C3E 100%)">
+<div style="width:100%;max-width:420px;margin:20px;background:#fff;border-radius:16px;padding:40px 32px;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+<div style="text-align:center;margin-bottom:28px">
+<div style="font-size:48px;margin-bottom:12px">🏥</div>
+<div style="font-weight:800;font-size:22px;color:#0D5C3E;margin-bottom:4px">KSUMC CPG Authority</div>
+<div style="font-size:13px;color:#64748B">المرجع الوطني للأدلة الإكلينيكية</div>
+<div style="font-size:12px;color:#94A3B8;margin-top:4px">Sign in to access the platform</div>
+</div>
+<div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:4px">Email</label><input id="gate-email" type="email" placeholder="you@ksumc.edu.sa" style="width:100%;padding:10px 14px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:14px;box-sizing:border-box;outline:none;transition:border 0.2s" onfocus="this.style.borderColor='#0D5C3E'" onblur="this.style.borderColor='#CBD5E1'"></div>
+<div style="margin-bottom:20px"><label style="display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:4px">Password</label><input id="gate-pass" type="password" placeholder="Enter your password" style="width:100%;padding:10px 14px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:14px;box-sizing:border-box;outline:none;transition:border 0.2s" onfocus="this.style.borderColor='#0D5C3E'" onblur="this.style.borderColor='#CBD5E1'" onkeydown="if(event.key==='Enter')doSignIn()"></div>
+<button id="gate-signin-btn" onclick="doSignIn()" style="width:100%;padding:12px;background:#0D5C3E;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#1a7a56'" onmouseout="this.style.background='#0D5C3E'">Sign In</button>
+<div style="margin-top:20px;padding:12px;background:#F8FAFC;border-radius:8px;font-size:11px;color:#64748B;text-align:center">
+Access is by invitation only. Contact the platform administrator if you need an account.
+</div>
+</div>
+</div>
+
 <!-- OFFLINE INDICATOR -->
 <div id="offline-bar" class="offline-bar" role="alert" aria-live="assertive"></div>
 
@@ -62,6 +80,7 @@
 
 <div class="nav-s">Settings</div>
 <div class="nav-i" onclick="openAISettings()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>⚙️ AI Engine Settings<span class="ai-dot" style="background:var(--ai1)"></span></div>
+<div class="nav-i" onclick="sp('login');updateAccountInfo();loadUserList()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>👤 Account & Users</div>
 </div>
 <div class="sidebar-footer">KSUMC CPG v2.0 · AI-Powered<br>GRADE·NICE·GIN-McMaster·AGREE II·ADAPTE</div>
 </nav>
@@ -78,7 +97,7 @@
 <option>Steering Committee Chair</option><option>Technical Committee Lead</option><option>Guideline Panel Member</option><option>GRADE Methodologist</option><option>External Reviewer</option><option>Public Consultation</option>
 </select>
 <span id="auth-status" style="font-size:10px;color:var(--tl)">⚪ Demo mode</span>
-<div class="avatar" style="cursor:pointer" onclick="sp('login')">MA</div>
+<div class="avatar" style="cursor:pointer" onclick="sp('login');updateAccountInfo();loadUserList()">MA</div>
 </div>
 </header>
 
@@ -1546,38 +1565,49 @@ Net Budget Impact = Cost<sub>new mix</sub> − Cost<sub>current mix</sub><br>
 </div>
 </div>
 
-<!-- ====== LOGIN PAGE ====== -->
-<div class="page" id="p-login" role="region" aria-label="Login">
-<div style="max-width:440px;margin:40px auto">
-<div class="ai-card ai-glow">
-<div style="text-align:center;margin-bottom:20px">
-<div style="font-size:36px;margin-bottom:8px">🏥</div>
-<div style="font-weight:700;font-size:18px;color:var(--p)">KSUMC CPG Authority</div>
-<div style="font-size:12px;color:var(--tl)">Sign in to access role-based features</div>
+<!-- ====== ACCOUNT & USER MANAGEMENT PAGE ====== -->
+<div class="page" id="p-login" role="region" aria-label="Account Management">
+<div style="max-width:640px;margin:40px auto">
+
+<!-- Current Session Card -->
+<div class="card" style="margin-bottom:20px">
+<div class="card-t">👤 Your Account</div>
+<div id="account-info" style="padding:8px 0">
+<p style="font-size:13px;color:var(--tl)">Loading account info...</p>
 </div>
-<div class="fg"><label class="fl">Full Name</label><input class="fi" id="auth-name" placeholder="Dr. Ahmed Al-Qahtani"></div>
-<div class="fg"><label class="fl">Email</label><input class="fi" id="auth-email" type="email" placeholder="ahmed@ksumc.edu.sa"></div>
-<div class="fg"><label class="fl">Password</label><input class="fi" id="auth-pass" type="password" placeholder="Minimum 6 characters"></div>
-<div class="fg"><label class="fl">Role</label><select class="fs" id="auth-role">
+<button class="btn btn-o" style="margin-top:12px" onclick="doSignOut()">Sign Out</button>
+</div>
+
+<!-- Admin Panel: Invite Users -->
+<div id="admin-panel" class="card" style="display:none;border-left:3px solid var(--ai1)">
+<div class="card-t">🔐 User Management <span style="font-size:11px;background:var(--ai1);color:#fff;padding:2px 8px;border-radius:10px;margin-left:8px">Admin</span></div>
+<div class="card-st" style="margin-bottom:16px">Invite new users to the platform. Only invited users can sign in.</div>
+
+<div style="background:#F0FDF4;border-radius:10px;padding:16px;margin-bottom:16px">
+<div style="font-weight:600;font-size:13px;margin-bottom:12px">Invite New User</div>
+<div class="grid g2" style="gap:10px">
+<div class="fg"><label class="fl">Full Name</label><input class="fi" id="invite-name" placeholder="Dr. Ahmed Al-Qahtani"></div>
+<div class="fg"><label class="fl">Email</label><input class="fi" id="invite-email" type="email" placeholder="ahmed@ksumc.edu.sa"></div>
+<div class="fg"><label class="fl">Temporary Password</label><input class="fi" id="invite-pass" type="text" placeholder="Min 6 characters (share with user)"></div>
+<div class="fg"><label class="fl">Role</label><select class="fs" id="invite-role">
+<option value="nsc_chair">Steering Committee Chair</option>
+<option value="nsc_member">NSC Member</option>
+<option value="toc_lead">Technical Committee Lead</option>
+<option value="toc_member">TOC Member</option>
+<option value="gdg_chair">GDG Chair</option>
 <option value="gdg_member">Guideline Panel Member</option>
 <option value="ert_member">Evidence Reviewer</option>
-<option value="gdg_chair">GDG Chair</option>
-<option value="toc_member">TOC Member</option>
-<option value="toc_lead">Technical Committee Lead</option>
-<option value="nsc_member">NSC Member</option>
-<option value="nsc_chair">Steering Committee Chair</option>
 <option value="reviewer">External Reviewer</option>
 <option value="public">Public Consultation</option>
 </select></div>
-<div style="display:flex;gap:8px;margin-top:16px">
-<button class="btn btn-p" style="flex:1" onclick="doSignIn()">Sign In</button>
-<button class="btn btn-ai" style="flex:1" onclick="doSignUp()">Create Account</button>
 </div>
-<button class="btn btn-o" style="width:100%;margin-top:8px" onclick="doSignOut()">Sign Out</button>
-<div style="margin-top:16px;padding:12px;background:#F8FAFC;border-radius:8px;font-size:11px;color:var(--tl)">
-<strong>Status:</strong> If Supabase is not yet configured, the platform runs in demo mode — all features work, but data is not persisted. To enable authentication, follow Step 4 in the deployment guide.
+<button class="btn btn-ai" style="width:100%;margin-top:12px" onclick="adminInviteUser()">📨 Send Invitation</button>
 </div>
+
+<div style="font-weight:600;font-size:13px;margin-bottom:8px">Registered Users</div>
+<div id="user-list" style="max-height:300px;overflow-y:auto"><p style="color:var(--tl);font-size:12px">Loading...</p></div>
 </div>
+
 </div>
 </div>
 
