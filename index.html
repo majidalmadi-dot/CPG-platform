@@ -2946,7 +2946,6 @@ function renderPicoEtRPanels() {
   picos.forEach(function(p, i) { html += buildEtRCard(i, p); });
   container.innerHTML = html;
   updateRecommendationSummary();
-}
   // AUTO-TRIGGER: If EtR data is empty, auto-populate from evidence
   if (!window._picoEtRData) window._picoEtRData = {};
   if (Object.keys(window._picoEtRData || {}).length === 0 && picos.length > 0) {
