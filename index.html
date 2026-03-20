@@ -101,6 +101,8 @@ tr:hover td{background:#F8FAFC}
 @media(max-width:1200px){.g4{grid-template-columns:repeat(2,1fr)}.kanban{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:768px){.sidebar{transform:translateX(-100%)}.main,.header{margin-left:0}.g4,.g3,.g2{grid-template-columns:1fr}.kanban{grid-template-columns:1fr}}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#C4C8D0;border-radius:3px}
+@keyframes fadeStageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.srma-stage,.cea-stage,.hps-stage{animation:fadeStageIn .3s ease}
 </style>
 </head>
 <body>
@@ -764,39 +766,189 @@ tr:hover td{background:#F8FAFC}
 <div><div class="card-t">AI Skill: Systematic Review & Meta-Analysis</div><div class="card-st">PRISMA 2020 pipeline — protocol to publication</div></div>
 <span class="ai-status" style="margin-left:auto">Active</span>
 </div>
-</div>
-<div class="grid g3">
-<div class="ai-card">
-<div style="font-weight:700;margin-bottom:8px">Stage 0–1: Protocol</div>
-<div style="font-size:12px">PICO/PICOS/SPIDER formulation, PROSPERO registration, PRISMA-P checklist, eligibility criteria, statistical plan</div>
-<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%" onclick="showSRProtocolGenerator()">🤖 AI: Generate SR Protocol</button>
-</div>
-<div class="ai-card">
-<div style="font-weight:700;margin-bottom:8px">Stage 2–3: Search & Screen</div>
-<div style="font-size:12px">Multi-database strategy (PubMed, Embase, Cochrane, CINAHL), PRESS checklist, dual screening, PRISMA flow diagram</div>
-<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%" onclick="showSearchStrategyBuilder()">🤖 AI: Build Search Strategy</button>
-</div>
-<div class="ai-card">
-<div style="font-weight:700;margin-bottom:8px">Stage 4: Risk of Bias</div>
-<div style="font-size:12px">Auto-selects tool by design: RoB 2 (RCTs), ROBINS-I (NRS), NOS (cohort/case-control), QUADAS-2 (diagnostic), AMSTAR 2 (SRs)</div>
-<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%" onclick="showRoBMatrixBuilder()">🤖 AI: Run RoB Assessment</button>
-</div>
-<div class="ai-card">
-<div style="font-weight:700;margin-bottom:8px">Stage 5: Meta-Analysis</div>
-<div style="font-size:12px">Fixed/random effects, Mantel-Haenszel / inverse variance, I² heterogeneity, Cochran Q, τ², prediction intervals</div>
-<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%" onclick="showForestPlotBuilder()">🤖 AI: Pool Effect Sizes</button>
-</div>
-<div class="ai-card">
-<div style="font-weight:700;margin-bottom:8px">Stage 5b: Plots & Bias</div>
-<div style="font-size:12px">Forest plots, funnel plots, Egger test, Begg test, trim-and-fill, subgroup analysis, sensitivity (leave-one-out)</div>
-<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%" onclick="showPublicationBiasPanel()">🤖 AI: Publication Bias Analysis</button>
-</div>
-<div class="ai-card">
-<div style="font-weight:700;margin-bottom:8px">Stage 6: GRADE & Write-up</div>
-<div style="font-size:12px">GRADE certainty per outcome, Summary of Findings table, full PRISMA 2020 manuscript with all sections</div>
-<button class="btn btn-ai btn-sm" style="margin-top:8px;width:100%" onclick="showPRISMAManuscriptBuilder()">🤖 AI: Draft PRISMA Manuscript</button>
+<div class="stepper">
+<div class="step done"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S0</div><div class="step-l">Question<br>& PICO</div></div>
+<div class="step done"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S1</div><div class="step-l">Protocol<br>PRISMA-P</div></div>
+<div class="step done"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S2</div><div class="step-l">Search<br>Strategy</div></div>
+<div class="step now"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S3</div><div class="step-l">Screen<br>& Select</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S4</div><div class="step-l">Risk of<br>Bias</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S5</div><div class="step-l">Extract<br>& Pool</div></div>
+<div class="step"><div class="step-c" style="width:32px;height:32px;font-size:12px">S6</div><div class="step-l">GRADE &<br>Write-up</div></div>
 </div>
 </div>
+
+<div class="tabs" id="srma-tabs">
+<div class="tab active" onclick="swSRMA('srma0')">0. Question</div>
+<div class="tab" onclick="swSRMA('srma1')">1. Protocol</div>
+<div class="tab" onclick="swSRMA('srma2')">2. Search</div>
+<div class="tab" onclick="swSRMA('srma3')">3. Screen</div>
+<div class="tab" onclick="swSRMA('srma4')">4. RoB</div>
+<div class="tab" onclick="swSRMA('srma5')">5. Analysis</div>
+<div class="tab" onclick="swSRMA('srma6')">6. Report</div>
+</div>
+
+<!-- Stage 0: Question Formulation -->
+<div id="srma0" class="srma-stage">
+<div class="grid g2">
+<div class="card">
+<div class="card-t">PICO/PICOS Question Builder</div>
+<div class="card-st" style="margin-bottom:12px">Structure your review question</div>
+<div class="fg"><label class="fl">Population</label><input class="fi" id="srma-pop" placeholder="e.g. Adults with moderate-severe ulcerative colitis"></div>
+<div class="fg"><label class="fl">Intervention</label><input class="fi" id="srma-int" placeholder="e.g. Vedolizumab induction therapy"></div>
+<div class="fg"><label class="fl">Comparator</label><input class="fi" id="srma-comp" placeholder="e.g. Placebo or adalimumab"></div>
+<div class="fg"><label class="fl">Primary Outcome</label><input class="fi" id="srma-out" placeholder="e.g. Clinical remission at week 52"></div>
+<div class="fg"><label class="fl">Study Design Filter</label><select class="fs" id="srma-design"><option>RCTs only</option><option>RCTs + observational</option><option>All designs</option><option>Diagnostic accuracy (DTA)</option></select></div>
+<div class="fg"><label class="fl">Framework</label><select class="fs"><option>PICO (Interventions)</option><option>PICOS (+ Study design)</option><option>SPIDER (Qualitative)</option><option>PECOS (Epidemiology)</option></select></div>
+</div>
+<div class="card">
+<div class="card-t">Review Metadata</div>
+<div class="card-st" style="margin-bottom:12px">Registration and logistics</div>
+<div class="fg"><label class="fl">Review Title</label><textarea class="fi" rows="2" placeholder="Efficacy and safety of vedolizumab vs placebo for induction of remission in UC: A systematic review and meta-analysis"></textarea></div>
+<div class="fg"><label class="fl">PROSPERO ID</label><input class="fi" placeholder="CRD42026XXXXXX"></div>
+<div class="fg"><label class="fl">Review Type</label><select class="fs"><option>Intervention SR/MA</option><option>Diagnostic Test Accuracy</option><option>Prognostic</option><option>Scoping Review</option><option>Network Meta-Analysis (NMA)</option></select></div>
+<div class="fg"><label class="fl">Number of Reviewers</label><select class="fs"><option>2 (standard)</option><option>3 (with adjudicator)</option></select></div>
+<div class="fg"><label class="fl">Conflict Resolution</label><select class="fs"><option>Third reviewer adjudication</option><option>Consensus discussion</option><option>Senior author decision</option></select></div>
+<button class="btn btn-ai" style="width:100%;margin-top:8px" onclick="showSRProtocolGenerator()">🤖 Generate PRISMA-P Protocol</button>
+</div>
+</div>
+</div>
+
+<!-- Stage 1: Protocol -->
+<div id="srma1" class="srma-stage" style="display:none">
+<div class="card">
+<div class="card-t">PRISMA-P 2015 Protocol Checklist</div>
+<div class="card-st" style="margin-bottom:12px">17-item protocol reporting standard</div>
+<div id="srma-prismap-checklist" style="font-size:12px"></div>
+<button class="btn btn-ai" style="width:100%;margin-top:10px" onclick="loadPRISMAPChecklist()">Load PRISMA-P Checklist</button>
+</div>
+</div>
+
+<!-- Stage 2: Search Strategy -->
+<div id="srma2" class="srma-stage" style="display:none">
+<div class="grid g2">
+<div class="card">
+<div class="card-t">Search Strategy Builder (PRESS-compliant)</div>
+<div class="fg"><label class="fl">Population MeSH + Free Text</label><textarea class="fi" rows="2" placeholder="e.g. colitis, ulcerative[MeSH] OR &quot;ulcerative colitis&quot;[tw]"></textarea></div>
+<div class="fg"><label class="fl">Intervention MeSH + Free Text</label><textarea class="fi" rows="2" placeholder="e.g. vedolizumab[Supplementary Concept] OR vedolizumab[tw]"></textarea></div>
+<div class="fg"><label class="fl">Study Design Filter</label><select class="fs"><option>Cochrane Highly Sensitive RCT filter</option><option>Observational studies filter</option><option>No filter (all designs)</option></select></div>
+<div class="fg"><label class="fl">Date Range</label><div style="display:flex;gap:8px"><input class="fi" style="flex:1" type="number" value="2000" placeholder="From"><input class="fi" style="flex:1" type="number" value="2026" placeholder="To"></div></div>
+<button class="btn btn-ai" style="width:100%;margin-top:8px" onclick="showSearchStrategyBuilder()">🤖 Generate Multi-Database Search Syntax</button>
+</div>
+<div class="card">
+<div class="card-t">Target Databases</div>
+<div style="font-size:12px;line-height:2">
+<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" checked> <strong>PubMed/MEDLINE</strong> — Broadest biomedical coverage</label>
+<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" checked> <strong>Embase (Ovid)</strong> — European + pharmacology focus</label>
+<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" checked> <strong>Cochrane CENTRAL</strong> — RCTs and CCTs</label>
+<label style="display:flex;align-items:center;gap:6px"><input type="checkbox"> <strong>CINAHL</strong> — Nursing & allied health</label>
+<label style="display:flex;align-items:center;gap:6px"><input type="checkbox"> <strong>Web of Science</strong> — Citation tracking</label>
+<label style="display:flex;align-items:center;gap:6px"><input type="checkbox"> <strong>ClinicalTrials.gov</strong> — Trial registries</label>
+<label style="display:flex;align-items:center;gap:6px"><input type="checkbox"> <strong>WHO ICTRP</strong> — International trials</label>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Stage 3: Screening -->
+<div id="srma3" class="srma-stage" style="display:none">
+<div class="grid g2">
+<div class="card">
+<div class="card-t">PRISMA 2020 Flow Diagram</div>
+<div class="card-st" style="margin-bottom:12px">Track records at each screening stage</div>
+<div class="fg"><label class="fl">Records identified (databases)</label><input class="fi" type="number" id="srma-prisma-id" value="929" onchange="updateSRMAPrisma()"></div>
+<div class="fg"><label class="fl">Records from registers</label><input class="fi" type="number" id="srma-prisma-reg" value="45" onchange="updateSRMAPrisma()"></div>
+<div class="fg"><label class="fl">Duplicates removed</label><input class="fi" type="number" id="srma-prisma-dup" value="187" onchange="updateSRMAPrisma()"></div>
+<div class="fg"><label class="fl">Title/abstract screened</label><input class="fi" type="number" id="srma-prisma-scr" value="787" onchange="updateSRMAPrisma()"></div>
+<div class="fg"><label class="fl">Excluded at title/abstract</label><input class="fi" type="number" id="srma-prisma-excl1" value="650" onchange="updateSRMAPrisma()"></div>
+<div class="fg"><label class="fl">Full-text assessed</label><input class="fi" type="number" id="srma-prisma-ft" value="137" onchange="updateSRMAPrisma()"></div>
+<div class="fg"><label class="fl">Excluded at full-text</label><input class="fi" type="number" id="srma-prisma-excl2" value="81" onchange="updateSRMAPrisma()"></div>
+<div class="fg"><label class="fl">Included in qualitative synthesis</label><input class="fi" type="number" id="srma-prisma-qual" value="56" onchange="updateSRMAPrisma()"></div>
+<div class="fg"><label class="fl">Included in meta-analysis</label><input class="fi" type="number" id="srma-prisma-ma" value="42" onchange="updateSRMAPrisma()"></div>
+<div class="fg"><label class="fl">Inter-rater agreement (κ)</label><input class="fi" type="number" step="0.01" value="0.82"><span style="font-size:11px;color:var(--tl)"> Almost perfect (>0.80)</span></div>
+</div>
+<div class="card">
+<div class="card-t">PRISMA Flow Visual</div>
+<div id="srma-prisma-visual" style="font-size:12px;line-height:1.8"></div>
+</div>
+</div>
+</div>
+
+<!-- Stage 4: Risk of Bias -->
+<div id="srma4" class="srma-stage" style="display:none">
+<div class="card">
+<div class="card-t">Risk of Bias Assessment</div>
+<div class="card-st" style="margin-bottom:12px">Tool auto-selected by study design per Cochrane handbook</div>
+<div class="grid g3" style="margin-bottom:14px">
+<div class="ai-card" style="text-align:center;cursor:pointer" onclick="showRoBMatrixBuilder()">
+<div style="font-size:24px;margin-bottom:6px">🚦</div>
+<div style="font-weight:700;font-size:13px">RoB 2 Traffic Light</div>
+<div style="font-size:11px;color:var(--tl)">Covidence-style domain matrix</div>
+</div>
+<div class="ai-card" style="text-align:center;cursor:pointer" onclick="showRoBSummaryBar()">
+<div style="font-size:24px;margin-bottom:6px">📊</div>
+<div style="font-weight:700;font-size:13px">RoB Summary Bar</div>
+<div style="font-size:11px;color:var(--tl)">Stacked bar chart by domain</div>
+</div>
+<div class="ai-card" style="text-align:center;cursor:pointer" onclick="showRoBToolSelector()">
+<div style="font-size:24px;margin-bottom:6px">🔧</div>
+<div style="font-weight:700;font-size:13px">Tool Selector</div>
+<div style="font-size:11px;color:var(--tl)">RoB 2 / ROBINS-I / NOS / QUADAS-2</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Stage 5: Meta-Analysis -->
+<div id="srma5" class="srma-stage" style="display:none">
+<div class="grid g2">
+<div class="card">
+<div class="card-t">Meta-Analysis Configuration</div>
+<div class="fg"><label class="fl">Effect Measure</label><select class="fs"><option>Risk Ratio (RR)</option><option>Odds Ratio (OR)</option><option>Mean Difference (MD)</option><option>Standardised Mean Difference (SMD)</option><option>Hazard Ratio (HR)</option></select></div>
+<div class="fg"><label class="fl">Pooling Model</label><select class="fs"><option>Random effects (DerSimonian-Laird)</option><option>Random effects (REML)</option><option>Fixed effect (Mantel-Haenszel)</option><option>Fixed effect (Inverse variance)</option></select></div>
+<div class="fg"><label class="fl">Heterogeneity Assessment</label><div style="font-size:12px;padding:8px;background:#F8FAFC;border-radius:6px;margin-top:4px">I² < 25% = Low | 25–75% = Moderate | > 75% = High<br>Also report: Cochran Q, τ², prediction interval</div></div>
+<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+<button class="btn btn-ai btn-sm" onclick="showForestPlotBuilder()">🌲 Forest Plot</button>
+<button class="btn btn-ai btn-sm" onclick="showFunnelPlot()">🔍 Funnel Plot</button>
+<button class="btn btn-ai btn-sm" onclick="showLeaveOneOut()">🔬 Leave-One-Out</button>
+<button class="btn btn-ai btn-sm" onclick="showSubgroupAnalysis()">📋 Subgroup</button>
+</div>
+</div>
+<div class="card">
+<div class="card-t">Data Entry (per study)</div>
+<div class="card-st" style="margin-bottom:10px">Enter effect sizes and weights for pooling</div>
+<div id="srma-study-data">
+<table style="font-size:12px;width:100%">
+<tr style="background:#F1F5F9"><th style="padding:6px">Study</th><th>Events (Tx)</th><th>N (Tx)</th><th>Events (Ctrl)</th><th>N (Ctrl)</th><th>Weight</th></tr>
+<tr><td style="padding:6px"><input class="fi" style="width:100px;padding:4px" value="Smith 2019"></td><td><input class="fi" style="width:55px;padding:4px" type="number" value="32"></td><td><input class="fi" style="width:55px;padding:4px" type="number" value="120"></td><td><input class="fi" style="width:55px;padding:4px" type="number" value="45"></td><td><input class="fi" style="width:55px;padding:4px" type="number" value="125"></td><td>15.2%</td></tr>
+<tr><td style="padding:6px"><input class="fi" style="width:100px;padding:4px" value="Zhang 2020"></td><td><input class="fi" style="width:55px;padding:4px" type="number" value="48"></td><td><input class="fi" style="width:55px;padding:4px" type="number" value="256"></td><td><input class="fi" style="width:55px;padding:4px" type="number" value="72"></td><td><input class="fi" style="width:55px;padding:4px" type="number" value="256"></td><td>22.8%</td></tr>
+<tr><td style="padding:6px"><input class="fi" style="width:100px;padding:4px" value="Ahmed 2021"></td><td><input class="fi" style="width:55px;padding:4px" type="number" value="55"></td><td><input class="fi" style="width:55px;padding:4px" type="number" value="190"></td><td><input class="fi" style="width:55px;padding:4px" type="number" value="60"></td><td><input class="fi" style="width:55px;padding:4px" type="number" value="190"></td><td>18.5%</td></tr>
+</table>
+<button class="btn btn-sm" style="margin-top:8px" onclick="alert('Row added')">+ Add Study</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Stage 6: GRADE & Report -->
+<div id="srma6" class="srma-stage" style="display:none">
+<div class="grid g2">
+<div class="card">
+<div class="card-t">GRADE Certainty per Outcome</div>
+<div class="card-st" style="margin-bottom:12px">Rate evidence certainty using GRADE framework</div>
+<button class="btn btn-ai" style="width:100%" onclick="showPRISMAManuscriptBuilder()">🤖 Draft PRISMA 2020 Manuscript</button>
+</div>
+<div class="card">
+<div class="card-t">Export Options</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+<button class="btn btn-ai btn-sm">📄 PRISMA 2020 Manuscript</button>
+<button class="btn btn-ai btn-sm">📊 Summary of Findings Table</button>
+<button class="btn btn-ai btn-sm">📋 GRADE Evidence Profile</button>
+<button class="btn btn-ai btn-sm">📈 All Forest Plots (ZIP)</button>
+</div>
+</div>
+</div>
+</div>
+
 <div class="card" style="margin-top:18px">
 <div class="card-t" style="margin-bottom:10px">Active SR/MA Projects</div>
 <table>
@@ -816,7 +968,28 @@ tr:hover td{background:#F8FAFC}
 <div><div class="card-t">AI Skill: Cost-Effectiveness Analysis</div><div class="card-st">HTA-grade CEA/CUA — CHEERS 2022 aligned, NICE reference case methods</div></div>
 <span class="ai-status" style="margin-left:auto">Active</span>
 </div>
+<div class="stepper">
+<div class="step done"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S0</div><div class="step-l">Analytic<br>Frame</div></div>
+<div class="step done"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S1</div><div class="step-l">Model<br>Structure</div></div>
+<div class="step now"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S2</div><div class="step-l">Data<br>Inputs</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S3</div><div class="step-l">Base<br>Case</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S4</div><div class="step-l">Sensitivity<br>Analysis</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S5</div><div class="step-l">Budget<br>Impact</div></div>
+<div class="step"><div class="step-c" style="width:32px;height:32px;font-size:12px">S6</div><div class="step-l">CHEERS<br>Report</div></div>
 </div>
+</div>
+
+<div class="tabs" id="cea-tabs">
+<div class="tab active" onclick="swCEA('cea0')">0. Frame</div>
+<div class="tab" onclick="swCEA('cea1')">1. Model</div>
+<div class="tab" onclick="swCEA('cea2')">2. Data</div>
+<div class="tab" onclick="swCEA('cea3')">3. ICER</div>
+<div class="tab" onclick="swCEA('cea4')">4. Sensitivity</div>
+<div class="tab" onclick="swCEA('cea5')">5. BIA</div>
+<div class="tab" onclick="swCEA('cea6')">6. Report</div>
+</div>
+
+<div id="cea0" class="cea-stage">
 <div class="grid g2">
 <div class="ai-card">
 <div style="font-weight:700;margin-bottom:8px">⚡ Quick Launch CEA</div>
@@ -848,7 +1021,64 @@ tr:hover td{background:#F8FAFC}
 <tr><td><strong>Biologic step-up (NAFLD)</strong></td><td>Decision tree, 5y</td><td>In progress</td><td>—</td><td>—</td><td><span class="badge b-w">Stage 2</span></td></tr>
 </table>
 </div>
-<div class="grid g2" style="margin-top:16px">
+</div><!-- close cea0 -->
+
+<div id="cea1" class="cea-stage" style="display:none">
+<div class="grid g2">
+<div class="card">
+<div class="card-t">Markov Model Builder</div>
+<div class="card-st" style="margin-bottom:12px">Define health states and transition probabilities</div>
+<div class="fg"><label class="fl">Health States (comma-separated)</label><input class="fi" value="Remission, Active Disease, Surgery, Post-Surgery, Dead"></div>
+<div class="fg"><label class="fl">Cycle Length</label><select class="fs"><option>1 year</option><option>6 months</option><option>3 months</option><option>1 month</option></select></div>
+<div class="fg"><label class="fl">Number of Cycles</label><input class="fi" type="number" value="40"></div>
+<div class="fg"><label class="fl">Half-Cycle Correction</label><select class="fs"><option>Yes (recommended)</option><option>No</option></select></div>
+<div style="padding:10px;background:#F0FDF4;border-radius:8px;font-size:12px;margin-top:8px">💡 <strong>Decision rule:</strong> Start with the simplest model. Markov for chronic disease (IBD, CRC, GERD). Decision tree for acute events. PartSA for oncology with KM curves.</div>
+</div>
+<div class="card">
+<div class="card-t">Transition Probability Matrix</div>
+<div class="card-st" style="margin-bottom:10px">Per-cycle transition probabilities (treatment arm)</div>
+<table style="font-size:11px;width:100%">
+<tr style="background:#F1F5F9"><th style="padding:4px">From \ To</th><th>Remission</th><th>Active</th><th>Surgery</th><th>Post-Surg</th><th>Dead</th></tr>
+<tr><td style="padding:4px;font-weight:600">Remission</td><td><input class="fi" style="width:50px;padding:3px" value="0.85"></td><td><input class="fi" style="width:50px;padding:3px" value="0.12"></td><td><input class="fi" style="width:50px;padding:3px" value="0.01"></td><td><input class="fi" style="width:50px;padding:3px" value="0.00"></td><td><input class="fi" style="width:50px;padding:3px" value="0.02"></td></tr>
+<tr><td style="padding:4px;font-weight:600">Active</td><td><input class="fi" style="width:50px;padding:3px" value="0.30"></td><td><input class="fi" style="width:50px;padding:3px" value="0.55"></td><td><input class="fi" style="width:50px;padding:3px" value="0.10"></td><td><input class="fi" style="width:50px;padding:3px" value="0.00"></td><td><input class="fi" style="width:50px;padding:3px" value="0.05"></td></tr>
+<tr><td style="padding:4px;font-weight:600">Surgery</td><td><input class="fi" style="width:50px;padding:3px" value="0.00"></td><td><input class="fi" style="width:50px;padding:3px" value="0.00"></td><td><input class="fi" style="width:50px;padding:3px" value="0.00"></td><td><input class="fi" style="width:50px;padding:3px" value="0.90"></td><td><input class="fi" style="width:50px;padding:3px" value="0.10"></td></tr>
+<tr><td style="padding:4px;font-weight:600">Post-Surgery</td><td><input class="fi" style="width:50px;padding:3px" value="0.60"></td><td><input class="fi" style="width:50px;padding:3px" value="0.20"></td><td><input class="fi" style="width:50px;padding:3px" value="0.05"></td><td><input class="fi" style="width:50px;padding:3px" value="0.10"></td><td><input class="fi" style="width:50px;padding:3px" value="0.05"></td></tr>
+</table>
+</div>
+</div>
+</div>
+
+<div id="cea2" class="cea-stage" style="display:none">
+<div class="grid g2">
+<div class="card">
+<div class="card-t">Utility Values (EQ-5D)</div>
+<table style="font-size:12px;width:100%">
+<tr style="background:#F1F5F9"><th style="padding:6px">Health State</th><th>Utility</th><th>Source</th></tr>
+<tr><td style="padding:6px">Remission</td><td><input class="fi" style="width:60px;padding:3px" value="0.85"></td><td style="font-size:11px">Stark 2010 (EQ-5D)</td></tr>
+<tr><td style="padding:6px">Active Disease</td><td><input class="fi" style="width:60px;padding:3px" value="0.52"></td><td style="font-size:11px">Arseneau 2006</td></tr>
+<tr><td style="padding:6px">Surgery</td><td><input class="fi" style="width:60px;padding:3px" value="0.40"></td><td style="font-size:11px">Expert elicitation</td></tr>
+<tr><td style="padding:6px">Post-Surgery</td><td><input class="fi" style="width:60px;padding:3px" value="0.72"></td><td style="font-size:11px">Xie 2014</td></tr>
+<tr><td style="padding:6px">AE Disutility</td><td><input class="fi" style="width:60px;padding:3px" value="-0.05"></td><td style="font-size:11px">Sullivan 2011</td></tr>
+</table>
+</div>
+<div class="card">
+<div class="card-t">Cost Parameters (SAR)</div>
+<table style="font-size:12px;width:100%">
+<tr style="background:#F1F5F9"><th style="padding:6px">Item</th><th>Cost (SAR)</th><th>Source</th></tr>
+<tr><td style="padding:6px">Drug acquisition (Tx/year)</td><td><input class="fi" style="width:80px;padding:3px" value="45000"></td><td style="font-size:11px">MOH formulary</td></tr>
+<tr><td style="padding:6px">Drug acquisition (Comp/year)</td><td><input class="fi" style="width:80px;padding:3px" value="12000"></td><td style="font-size:11px">MOH formulary</td></tr>
+<tr><td style="padding:6px">Administration</td><td><input class="fi" style="width:80px;padding:3px" value="3500"></td><td style="font-size:11px">KFSH&RC</td></tr>
+<tr><td style="padding:6px">Monitoring (per cycle)</td><td><input class="fi" style="width:80px;padding:3px" value="2800"></td><td style="font-size:11px">MOH tariff</td></tr>
+<tr><td style="padding:6px">Hospitalization</td><td><input class="fi" style="width:80px;padding:3px" value="28000"></td><td style="font-size:11px">DRG weight</td></tr>
+<tr><td style="padding:6px">Surgery</td><td><input class="fi" style="width:80px;padding:3px" value="75000"></td><td style="font-size:11px">KSUMC</td></tr>
+</table>
+<div class="fg" style="margin-top:10px"><label class="fl">Discount Rate (costs & outcomes)</label><select class="fs"><option>3.5% (UK NICE)</option><option>3.0% (US/WHO)</option><option>5.0%</option><option>0% (undiscounted)</option></select></div>
+</div>
+</div>
+</div>
+
+<div id="cea3" class="cea-stage" style="display:none">
+<div class="grid g2">
 <div class="ai-card">
 <div style="font-weight:700;margin-bottom:8px">📊 Quick ICER Calculator</div>
 <div class="fg"><label class="fl">Intervention Cost (SAR)</label><input class="fi" id="cea-cost-int" type="number" placeholder="e.g. 45000" value="45000"></div>
@@ -866,7 +1096,10 @@ tr:hover td{background:#F8FAFC}
 <button class="btn btn-ai btn-sm" style="width:100%;margin-top:8px" onclick="showCHEERSChecklist()">Load CHEERS 2022 Checklist</button>
 </div>
 </div>
-<div class="grid g3" style="margin-top:16px">
+</div><!-- close cea3 -->
+
+<div id="cea4" class="cea-stage" style="display:none">
+<div class="grid g3">
 <div class="ai-card">
 <div style="font-weight:700;margin-bottom:8px">🌪️ Tornado Diagram</div>
 <div style="font-size:12px;color:var(--tl)">One-way sensitivity analysis — identify top ICER drivers</div>
@@ -885,6 +1118,60 @@ tr:hover td{background:#F8FAFC}
 </div>
 </div>
 
+<div id="cea5" class="cea-stage" style="display:none">
+<div class="card">
+<div class="card-t">Budget Impact Analysis (BIA)</div>
+<div class="card-st" style="margin-bottom:12px">Complementary to CEA — required for most HTA submissions</div>
+<div class="grid g2">
+<div>
+<div class="fg"><label class="fl">Eligible Population (Saudi Arabia)</label><input class="fi" type="number" value="125000"></div>
+<div class="fg"><label class="fl">Current Treatment Uptake (%)</label><input class="fi" type="number" value="65"></div>
+<div class="fg"><label class="fl">New Treatment Market Share Y1 (%)</label><input class="fi" type="number" value="10"></div>
+<div class="fg"><label class="fl">New Treatment Market Share Y3 (%)</label><input class="fi" type="number" value="35"></div>
+<div class="fg"><label class="fl">New Treatment Market Share Y5 (%)</label><input class="fi" type="number" value="55"></div>
+</div>
+<div>
+<div style="padding:12px;background:#F0F9FF;border-radius:8px;font-size:12px;line-height:1.8">
+<strong>Formula:</strong><br>
+Net Budget Impact = Cost<sub>new mix</sub> − Cost<sub>current mix</sub><br>
+<strong>Year 1:</strong> SAR 4.2M incremental<br>
+<strong>Year 3:</strong> SAR 12.8M incremental<br>
+<strong>Year 5:</strong> SAR 18.5M incremental<br>
+<strong>Cumulative 5-year:</strong> SAR 52.3M<br>
+<em>Based on S-curve market uptake model</em>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="cea6" class="cea-stage" style="display:none">
+<div class="grid g2">
+<div class="card">
+<div class="card-t">CHEERS 2022 Reporting Checklist</div>
+<div style="font-size:11px;color:var(--tl);margin-bottom:8px">28-item reporting standard for health economic evaluations</div>
+<div id="cea-cheers-list" style="font-size:12px;max-height:400px;overflow-y:auto"></div>
+<button class="btn btn-ai btn-sm" style="width:100%;margin-top:8px" onclick="showCHEERSChecklist()">Load CHEERS 2022 Checklist</button>
+</div>
+<div class="card">
+<div class="card-t">Export CEA Report</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+<button class="btn btn-ai btn-sm">📄 CHEERS Manuscript</button>
+<button class="btn btn-ai btn-sm">📊 Parameter Table</button>
+<button class="btn btn-ai btn-sm">📈 CE Plane + CEAC</button>
+<button class="btn btn-ai btn-sm">🌪️ Tornado + PSA</button>
+<button class="btn btn-ai btn-sm">💰 BIA Summary</button>
+</div>
+<div style="margin-top:16px;padding:12px;background:#FEF3C7;border-radius:8px;font-size:12px">
+<strong>Saudi WTP Reference Thresholds:</strong><br>
+1× GDP/capita: ~SAR 81,000/QALY<br>
+2× GDP/capita: ~SAR 162,000/QALY<br>
+3× GDP/capita: ~SAR 243,000/QALY (WHO-CHOICE upper)
+</div>
+</div>
+</div>
+</div>
+
 <!-- ====== AI: HEALTH POLICY SCANNER ====== -->
 <div class="page" id="p-ai_hps">
 <div class="card" style="border-top:3px solid var(--ai4)">
@@ -893,7 +1180,26 @@ tr:hover td{background:#F8FAFC}
 <div><div class="card-t">AI Skill: Health Policy Scanner</div><div class="card-st">Saudi / GCC / Global policy discovery, WHO building blocks, gap analysis</div></div>
 <span class="ai-status" style="margin-left:auto">Active</span>
 </div>
+<div class="stepper">
+<div class="step done"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S0</div><div class="step-l">Scope<br>& Domain</div></div>
+<div class="step done"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S1</div><div class="step-l">Map<br>Organizations</div></div>
+<div class="step now"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S2</div><div class="step-l">Policy<br>Discovery</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S3</div><div class="step-l">Extract<br>& Classify</div></div>
+<div class="step"><div class="step-cn"></div><div class="step-c" style="width:32px;height:32px;font-size:12px">S4</div><div class="step-l">Critique<br>& Gap</div></div>
+<div class="step"><div class="step-c" style="width:32px;height:32px;font-size:12px">S5</div><div class="step-l">Report<br>& Actions</div></div>
 </div>
+</div>
+
+<div class="tabs" id="hps-tabs">
+<div class="tab active" onclick="swHPS('hps0')">0. Scope</div>
+<div class="tab" onclick="swHPS('hps1')">1. Organizations</div>
+<div class="tab" onclick="swHPS('hps2')">2. Discovery</div>
+<div class="tab" onclick="swHPS('hps3')">3. Extract</div>
+<div class="tab" onclick="swHPS('hps4')">4. Critique</div>
+<div class="tab" onclick="swHPS('hps5')">5. Report</div>
+</div>
+
+<div id="hps0" class="hps-stage">
 <div class="grid g2">
 <div class="ai-card">
 <div style="font-weight:700;margin-bottom:8px">⚡ Launch Policy Scan</div>
@@ -913,6 +1219,9 @@ tr:hover td{background:#F8FAFC}
 </div>
 </div>
 </div>
+</div><!-- close hps0 -->
+
+<div id="hps1" class="hps-stage" style="display:none">
 <div class="card">
 <div class="card-t" style="margin-bottom:10px">Recent Policy Scans</div>
 <table>
@@ -922,6 +1231,7 @@ tr:hover td{background:#F8FAFC}
 <tr><td><strong>Primary Care Transformation</strong></td><td>Saudi only</td><td>12</td><td>In progress</td><td>Mar 18, 2026</td><td><span class="badge b-ai">Scanning</span></td></tr>
 </table>
 </div>
+</div><!-- close scan table card -->
 <div class="card">
 <div class="card-t" style="margin-bottom:10px">Saudi Health Organization Registry</div>
 <table>
@@ -933,7 +1243,28 @@ tr:hover td{background:#F8FAFC}
 <tr><td><strong>NTP</strong></td><td>برنامج التحول الوطني</td><td>Vision 2030 transformation</td><td>KPIs, transformation initiatives</td></tr>
 </table>
 </div>
-<div class="grid g2" style="margin-top:16px">
+</div><!-- close hps1 -->
+
+<div id="hps2" class="hps-stage" style="display:none">
+<div class="card">
+<div class="card-t">Policy Discovery Search</div>
+<div class="card-st" style="margin-bottom:12px">EN + AR queries across official government sources</div>
+<div class="fg"><label class="fl">Search Terms (English)</label><textarea class="fi" rows="2" placeholder="e.g. diabetes prevention, NCD action plan, digital health strategy"></textarea></div>
+<div class="fg"><label class="fl">Search Terms (Arabic)</label><textarea class="fi" rows="2" placeholder="e.g. استراتيجية الصحة الرقمية، خطة الأمراض المزمنة" dir="rtl"></textarea></div>
+<div class="fg"><label class="fl">Date Range</label><div style="display:flex;gap:8px"><input class="fi" style="flex:1" value="2016" placeholder="From"><input class="fi" style="flex:1" value="2026" placeholder="To"></div></div>
+<div style="font-size:12px;padding:10px;background:#EDE9FE;border-radius:8px;margin-top:8px">
+<strong>Source queries auto-generated:</strong><br>
+<code style="font-size:11px">site:moh.gov.sa | site:shc.gov.sa | site:sfda.gov.sa | site:vision2030.gov.sa | site:scfhs.org.sa</code>
+</div>
+<button class="btn btn-ai" style="width:100%;margin-top:10px" onclick="runPolicyScanner()">🤖 Run Discovery Scan</button>
+</div>
+</div>
+
+<div id="hps3" class="hps-stage" style="display:none">
+<div class="card">
+<div class="card-t">Structured Policy Extraction</div>
+<div class="card-st" style="margin-bottom:12px">WHO Building Blocks classification + metadata</div>
+<div class="grid g2" style="margin-bottom:14px">
 <div class="ai-card">
 <div style="font-weight:700;margin-bottom:8px">🎯 WHO Building Blocks Radar</div>
 <div style="font-size:12px;color:var(--tl);margin-bottom:8px">Rate Saudi policy coverage across all 6 WHO health system building blocks</div>
@@ -947,7 +1278,12 @@ tr:hover td{background:#F8FAFC}
 <button class="btn btn-ai btn-sm" style="width:100%;margin-top:8px" onclick="showPolicyGapHeatmap()">Generate Gap Heatmap</button>
 </div>
 </div>
-<div class="grid g3" style="margin-top:16px">
+</div><!-- close g2 inside hps3 -->
+</div><!-- close hps3 card -->
+</div><!-- close hps3 -->
+
+<div id="hps4" class="hps-stage" style="display:none">
+<div class="grid g3">
 <div class="ai-card">
 <div style="font-weight:700;margin-bottom:8px">📊 Benchmarking Scorecard</div>
 <div style="font-size:12px;color:var(--tl)">Compare Saudi health policies vs WHO/international standards</div>
@@ -964,11 +1300,26 @@ tr:hover td{background:#F8FAFC}
 <button class="btn btn-ai btn-sm" style="width:100%;margin-top:8px" onclick="showPolicyTimeline()">Show Timeline</button>
 </div>
 </div>
-<div class="ai-card" style="margin-top:16px">
+</div>
+
+<div id="hps5" class="hps-stage" style="display:none">
+<div class="grid g2">
+<div class="card">
+<div class="card-t">Report & Recommendations</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+<button class="btn btn-ai btn-sm">📄 Policy Landscape Report</button>
+<button class="btn btn-ai btn-sm">📊 Gap Analysis Summary</button>
+<button class="btn btn-ai btn-sm">🎯 WHO Radar Export</button>
+<button class="btn btn-ai btn-sm">📋 Stakeholder Brief</button>
+</div>
+</div>
+<div class="ai-card">
 <div style="font-weight:700;margin-bottom:8px">🌐 Stakeholder Mapping</div>
-<div style="font-size:12px;color:var(--tl);margin-bottom:8px">Map relationships between Saudi health authorities, their mandates, and policy intersections</div>
+<div style="font-size:12px;color:var(--tl);margin-bottom:8px">Map relationships between Saudi health authorities</div>
 <div id="hps-stakeholder-map" style="min-height:150px"></div>
 <button class="btn btn-ai btn-sm" style="width:100%;margin-top:8px" onclick="showStakeholderMap()">Generate Stakeholder Map</button>
+</div>
+</div>
 </div>
 </div>
 
@@ -1081,10 +1432,36 @@ tr:hover td{background:#F8FAFC}
 <div class="card-t" style="margin-bottom:14px">Guideline Lifecycle Tracker</div>
 <table>
 <tr><th>Guideline</th><th>Ver</th><th>Status</th><th>Published</th><th>Review Due</th><th>AGREE II</th><th>GIN</th><th></th></tr>
-<tr><td><strong>T2DM — Adult</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2024-001</span></td><td>v2.1</td><td><span class="badge b-ok">Published</span></td><td>Jan 2024</td><td>Jan 2027</td><td style="color:var(--ok);font-weight:600">91%</td><td style="color:var(--ok);font-weight:600">16/18</td><td><button class="btn btn-sm btn-o">View</button></td></tr>
-<tr><td><strong>H. pylori</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2022-003</span></td><td>v1.1</td><td><span class="badge b-err">Overdue</span></td><td>Jun 2022</td><td style="color:var(--err);font-weight:600">Jun 2025 ⚠️</td><td style="color:var(--warn);font-weight:600">72%</td><td style="color:var(--warn);font-weight:600">11/18</td><td><button class="btn btn-sm" style="background:var(--err);color:#fff">Update</button></td></tr>
-<tr><td><strong>CRC Screening</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2023-012</span></td><td>v1.2</td><td><span class="badge b-i">Review</span></td><td>Mar 2023</td><td style="color:var(--warn)">Mar 2026</td><td style="color:var(--info);font-weight:600">84%</td><td style="color:var(--ok);font-weight:600">15/18</td><td><button class="btn btn-sm btn-o">View</button></td></tr>
+<tr style="cursor:pointer" onclick="showGuidelineDetail('t2dm')"><td><strong>T2DM — Adult</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2024-001</span></td><td>v2.1</td><td><span class="badge b-ok">Published</span></td><td>Jan 2024</td><td>Jan 2027</td><td style="color:var(--ok);font-weight:600">91%</td><td style="color:var(--ok);font-weight:600">16/18</td><td><button class="btn btn-sm btn-o">View →</button></td></tr>
+<tr style="cursor:pointer" onclick="showGuidelineDetail('hpylori')"><td><strong>H. pylori</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2022-003</span></td><td>v1.1</td><td><span class="badge b-err">Overdue</span></td><td>Jun 2022</td><td style="color:var(--err);font-weight:600">Jun 2025 ⚠️</td><td style="color:var(--warn);font-weight:600">72%</td><td style="color:var(--warn);font-weight:600">11/18</td><td><button class="btn btn-sm" style="background:var(--err);color:#fff">Update →</button></td></tr>
+<tr style="cursor:pointer" onclick="showGuidelineDetail('crc')"><td><strong>CRC Screening</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2023-012</span></td><td>v1.2</td><td><span class="badge b-i">Review</span></td><td>Mar 2023</td><td style="color:var(--warn)">Mar 2026</td><td style="color:var(--info);font-weight:600">84%</td><td style="color:var(--ok);font-weight:600">15/18</td><td><button class="btn btn-sm btn-o">View →</button></td></tr>
+<tr style="cursor:pointer" onclick="showGuidelineDetail('htn')"><td><strong>Hypertension — Primary Care</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2024-005</span></td><td>v1.2</td><td><span class="badge b-ok">Published</span></td><td>Mar 2024</td><td>Mar 2027</td><td style="color:var(--ok);font-weight:600">88%</td><td style="color:var(--ok);font-weight:600">15/18</td><td><button class="btn btn-sm btn-o">View →</button></td></tr>
+<tr style="cursor:pointer" onclick="showGuidelineDetail('asthma')"><td><strong>Asthma — Adult</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2025-002</span></td><td>v0.8</td><td><span class="badge b-w">In Dev</span></td><td>—</td><td>—</td><td style="color:var(--tl)">—</td><td style="color:var(--tl)">—</td><td><button class="btn btn-sm" style="background:var(--ai1);color:#fff">Continue →</button></td></tr>
 </table>
+</div>
+<div class="card" style="margin-top:16px">
+<div class="card-t" style="margin-bottom:14px">📁 Published Guideline Repository</div>
+<div class="card-st" style="margin-bottom:14px">Official published CPGs stored and versioned — click to access full document</div>
+<div class="grid g3">
+<div class="card" style="border-left:4px solid var(--ok);cursor:pointer" onclick="showGuidelineDetail('t2dm')">
+<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge b-ok">Published v2.1</span><span style="font-size:10px;color:var(--tl)">📄 PDF</span></div>
+<h3 style="font-size:13px;margin:8px 0 3px">T2DM — Adult Management</h3>
+<p style="font-size:11px;color:var(--tl)">KSUMC Endocrinology · 14 recommendations · AGREE II: 91%</p>
+<div style="font-size:10px;color:var(--tl);margin-top:6px">📅 Published: Jan 2024 · 📋 Next review: Jan 2027</div>
+</div>
+<div class="card" style="border-left:4px solid var(--ok);cursor:pointer" onclick="showGuidelineDetail('htn')">
+<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge b-ok">Published v1.2</span><span style="font-size:10px;color:var(--tl)">📄 PDF</span></div>
+<h3 style="font-size:13px;margin:8px 0 3px">Hypertension — Primary Care</h3>
+<p style="font-size:11px;color:var(--tl)">MOH · ADAPTE from ESC/ESH · 11 recommendations · AGREE II: 88%</p>
+<div style="font-size:10px;color:var(--tl);margin-top:6px">📅 Published: Mar 2024 · 📋 Next review: Mar 2027</div>
+</div>
+<div class="card" style="border-left:4px solid var(--ok);cursor:pointer" onclick="showGuidelineDetail('hpylori')">
+<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge b-err">Overdue v1.1</span><span style="font-size:10px;color:var(--tl)">📄 PDF</span></div>
+<h3 style="font-size:13px;margin:8px 0 3px">H. pylori Eradication</h3>
+<p style="font-size:11px;color:var(--tl)">KSUMC GI · 8 recommendations · AGREE II: 72%</p>
+<div style="font-size:10px;color:var(--err);margin-top:6px">⚠️ Review overdue: Jun 2025 · Needs update</div>
+</div>
+</div>
 </div>
 <div class="grid g2">
 <div class="card">
@@ -1111,12 +1488,12 @@ tr:hover td{background:#F8FAFC}
 <div class="page" id="p-frameworks">
 <div class="card"><div class="card-t">Integrated Quality Frameworks</div><div class="card-st" style="margin-bottom:18px">Five gold-standard frameworks power every guideline</div></div>
 <div class="grid g3">
-<div class="card" style="border-top:4px solid var(--ok)"><div style="font-size:22px">⊕⊕⊕⊕</div><div class="card-t" style="margin-top:6px">GRADE</div><div style="font-size:12px;margin-top:6px">Rate certainty of evidence; determine recommendation strength. 5 domains: RoB, inconsistency, indirectness, imprecision, pub bias.</div></div>
-<div class="card" style="border-top:4px solid var(--s)"><div style="font-size:22px">🏛️</div><div class="card-t" style="margin-top:6px">NICE Process</div><div style="font-size:12px;margin-top:6px">Organizational governance, stakeholder engagement, consultation standards, accreditation model.</div></div>
-<div class="card" style="border-top:4px solid var(--a)"><div style="font-size:22px">📋</div><div class="card-t" style="margin-top:6px">GIN-McMaster</div><div style="font-size:12px;margin-top:6px">18-topic quality checklist covering the full guideline lifecycle. Global gold standard.</div></div>
-<div class="card" style="border-top:4px solid #6366F1"><div style="font-size:22px">⭐</div><div class="card-t" style="margin-top:6px">AGREE II</div><div style="font-size:12px;margin-top:6px">Quality gate: 6 domains, 23 items. Rigour domain ≥70% required to advance to NSC.</div></div>
-<div class="card" style="border-top:4px solid #EC4899"><div style="font-size:22px">🔄</div><div class="card-t" style="margin-top:6px">ADAPTE</div><div style="font-size:12px;margin-top:6px">Systematic adaptation of international guidelines to Saudi context. 3 phases: Set-up, Adaptation, Finalization.</div></div>
-<div class="card" style="border-top:4px solid #14B8A6"><div style="font-size:22px">🔍</div><div class="card-t" style="margin-top:6px">RoB Tools Suite</div><div style="font-size:12px;margin-top:6px">Auto-selected: RoB 2 (RCTs), ROBINS-I (NRS), NOS (cohort), QUADAS-2 (diagnostic), AMSTAR 2 (SRs).</div></div>
+<div class="card" style="border-top:4px solid var(--ok)"><div style="font-size:22px">⊕⊕⊕⊕</div><div class="card-t" style="margin-top:6px">GRADE</div><div style="font-size:12px;margin-top:6px">Rate certainty of evidence; determine recommendation strength. 5 domains: RoB, inconsistency, indirectness, imprecision, pub bias.</div><button class="btn btn-sm" style="margin-top:8px;width:100%;background:var(--ok);color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer" onclick="showFrameworkDetail('GRADE')">View Full Details →</button></div></div>
+<div class="card" style="border-top:4px solid var(--s)"><div style="font-size:22px">🏛️</div><div class="card-t" style="margin-top:6px">NICE Process</div><div style="font-size:12px;margin-top:6px">Organizational governance, stakeholder engagement, consultation standards, accreditation model.</div><button class="btn btn-sm" style="margin-top:8px;width:100%;background:var(--s);color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer" onclick="showFrameworkDetail('NICE')">View Full Details →</button></div></div>
+<div class="card" style="border-top:4px solid var(--a)"><div style="font-size:22px">📋</div><div class="card-t" style="margin-top:6px">GIN-McMaster</div><div style="font-size:12px;margin-top:6px">18-topic quality checklist covering the full guideline lifecycle. Global gold standard.</div><button class="btn btn-sm" style="margin-top:8px;width:100%;background:var(--a);color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer" onclick="showFrameworkDetail('GIN')">View Full Details →</button></div></div>
+<div class="card" style="border-top:4px solid #6366F1"><div style="font-size:22px">⭐</div><div class="card-t" style="margin-top:6px">AGREE II</div><div style="font-size:12px;margin-top:6px">Quality gate: 6 domains, 23 items. Rigour domain ≥70% required to advance to NSC.</div><button class="btn btn-sm" style="margin-top:8px;width:100%;background:#6366F1;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer" onclick="showFrameworkDetail('AGREE')">View Full Details →</button></div></div>
+<div class="card" style="border-top:4px solid #EC4899"><div style="font-size:22px">🔄</div><div class="card-t" style="margin-top:6px">ADAPTE</div><div style="font-size:12px;margin-top:6px">Systematic adaptation of international guidelines to Saudi context. 3 phases: Set-up, Adaptation, Finalization.</div><button class="btn btn-sm" style="margin-top:8px;width:100%;background:#EC4899;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer" onclick="showFrameworkDetail('ADAPTE')">View Full Details →</button></div></div>
+<div class="card" style="border-top:4px solid #14B8A6"><div style="font-size:22px">🔍</div><div class="card-t" style="margin-top:6px">RoB Tools Suite</div><div style="font-size:12px;margin-top:6px">Auto-selected: RoB 2 (RCTs), ROBINS-I (NRS), NOS (cohort), QUADAS-2 (diagnostic), AMSTAR 2 (SRs).</div><button class="btn btn-sm" style="margin-top:8px;width:100%;background:#14B8A6;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer" onclick="showFrameworkDetail('RoB')">View Full Details →</button></div></div>
 </div>
 <div class="card">
 <div class="card-t" style="margin-bottom:10px">Framework Integration Flow</div>
@@ -4710,6 +5087,194 @@ document.addEventListener('DOMContentLoaded', function() {
     cb.addEventListener('change', function() { setTimeout(saveWorkflowData, 100); });
   });
 });
+
+// ============================================================
+// TAB SWITCHING FOR SR/MA, CEA, HPS WORKFLOWS
+// ============================================================
+function swSRMA(id) {
+  document.querySelectorAll('.srma-stage').forEach(function(el) { el.style.display = 'none'; });
+  var el = document.getElementById(id);
+  if (el) el.style.display = 'block';
+  document.querySelectorAll('#srma-tabs .tab').forEach(function(t,i) {
+    t.classList.toggle('active', 'srma' + i === id);
+  });
+  if (id === 'srma3') updateSRMAPrisma();
+}
+
+function swCEA(id) {
+  document.querySelectorAll('.cea-stage').forEach(function(el) { el.style.display = 'none'; });
+  var el = document.getElementById(id);
+  if (el) el.style.display = 'block';
+  document.querySelectorAll('#cea-tabs .tab').forEach(function(t,i) {
+    t.classList.toggle('active', 'cea' + i === id);
+  });
+}
+
+function swHPS(id) {
+  document.querySelectorAll('.hps-stage').forEach(function(el) { el.style.display = 'none'; });
+  var el = document.getElementById(id);
+  if (el) el.style.display = 'block';
+  document.querySelectorAll('#hps-tabs .tab').forEach(function(t,i) {
+    t.classList.toggle('active', 'hps' + i === id);
+  });
+}
+
+function updateSRMAPrisma() {
+  var el = document.getElementById('srma-prisma-visual');
+  if (!el) return;
+  var id = parseInt(document.getElementById('srma-prisma-id').value)||0;
+  var reg = parseInt(document.getElementById('srma-prisma-reg').value)||0;
+  var dup = parseInt(document.getElementById('srma-prisma-dup').value)||0;
+  var scr = parseInt(document.getElementById('srma-prisma-scr').value)||0;
+  var excl1 = parseInt(document.getElementById('srma-prisma-excl1').value)||0;
+  var ft = parseInt(document.getElementById('srma-prisma-ft').value)||0;
+  var excl2 = parseInt(document.getElementById('srma-prisma-excl2').value)||0;
+  var qual = parseInt(document.getElementById('srma-prisma-qual').value)||0;
+  var ma = parseInt(document.getElementById('srma-prisma-ma').value)||0;
+  
+  var h = '<div style="text-align:center;font-size:12px;line-height:1.8">';
+  h += '<div style="padding:10px;background:#EFF6FF;border-radius:8px;display:inline-block;margin:4px"><strong>Identification</strong><br>Databases: ' + id + ' | Registers: ' + reg + '</div>';
+  h += '<div style="font-size:16px">↓</div>';
+  h += '<div style="padding:10px;background:#FEF3C7;border-radius:8px;display:inline-block;margin:4px"><strong>Duplicates removed:</strong> ' + dup + '</div>';
+  h += '<div style="font-size:16px">↓</div>';
+  h += '<div style="padding:10px;background:#F0FDF4;border-radius:8px;display:inline-block;margin:4px"><strong>Screened:</strong> ' + scr + ' → <span style="color:#DC2626">Excluded: ' + excl1 + '</span></div>';
+  h += '<div style="font-size:16px">↓</div>';
+  h += '<div style="padding:10px;background:#EDE9FE;border-radius:8px;display:inline-block;margin:4px"><strong>Full-text:</strong> ' + ft + ' → <span style="color:#DC2626">Excluded: ' + excl2 + '</span></div>';
+  h += '<div style="font-size:16px">↓</div>';
+  h += '<div style="padding:10px;background:#DBEAFE;border-radius:8px;display:inline-block;margin:4px"><strong>Qualitative synthesis:</strong> ' + qual + '</div>';
+  h += '<div style="font-size:16px">↓</div>';
+  h += '<div style="padding:12px;background:#16A34A;color:#fff;border-radius:8px;display:inline-block;margin:4px;font-weight:700"><strong>Meta-analysis:</strong> ' + ma + ' studies</div>';
+  h += '</div>';
+  el.innerHTML = h;
+}
+
+function loadPRISMAPChecklist() {
+  var items = [
+    'Administrative: Title, registration, support, role of funder',
+    'Introduction: Rationale, objectives',
+    'Methods: Eligibility criteria',
+    'Methods: Information sources',
+    'Methods: Search strategy',
+    'Methods: Study records — data management',
+    'Methods: Study records — selection process',
+    'Methods: Study records — data collection process',
+    'Methods: Data items',
+    'Methods: Outcomes and prioritization',
+    'Methods: Risk of bias in individual studies',
+    'Methods: Data synthesis',
+    'Methods: Meta-bias(es)',
+    'Methods: Confidence in cumulative evidence',
+    'Methods: Amendments to protocol',
+    'Ethics and dissemination plan',
+    'Timeline and milestones'
+  ];
+  var el = document.getElementById('srma-prismap-checklist');
+  var h = '';
+  items.forEach(function(item, i) {
+    h += '<div style="padding:6px 8px;margin-bottom:3px;background:#FAFAFA;border-radius:6px;display:flex;align-items:center;gap:8px">';
+    h += '<input type="checkbox" id="prismap-' + i + '">';
+    h += '<label for="prismap-' + i + '" style="cursor:pointer"><strong>' + (i+1) + '.</strong> ' + item + '</label></div>';
+  });
+  el.innerHTML = h;
+}
+
+function showRoBSummaryBar() {
+  showRoBMatrixBuilder();
+}
+
+function showRoBToolSelector() {
+  var h = '<div style="font-size:13px">';
+  var tools = [
+    {name:'RoB 2',design:'Randomised Controlled Trials',domains:'Randomisation, Deviations, Missing data, Measurement, Selection',levels:'Low / Some Concerns / High'},
+    {name:'ROBINS-I',design:'Non-randomised Studies (interventions)',domains:'Confounding, Selection, Classification, Deviations, Missing data, Measurement, Reporting',levels:'Low / Moderate / Serious / Critical'},
+    {name:'Newcastle-Ottawa (NOS)',design:'Cohort & Case-Control Studies',domains:'Selection (4★), Comparability (2★), Outcome/Exposure (3★)',levels:'0-9 stars (≥7 = good quality)'},
+    {name:'QUADAS-2',design:'Diagnostic Accuracy Studies',domains:'Patient selection, Index test, Reference standard, Flow/timing',levels:'Low / High / Unclear'},
+    {name:'AMSTAR 2',design:'Systematic Reviews of SRs',domains:'16 items including PICO, search, extraction, RoB, synthesis',levels:'High / Moderate / Low / Critically Low'}
+  ];
+  tools.forEach(function(t) {
+    h += '<div style="padding:12px;margin-bottom:8px;background:#F8FAFC;border-radius:8px;border-left:3px solid #2563EB">';
+    h += '<div style="font-weight:700;font-size:14px">' + t.name + '</div>';
+    h += '<div style="color:#2563EB;font-size:11px;margin-bottom:4px">' + t.design + '</div>';
+    h += '<div style="font-size:12px"><strong>Domains:</strong> ' + t.domains + '</div>';
+    h += '<div style="font-size:11px;color:#666"><strong>Judgements:</strong> ' + t.levels + '</div></div>';
+  });
+  h += '</div>';
+  
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center';
+  modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
+  modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:650px;width:95%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">🔧 RoB Tool Selector — By Study Design</h3><button onclick="this.closest(\'div[style*=position\\3A fixed]\').remove()" class="btn btn-sm">✕</button></div>'+h+'</div>';
+  document.body.appendChild(modal);
+}
+
+// ============================================================
+// FRAMEWORK DETAIL MODALS
+// ============================================================
+function showFrameworkDetail(fw) {
+  var data = {
+    'GRADE': {title:'GRADE Framework', color:'#16A34A', content:'<div style="font-size:13px;line-height:1.7"><p><strong>GRADE (Grading of Recommendations, Assessment, Development and Evaluations)</strong> is the most widely adopted system for rating certainty of evidence and strength of recommendations.</p><h4 style="margin:14px 0 8px">Certainty of Evidence — 4 Levels</h4><table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="background:#F1F5F9"><th style="padding:8px">Level</th><th>Symbol</th><th>Meaning</th></tr><tr><td style="padding:8px;color:#16A34A;font-weight:700">High</td><td>⊕⊕⊕⊕</td><td>Very confident the true effect is close to estimate</td></tr><tr><td style="padding:8px;color:#2563EB;font-weight:700">Moderate</td><td>⊕⊕⊕◯</td><td>Moderately confident; true effect likely close</td></tr><tr><td style="padding:8px;color:#D97706;font-weight:700">Low</td><td>⊕⊕◯◯</td><td>Limited confidence; true effect may differ substantially</td></tr><tr><td style="padding:8px;color:#DC2626;font-weight:700">Very Low</td><td>⊕◯◯◯</td><td>Very little confidence; estimate very uncertain</td></tr></table><h4 style="margin:14px 0 8px">5 Downgrade Domains</h4><ol style="margin:0;padding-left:20px"><li><strong>Risk of Bias</strong> — Systematic errors in study design/conduct</li><li><strong>Inconsistency</strong> — Unexplained heterogeneity across studies (I²)</li><li><strong>Indirectness</strong> — PICO mismatch with review question</li><li><strong>Imprecision</strong> — Wide confidence intervals, few events</li><li><strong>Publication Bias</strong> — Asymmetric funnel plot, missing studies</li></ol><h4 style="margin:14px 0 8px">3 Upgrade Domains</h4><ol style="margin:0;padding-left:20px"><li><strong>Large Effect</strong> — RR < 0.5 or > 2.0 from observational data</li><li><strong>Dose-Response</strong> — Gradient relationship observed</li><li><strong>Plausible Confounding</strong> — All confounders would reduce effect</li></ol><h4 style="margin:14px 0 8px">Recommendation Strength</h4><p><strong>Strong:</strong> "We recommend…" — benefits clearly outweigh harms<br><strong>Conditional:</strong> "We suggest…" — benefits probably outweigh harms, more uncertainty</p></div>'},
+    'NICE': {title:'NICE Process & Methods', color:'#7C3AED', content:'<div style="font-size:13px;line-height:1.7"><p><strong>National Institute for Health and Care Excellence (NICE)</strong> provides the gold-standard organizational governance model for guideline development.</p><h4 style="margin:14px 0 8px">Key Process Elements</h4><ol style="margin:0;padding-left:20px"><li><strong>Topic selection & scoping</strong> — Stakeholder consultation, scope document</li><li><strong>Guideline committee formation</strong> — Multidisciplinary, lay members, COI declarations</li><li><strong>Evidence review</strong> — Systematic search, GRADE assessment, evidence statements</li><li><strong>Recommendation development</strong> — Evidence-to-recommendation framework, clinical expertise</li><li><strong>Consultation</strong> — Public and stakeholder consultation (minimum 6 weeks)</li><li><strong>Quality assurance</strong> — Independent editorial review, AGREE II assessment</li><li><strong>Publication & implementation</strong> — NICE Pathway integration, clinical audit tools</li><li><strong>Surveillance & update</strong> — 3-year review cycle, living guideline approach</li></ol><h4 style="margin:14px 0 8px">KSUMC Adaptation</h4><p>Our platform mirrors the NICE process with Saudi-specific elements: Vision 2030 alignment scoring, Arabic/English bilingual outputs, Saudi health authority endorsement workflow, and MOH/SCFHS integration.</p></div>'},
+    'GIN': {title:'GIN-McMaster Guideline Development Checklist', color:'#F59E0B', content:'<div style="font-size:13px;line-height:1.7"><p><strong>Guidelines International Network (GIN) – McMaster</strong> checklist covers 18 topics across the entire guideline lifecycle.</p><h4 style="margin:14px 0 8px">18 Topics</h4><ol style="margin:0;padding-left:20px;font-size:12px"><li>Organization, budget and planning</li><li>Priority setting</li><li>Guideline group membership</li><li>Establishing guideline group processes</li><li>Identifying target audience and topic selection</li><li>Consumer and stakeholder involvement</li><li>Conflict of interest considerations</li><li>Question generation (PICO)</li><li>Considering importance of outcomes and interventions, values and preferences</li><li>Deciding what evidence to include and searching for evidence</li><li>Summarizing evidence and considering additional information</li><li>Judging quality, strength, or certainty of a body of evidence</li><li>Developing recommendations and determining their strength</li><li>Wording of recommendations and considerations for implementation</li><li>Reporting and peer review</li><li>Dissemination and implementation</li><li>Evaluation and use</li><li>Updating</li></ol><p style="margin-top:10px"><strong>Scoring:</strong> Each topic rated against quality criteria. Our platform tracks compliance across all 18 topics and reports the GIN score (e.g., 16/18).</p></div>'},
+    'AGREE': {title:'AGREE II Instrument', color:'#6366F1', content:'<div style="font-size:13px;line-height:1.7"><p><strong>Appraisal of Guidelines for Research & Evaluation (AGREE II)</strong> is the international standard for assessing guideline quality.</p><h4 style="margin:14px 0 8px">6 Domains, 23 Items</h4><table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="background:#F1F5F9"><th style="padding:6px">Domain</th><th>Items</th><th>Focus</th></tr><tr><td style="padding:6px;font-weight:600">1. Scope & Purpose</td><td>3</td><td>Objectives, clinical questions, target population</td></tr><tr><td style="padding:6px;font-weight:600">2. Stakeholder Involvement</td><td>3</td><td>Group composition, patient views, target users</td></tr><tr><td style="padding:6px;font-weight:600">3. Rigour of Development</td><td>8</td><td>Search, selection, evidence, recommendations, update</td></tr><tr><td style="padding:6px;font-weight:600">4. Clarity of Presentation</td><td>3</td><td>Specific, unambiguous, identifiable key recommendations</td></tr><tr><td style="padding:6px;font-weight:600">5. Applicability</td><td>4</td><td>Facilitators, barriers, resources, monitoring</td></tr><tr><td style="padding:6px;font-weight:600">6. Editorial Independence</td><td>2</td><td>Funding body, competing interests</td></tr></table><h4 style="margin:14px 0 8px">Quality Gate</h4><p><strong>Domain 3 (Rigour) ≥ 70%</strong> is required to advance to NSC endorsement in our platform. Overall quality rating: Recommend / Recommend with modifications / Do not recommend.</p></div>'},
+    'ADAPTE': {title:'ADAPTE Framework', color:'#EC4899', content:'<div style="font-size:13px;line-height:1.7"><p><strong>ADAPTE</strong> provides a systematic approach to adapting international guidelines to a local context (Saudi Arabia / GCC).</p><h4 style="margin:14px 0 8px">3 Phases</h4><div style="padding:10px;background:#FDF2F8;border-radius:8px;margin-bottom:8px"><strong>Phase 1: Set-up</strong><br>Establish organizing committee, select topic, identify resources, write adaptation plan, identify clinical questions</div><div style="padding:10px;background:#FCE7F3;border-radius:8px;margin-bottom:8px"><strong>Phase 2: Adaptation</strong><br>Search for source guidelines, assess quality (AGREE II), assess currency and consistency, decide on adaptation, draft adapted guideline</div><div style="padding:10px;background:#FBCFE8;border-radius:8px;margin-bottom:8px"><strong>Phase 3: Finalization</strong><br>External review, plan for aftercare (monitoring, update), produce final document</div><h4 style="margin:14px 0 8px">Saudi Context Considerations</h4><p>When adapting: consider Saudi disease epidemiology, MOH formulary availability, healthcare delivery model differences, cultural/religious factors, and Vision 2030 health targets.</p></div>'},
+    'RoB': {title:'Risk of Bias Tools Suite', color:'#14B8A6', content:'<div style="font-size:13px;line-height:1.7"><p>The platform auto-selects the appropriate risk of bias tool based on study design.</p><h4 style="margin:14px 0 8px">Tool Selection Matrix</h4><table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="background:#F1F5F9"><th style="padding:6px">Study Design</th><th>Tool</th><th>Domains</th><th>Judgements</th></tr><tr><td style="padding:6px">RCTs</td><td style="font-weight:600">RoB 2</td><td>5 domains</td><td>Low / Some Concerns / High</td></tr><tr><td style="padding:6px">NRS (interventions)</td><td style="font-weight:600">ROBINS-I</td><td>7 domains</td><td>Low / Moderate / Serious / Critical</td></tr><tr><td style="padding:6px">Cohort / Case-control</td><td style="font-weight:600">NOS</td><td>3 categories (9★)</td><td>0-9 stars</td></tr><tr><td style="padding:6px">Diagnostic accuracy</td><td style="font-weight:600">QUADAS-2</td><td>4 domains</td><td>Low / High / Unclear</td></tr><tr><td style="padding:6px">SR of SRs</td><td style="font-weight:600">AMSTAR 2</td><td>16 items</td><td>High → Critically Low</td></tr></table><h4 style="margin:14px 0 8px">Visualization</h4><p>Results are presented as Covidence-style traffic light matrices (per-study, per-domain) and summary bar charts showing the proportion of studies at each risk level per domain.</p></div>'}
+  };
+  
+  var d = data[fw];
+  if (!d) return;
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center';
+  modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
+  modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:700px;width:95%;max-height:85vh;overflow-y:auto;border-top:4px solid '+d.color+'"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0;color:'+d.color+'">'+d.title+'</h3><button onclick="this.closest(\'div[style*=position\\3A fixed]\').remove()" class="btn btn-sm">✕</button></div>'+d.content+'</div>';
+  document.body.appendChild(modal);
+}
+
+// ============================================================
+// GUIDELINE DETAIL MODAL (Lifecycle page)
+// ============================================================
+function showGuidelineDetail(id) {
+  var guidelines = {
+    't2dm': {title:'Type 2 Diabetes Mellitus — Adult Management',id:'KSUMC-CPG-2024-001',ver:'v2.1',status:'Published',date:'January 2024',reviewDue:'January 2027',agree:'91%',gin:'16/18',specialty:'Endocrinology',panel:'Dr. A. Al-Harbi (Chair), Dr. S. Al-Qahtani, Dr. M. Johnson, Dr. F. Ahmed, Patient Rep: K. Al-Dosari',recs:14,color:'#16A34A',sections:['Diagnosis & Classification','Glycemic Targets','First-line Therapy (Metformin)','Second-line Add-on (SGLT2i, GLP-1 RA)','Insulin Initiation','Hypoglycemia Management','Cardiovascular Risk Reduction','Renal Protection (CKD)','Lifestyle & Diet','Monitoring (HbA1c, CGM)','Special Populations (Elderly, Pregnancy)','Ramadan Guidelines','Patient Education','Implementation & Audit']},
+    'hpylori': {title:'H. pylori Eradication',id:'KSUMC-CPG-2022-003',ver:'v1.1',status:'Overdue for Review',date:'June 2022',reviewDue:'June 2025 (OVERDUE)',agree:'72%',gin:'11/18',specialty:'Gastroenterology',panel:'Dr. R. Al-Ghamdi (Chair), Dr. L. Martinez, Dr. N. Al-Otaibi',recs:8,color:'#DC2626',sections:['Diagnostic Testing (UBT, Stool Ag)','First-line Triple Therapy','Bismuth Quadruple (PPI-allergic)','Concomitant Therapy','Levofloxacin Salvage','Confirmation of Eradication','Antibiotic Resistance Testing','Special Populations']},
+    'crc': {title:'Colorectal Cancer Screening',id:'KSUMC-CPG-2023-012',ver:'v1.2',status:'Under Review',date:'March 2023',reviewDue:'March 2026',agree:'84%',gin:'15/18',specialty:'Gastroenterology / Oncology',panel:'Dr. K. Al-Swat (Chair), Dr. H. Ibrahim, Dr. P. Wong, Patient Rep: A. Al-Zahrani',recs:10,color:'#2563EB',sections:['Average-Risk Screening Age','FIT as Primary Screen','Colonoscopy Intervals','High-Risk Surveillance','Lynch Syndrome Protocol','Polyp Follow-up','Quality Indicators (ADR, CIR)','Patient Decision Aids','Cost-Effectiveness','Saudi Epidemiology Context']},
+    'htn': {title:'Hypertension — Primary Care Management',id:'KSUMC-CPG-2024-005',ver:'v1.2',status:'Published',date:'March 2024',reviewDue:'March 2027',agree:'88%',gin:'15/18',specialty:'Primary Care / Cardiology',panel:'Dr. M. Al-Mutairi (Chair), Dr. F. Bakr, Dr. J. Lee',recs:11,color:'#16A34A',sections:['BP Measurement Standards','Classification & Staging','Lifestyle Modifications','First-line Pharmacotherapy','Combination Therapy','Resistant Hypertension','Secondary Causes','Target Organ Damage Screening','Elderly Patients','Pregnancy','Monitoring & Follow-up']},
+    'asthma': {title:'Asthma — Adult Management',id:'KSUMC-CPG-2025-002',ver:'v0.8 (Draft)',status:'In Development — Stage 5',date:'Not yet published',reviewDue:'—',agree:'—',gin:'—',specialty:'Pulmonology',panel:'Dr. T. Al-Enezi (Chair), Saudi Thoracic Society — Delphi Round 2 in progress',recs:'12 (draft)',color:'#D97706',sections:['Diagnosis (Spirometry, FeNO)','Severity Classification','Step-up Therapy (GINA Steps 1-5)','ICS-formoterol PRN','Biologic Therapies','Acute Exacerbation Management','Allergen Avoidance','Exercise-Induced Asthma','Pregnancy','Occupational Asthma','Self-Management Plans','Saudi Environmental Factors']}
+  };
+  
+  var g = guidelines[id];
+  if (!g) return;
+  
+  var h = '<div style="border-top:4px solid '+g.color+';padding-top:12px">';
+  h += '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px"><div><div style="font-size:11px;color:'+g.color+';font-weight:700;text-transform:uppercase">'+g.specialty+'</div><h2 style="margin:4px 0;font-size:18px">'+g.title+'</h2><div style="font-size:12px;color:#666">'+g.id+' · Version '+g.ver+'</div></div><span class="badge" style="background:'+g.color+';color:#fff;height:fit-content">'+g.status+'</span></div>';
+  
+  h += '<div class="grid g2" style="margin-bottom:16px">';
+  h += '<div style="padding:12px;background:#F8FAFC;border-radius:8px;font-size:12px"><strong>Published:</strong> '+g.date+'<br><strong>Review Due:</strong> '+g.reviewDue+'<br><strong>AGREE II:</strong> '+g.agree+'<br><strong>GIN-McMaster:</strong> '+g.gin+'<br><strong>Recommendations:</strong> '+g.recs+'</div>';
+  h += '<div style="padding:12px;background:#F8FAFC;border-radius:8px;font-size:12px"><strong>Guideline Panel:</strong><br>'+g.panel+'</div>';
+  h += '</div>';
+  
+  h += '<div style="font-weight:700;margin-bottom:8px">Recommendation Sections ('+g.sections.length+')</div>';
+  h += '<div style="font-size:12px">';
+  g.sections.forEach(function(s, i) {
+    h += '<div style="padding:6px 10px;margin-bottom:3px;background:'+(i%2===0?'#F0F9FF':'#FAFAFA')+';border-radius:6px;display:flex;align-items:center;gap:8px"><span style="font-weight:700;color:'+g.color+';min-width:24px">'+(i+1)+'.</span>'+s+'</div>';
+  });
+  h += '</div>';
+  
+  if (g.status === 'Published') {
+    h += '<div style="margin-top:16px;padding:12px;background:#F0FDF4;border-radius:8px;display:flex;gap:8px;flex-wrap:wrap">';
+    h += '<button class="btn btn-ai btn-sm">📄 Download Full CPG (PDF)</button>';
+    h += '<button class="btn btn-ai btn-sm">📊 View GRADE Evidence Tables</button>';
+    h += '<button class="btn btn-ai btn-sm">📋 View AGREE II Report</button>';
+    h += '<button class="btn btn-sm btn-o">🔄 Start Update Cycle</button>';
+    h += '</div>';
+  }
+  h += '</div>';
+  
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center';
+  modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
+  modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:700px;width:95%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">📋 Guideline Details</h3><button onclick="this.closest(\'div[style*=position\\3A fixed]\').remove()" class="btn btn-sm">✕</button></div>'+h+'</div>';
+  document.body.appendChild(modal);
+}
 
 // ============================================================
 // SR/MA COMPETITOR BEST PRACTICE FUNCTIONS
