@@ -3978,59 +3978,7 @@ function aiHPS(tool) {
   showAIToolModal('Health Policy', d, '#7C3AED');
 }
 
-function showAIToolModal(domain, tool, color) {
-  var modal = document.createElement('div');
-  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center';
-  modal.onclick = function(e) { if (e.target === modal) document.body.removeChild(modal); };
-  
-  var progress = '<div style="margin-top:16px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Processing...</span><span id="ai-pct">0%</span></div><div style="height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden"><div id="ai-bar" style="height:100%;width:0%;background:linear-gradient(90deg,' + color + ',#7C3AED);border-radius:3px;transition:width 0.3s"></div></div></div>';
-  
-  var steps = '<div id="ai-steps" style="margin-top:14px;font-size:12px;line-height:1.8"></div>';
-  
-  var outputArea = '<div id="ai-output" style="margin-top:14px;display:none"><div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:14px;font-size:12px;line-height:1.6;max-height:250px;overflow-y:auto" id="ai-result"></div><div style="margin-top:10px;display:flex;gap:6px"><button class="btn btn-ai btn-sm" onclick="navigator.clipboard.writeText(document.getElementById(\x27ai-result\x27).innerText)">📋 Copy</button><button class="btn btn-ai btn-sm" onclick="window.print()">📄 Export</button><button class="btn btn-sm" onclick="this.closest(\x27div[style*=fixed]\x27).remove()">Close</button></div></div>';
-  
-  modal.innerHTML = '<div style="background:#fff;border-radius:12px;padding:24px;max-width:600px;width:95%;max-height:85vh;overflow-y:auto;border-top:4px solid ' + color + '"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:' + color + ';font-weight:600;text-transform:uppercase;letter-spacing:0.5px">' + domain + ' AI Tool <span class="demo-badge">Demo</span></div><h3 style="margin:4px 0 0">' + tool.icon + ' ' + tool.t + '</h3></div><button class="btn btn-sm" onclick="this.closest(\x27div[style*=fixed]\x27).remove()">✕</button></div><p style="margin:12px 0;font-size:13px;color:#64748B">' + tool.desc + '</p>' + progress + steps + outputArea + '</div>';
-  
-  document.body.appendChild(modal);
-  modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', domain + ' - ' + tool.t);
-  trapFocus(modal);
-  
-  // Simulate AI processing with realistic steps
-  var stepTexts = [
-    '🔍 Analyzing input parameters...',
-    '📚 Searching relevant literature and databases...',
-    '🧠 Applying domain-specific AI models...',
-    '📊 Generating structured output...',
-    '✅ Quality check and validation complete'
-  ];
-  
-  var pct = 0;
-  var step = 0;
-  var interval = setInterval(function() {
-    pct += Math.random() * 15 + 5;
-    if (pct > 100) pct = 100;
-    var bar = document.getElementById('ai-bar');
-    var pctEl = document.getElementById('ai-pct');
-    if (bar) bar.style.width = pct + '%';
-    if (pctEl) pctEl.textContent = Math.round(pct) + '%';
-    
-    if (step < stepTexts.length && pct > (step + 1) * 18) {
-      var stepsEl = document.getElementById('ai-steps');
-      if (stepsEl) stepsEl.innerHTML += '<div style="padding:2px 0;color:#16A34A">' + stepTexts[step] + '</div>';
-      step++;
-    }
-    
-    if (pct >= 100) {
-      clearInterval(interval);
-      var output = document.getElementById('ai-output');
-      var result = document.getElementById('ai-result');
-      if (output) output.style.display = 'block';
-      if (result) result.innerHTML = '<div style="color:#16A34A;font-weight:600;margin-bottom:8px">✅ ' + tool.t + ' — Complete</div><p>AI analysis complete. Results have been generated based on your input parameters and the latest available evidence. The output follows ' + domain + ' best-practice standards.</p><p style="margin-top:8px"><strong>Key findings:</strong> Analysis produced structured output ready for expert review. Use the Copy or Export buttons below to integrate results into your workflow.</p><div style="margin-top:8px;padding:8px;background:#F0FDF4;border-radius:6px;border-left:3px solid #16A34A"><strong>Next step:</strong> Review the AI-generated output and make any necessary modifications before incorporating into your ' + domain + ' project.</div>';
-    }
-  }, 400);
-}
+// showAIToolModal is now defined in js/ai-engine.js with live Claude API streaming
 
 // ============================================================
 // GUIDELINE DETAIL MODAL (Lifecycle page)
