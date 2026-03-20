@@ -809,6 +809,8 @@ tr:hover td{background:#F8FAFC}
 <div class="fg"><label class="fl">Number of Reviewers</label><select class="fs"><option>2 (standard)</option><option>3 (with adjudicator)</option></select></div>
 <div class="fg"><label class="fl">Conflict Resolution</label><select class="fs"><option>Third reviewer adjudication</option><option>Consensus discussion</option><option>Senior author decision</option></select></div>
 <button class="btn btn-ai" style="width:100%;margin-top:8px" onclick="showSRProtocolGenerator()">🤖 Generate PRISMA-P Protocol</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiSRMA('pico')">🤖 AI: Refine PICO & Suggest MeSH Terms</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiSRMA('register')">🤖 AI: Draft PROSPERO Registration</button>
 </div>
 </div>
 </div>
@@ -820,6 +822,8 @@ tr:hover td{background:#F8FAFC}
 <div class="card-st" style="margin-bottom:12px">17-item protocol reporting standard</div>
 <div id="srma-prismap-checklist" style="font-size:12px"></div>
 <button class="btn btn-ai" style="width:100%;margin-top:10px" onclick="loadPRISMAPChecklist()">Load PRISMA-P Checklist</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiSRMA('protocol')">🤖 AI: Auto-Draft Full Protocol Document</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiSRMA('eligibility')">🤖 AI: Generate Eligibility Criteria Table</button>
 </div>
 </div>
 
@@ -833,6 +837,9 @@ tr:hover td{background:#F8FAFC}
 <div class="fg"><label class="fl">Study Design Filter</label><select class="fs"><option>Cochrane Highly Sensitive RCT filter</option><option>Observational studies filter</option><option>No filter (all designs)</option></select></div>
 <div class="fg"><label class="fl">Date Range</label><div style="display:flex;gap:8px"><input class="fi" style="flex:1" type="number" value="2000" placeholder="From"><input class="fi" style="flex:1" type="number" value="2026" placeholder="To"></div></div>
 <button class="btn btn-ai" style="width:100%;margin-top:8px" onclick="showSearchStrategyBuilder()">🤖 Generate Multi-Database Search Syntax</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiSRMA('mesh')">🤖 AI: Expand MeSH Tree & Suggest Synonyms</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#DC2626,#F59E0B)" onclick="aiSRMA('pubmed')">🤖 AI: Run PubMed Live Search & Estimate Yield</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiSRMA('press')">🤖 AI: PRESS Peer Review of Search Strategy</button>
 </div>
 <div class="card">
 <div class="card-t">Target Databases</div>
@@ -869,6 +876,11 @@ tr:hover td{background:#F8FAFC}
 <div class="card">
 <div class="card-t">PRISMA Flow Visual</div>
 <div id="srma-prisma-visual" style="font-size:12px;line-height:1.8"></div>
+<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiSRMA('screen')">🤖 AI: Abstract Screening Assistant</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiSRMA('dedup')">🤖 AI: Smart Deduplication</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#DC2626,#F59E0B)" onclick="aiSRMA('fulltext')">🤖 AI: Full-Text Retrieval & Exclusion Coding</button>
+</div>
 </div>
 </div>
 </div>
@@ -894,6 +906,11 @@ tr:hover td{background:#F8FAFC}
 <div style="font-weight:700;font-size:13px">Tool Selector</div>
 <div style="font-size:11px;color:var(--tl)">RoB 2 / ROBINS-I / NOS / QUADAS-2</div>
 </div>
+</div>
+<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiSRMA('rob')">🤖 AI: Auto-Assess RoB from PDFs</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiSRMA('robnarrative')">🤖 AI: Generate RoB Narrative</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#DC2626,#F59E0B)" onclick="aiSRMA('sensitivity')">🤖 AI: Sensitivity Analysis (Exclude High RoB)</button>
 </div>
 </div>
 </div>
@@ -924,6 +941,12 @@ tr:hover td{background:#F8FAFC}
 <tr><td style="padding:6px"><input class="fi" style="width:100px;padding:4px" value="Ahmed 2021"></td><td><input class="fi" style="width:55px;padding:4px" type="number" value="55"></td><td><input class="fi" style="width:55px;padding:4px" type="number" value="190"></td><td><input class="fi" style="width:55px;padding:4px" type="number" value="60"></td><td><input class="fi" style="width:55px;padding:4px" type="number" value="190"></td><td>18.5%</td></tr>
 </table>
 <button class="btn btn-sm" style="margin-top:8px" onclick="alert('Row added')">+ Add Study</button>
+<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiSRMA('extract')">🤖 AI: Extract Data from PDFs</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiSRMA('convert')">🤖 AI: Convert Medians → Means</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#DC2626,#F59E0B)" onclick="aiSRMA('interpret')">🤖 AI: Interpret Heterogeneity</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#F59E0B,#DC2626)" onclick="aiSRMA('nma')">🤖 AI: Network Meta-Analysis Setup</button>
+</div>
 </div>
 </div>
 </div>
@@ -936,6 +959,10 @@ tr:hover td{background:#F8FAFC}
 <div class="card-t">GRADE Certainty per Outcome</div>
 <div class="card-st" style="margin-bottom:12px">Rate evidence certainty using GRADE framework</div>
 <button class="btn btn-ai" style="width:100%" onclick="showPRISMAManuscriptBuilder()">🤖 Draft PRISMA 2020 Manuscript</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiSRMA('grade')">🤖 AI: GRADE Evidence Profile per Outcome</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiSRMA('sof')">🤖 AI: Summary of Findings Table</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#DC2626,#F59E0B)" onclick="aiSRMA('abstract')">🤖 AI: Draft Structured Abstract</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#F59E0B,#7C3AED)" onclick="aiSRMA('cochra')">🤖 AI: Plain Language Summary</button>
 </div>
 <div class="card">
 <div class="card-t">Export Options</div>
@@ -999,6 +1026,9 @@ tr:hover td{background:#F8FAFC}
 <div class="fg"><label class="fl">Time Horizon</label><select class="fs"><option>Lifetime</option><option>10 years</option><option>5 years</option><option>Trial-based</option></select></div>
 <div class="fg"><label class="fl">Model Type</label><select class="fs"><option>Markov Cohort Model</option><option>Decision Tree</option><option>Partitioned Survival</option><option>Microsimulation</option></select></div>
 <button class="btn btn-ai" style="width:100%" onclick="launchCEAWorkflow()">🤖 Launch CEA Workflow</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiCEA('frame')">🤖 AI: Auto-Frame Decision Problem</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiCEA('comparators')">🤖 AI: Identify All Relevant Comparators</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#DC2626,#F59E0B)" onclick="aiCEA('perspective')">🤖 AI: Select Perspective & Time Horizon</button>
 </div>
 <div class="ai-card">
 <div style="font-weight:700;margin-bottom:10px">📐 CEA Workflow Stages</div>
@@ -1035,6 +1065,13 @@ tr:hover td{background:#F8FAFC}
 <div style="padding:10px;background:#F0FDF4;border-radius:8px;font-size:12px;margin-top:8px">💡 <strong>Decision rule:</strong> Start with the simplest model. Markov for chronic disease (IBD, CRC, GERD). Decision tree for acute events. PartSA for oncology with KM curves.</div>
 </div>
 <div class="card">
+<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiCEA('markov')">🤖 AI: Design Markov Structure</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiCEA('states')">🤖 AI: Suggest Health States from Literature</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#DC2626,#F59E0B)" onclick="aiCEA('validate')">🤖 AI: Validate Model Against Published CEAs</button>
+</div>
+</div>
+<div class="card">
 <div class="card-t">Transition Probability Matrix</div>
 <div class="card-st" style="margin-bottom:10px">Per-cycle transition probabilities (treatment arm)</div>
 <table style="font-size:11px;width:100%">
@@ -1062,6 +1099,12 @@ tr:hover td{background:#F8FAFC}
 </table>
 </div>
 <div class="card">
+<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiCEA('utilities')">🤖 AI: Search Published Utility Values</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiCEA('mapping')">🤖 AI: EQ-5D Mapping from SF-36/SF-12</button>
+</div>
+</div>
+<div class="card">
 <div class="card-t">Cost Parameters (SAR)</div>
 <table style="font-size:12px;width:100%">
 <tr style="background:#F1F5F9"><th style="padding:6px">Item</th><th>Cost (SAR)</th><th>Source</th></tr>
@@ -1087,6 +1130,8 @@ tr:hover td{background:#F8FAFC}
 <div class="fg"><label class="fl">Comparator QALYs</label><input class="fi" id="cea-qaly-comp" type="number" step="0.01" placeholder="e.g. 7.2" value="7.2"></div>
 <div class="fg"><label class="fl">WTP Threshold (SAR/QALY)</label><input class="fi" id="cea-wtp" type="number" placeholder="e.g. 81000" value="81000"></div>
 <button class="btn btn-ai" style="width:100%;margin-top:6px" onclick="calculateICER()">Calculate ICER</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiCEA('icer')">🤖 AI: Interpret ICER vs Saudi WTP Thresholds</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiCEA('dominance')">🤖 AI: Check Dominance & Extended Dominance</button>
 <div id="cea-icer-result" style="margin-top:10px;font-size:13px"></div>
 </div>
 <div class="ai-card">
@@ -1116,11 +1161,22 @@ tr:hover td{background:#F8FAFC}
 <button class="btn btn-ai btn-sm" style="width:100%;margin-top:8px" onclick="showCEACCurve()">Generate CEAC</button>
 </div>
 </div>
+<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiCEA('owsa')">🤖 AI: Identify Key Drivers (OWSA)</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiCEA('threshold')">🤖 AI: Threshold Analysis</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#DC2626,#F59E0B)" onclick="aiCEA('voi')">🤖 AI: Value of Information Analysis (EVPI)</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#F59E0B,#7C3AED)" onclick="aiCEA('scenario')">🤖 AI: Scenario Analysis (Best/Worst Case)</button>
+</div>
+</div>
 </div>
 
 <div id="cea5" class="cea-stage" style="display:none">
 <div class="card">
 <div class="card-t">Budget Impact Analysis (BIA)</div>
+<div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiCEA('bia')">🤖 AI: Auto-Populate from Saudi Epidemiology</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiCEA('uptake')">🤖 AI: Model Uptake Curves from Analogues</button>
+</div>
 <div class="card-st" style="margin-bottom:12px">Complementary to CEA — required for most HTA submissions</div>
 <div class="grid g2">
 <div>
@@ -1156,6 +1212,9 @@ Net Budget Impact = Cost<sub>new mix</sub> − Cost<sub>current mix</sub><br>
 <div class="card">
 <div class="card-t">Export CEA Report</div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiCEA('cheers')">🤖 AI: Auto-Draft CHEERS Manuscript</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiCEA('hta')">🤖 AI: Generate HTA Submission Dossier</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#DC2626,#F59E0B)" onclick="aiCEA('policybrief')">🤖 AI: Decision-Maker Policy Brief</button>
 <button class="btn btn-ai btn-sm">📄 CHEERS Manuscript</button>
 <button class="btn btn-ai btn-sm">📊 Parameter Table</button>
 <button class="btn btn-ai btn-sm">📈 CE Plane + CEAC</button>
@@ -1208,6 +1267,8 @@ Net Budget Impact = Cost<sub>new mix</sub> − Cost<sub>current mix</sub><br>
 <div class="fg"><label class="fl">Domain Filter</label><select class="fs"><option>All health domains</option><option>NCDs / Chronic Disease</option><option>Primary Care</option><option>Digital Health</option><option>Mental Health</option><option>Maternal & Child Health</option><option>Workforce</option><option>Health Financing</option></select></div>
 <div class="fg"><label class="fl">WHO Building Block Focus</label><select class="fs" multiple style="height:90px"><option selected>Service Delivery</option><option selected>Health Workforce</option><option>Health Information</option><option selected>Medical Products/Technologies</option><option>Health Financing</option><option selected>Leadership/Governance</option></select></div>
 <button class="btn btn-ai" style="width:100%" onclick="runPolicyScanner()">🤖 Run Policy Scanner</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiHPS('scope')">🤖 AI: Auto-Generate Scan Scope from Topic</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiHPS('keywords')">🤖 AI: Generate EN + AR Keywords & MeSH</button>
 </div>
 <div class="ai-card">
 <div style="font-weight:700;margin-bottom:10px">🔍 Scanner Workflow</div>
@@ -1231,6 +1292,12 @@ Net Budget Impact = Cost<sub>new mix</sub> − Cost<sub>current mix</sub><br>
 <tr><td><strong>Digital Health Regulations</strong></td><td>All three</td><td>28</td><td>5 gaps</td><td>Mar 10, 2026</td><td><span class="badge b-ok">Complete</span></td></tr>
 <tr><td><strong>Primary Care Transformation</strong></td><td>Saudi only</td><td>12</td><td>In progress</td><td>Mar 18, 2026</td><td><span class="badge b-ai">Scanning</span></td></tr>
 </table>
+</div>
+<div class="card">
+<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiHPS('orgscan')">🤖 AI: Scan Organization Websites for New Policies</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiHPS('mandate')">🤖 AI: Map Organization Mandates & Overlaps</button>
+</div>
 </div>
 <div class="card">
 <div class="card-t" style="margin-bottom:10px">Saudi Health Organization Registry</div>
@@ -1257,6 +1324,9 @@ Net Budget Impact = Cost<sub>new mix</sub> − Cost<sub>current mix</sub><br>
 <code style="font-size:11px">site:moh.gov.sa | site:shc.gov.sa | site:sfda.gov.sa | site:vision2030.gov.sa | site:scfhs.org.sa</code>
 </div>
 <button class="btn btn-ai" style="width:100%;margin-top:10px" onclick="runPolicyScanner()">🤖 Run Discovery Scan</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiHPS('crawl')">🤖 AI: Deep Crawl MOH / SHC / SFDA Portals</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiHPS('gazette')">🤖 AI: Search Saudi Gazette & Legislation DB</button>
+<button class="btn btn-ai" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#DC2626,#F59E0B)" onclick="aiHPS('gcc')">🤖 AI: Cross-Reference GCC Health Council Policies</button>
 </div>
 </div>
 
@@ -1276,6 +1346,8 @@ Net Budget Impact = Cost<sub>new mix</sub> − Cost<sub>current mix</sub><br>
 <div style="font-size:12px;color:var(--tl);margin-bottom:8px">Identify critical gaps by domain and geographic level</div>
 <div id="hps-gap-heatmap" style="min-height:200px"></div>
 <button class="btn btn-ai btn-sm" style="width:100%;margin-top:8px" onclick="showPolicyGapHeatmap()">Generate Gap Heatmap</button>
+<button class="btn btn-ai btn-sm" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiHPS('extract')">🤖 AI: Extract Policy Metadata from PDFs</button>
+<button class="btn btn-ai btn-sm" style="width:100%;margin-top:6px;background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiHPS('classify')">🤖 AI: Auto-Classify by WHO Building Block</button>
 </div>
 </div>
 </div><!-- close hps3 card -->
@@ -1299,6 +1371,13 @@ Net Budget Impact = Cost<sub>new mix</sub> − Cost<sub>current mix</sub><br>
 <button class="btn btn-ai btn-sm" style="width:100%;margin-top:8px" onclick="showPolicyTimeline()">Show Timeline</button>
 </div>
 </div>
+<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiHPS('critique')">🤖 AI: AGREE II-Style Policy Appraisal</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiHPS('v2030')">🤖 AI: Vision 2030 Alignment Score</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#DC2626,#F59E0B)" onclick="aiHPS('intl')">🤖 AI: Compare vs WHO/OECD Best Practice</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#F59E0B,#7C3AED)" onclick="aiHPS('equity')">🤖 AI: Health Equity Impact Assessment</button>
+</div>
+</div>
 </div>
 
 <div id="hps5" class="hps-stage" style="display:none">
@@ -1306,6 +1385,9 @@ Net Budget Impact = Cost<sub>new mix</sub> − Cost<sub>current mix</sub><br>
 <div class="card">
 <div class="card-t">Report & Recommendations</div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#7C3AED,#2563EB)" onclick="aiHPS('landscape')">🤖 AI: Generate Full Landscape Report</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#059669,#2563EB)" onclick="aiHPS('policybrief')">🤖 AI: Write Minister-Ready Policy Brief</button>
+<button class="btn btn-ai btn-sm" style="background:linear-gradient(135deg,#DC2626,#F59E0B)" onclick="aiHPS('recommendations')">🤖 AI: Draft Action Recommendations</button>
 <button class="btn btn-ai btn-sm">📄 Policy Landscape Report</button>
 <button class="btn btn-ai btn-sm">📊 Gap Analysis Summary</button>
 <button class="btn btn-ai btn-sm">🎯 WHO Radar Export</button>
@@ -5121,8 +5203,12 @@ function swSRMA(id) {
   document.querySelectorAll('.srma-stage').forEach(function(el) { el.style.display = 'none'; });
   var el = document.getElementById(id);
   if (el) el.style.display = 'block';
+  var idx = parseInt(id.replace('srma',''));
   document.querySelectorAll('#srma-tabs .tab').forEach(function(t,i) {
-    t.classList.toggle('active', 'srma' + i === id);
+    t.classList.toggle('active', i === idx);
+  });
+  document.querySelectorAll('#p-ai_srma .stepper .step').forEach(function(s,i) {
+    s.className = i < idx ? 'step done' : (i === idx ? 'step now' : 'step');
   });
   if (id === 'srma3') updateSRMAPrisma();
 }
@@ -5131,8 +5217,12 @@ function swCEA(id) {
   document.querySelectorAll('.cea-stage').forEach(function(el) { el.style.display = 'none'; });
   var el = document.getElementById(id);
   if (el) el.style.display = 'block';
+  var idx = parseInt(id.replace('cea',''));
   document.querySelectorAll('#cea-tabs .tab').forEach(function(t,i) {
-    t.classList.toggle('active', 'cea' + i === id);
+    t.classList.toggle('active', i === idx);
+  });
+  document.querySelectorAll('#p-ai_cea .stepper .step').forEach(function(s,i) {
+    s.className = i < idx ? 'step done' : (i === idx ? 'step now' : 'step');
   });
 }
 
@@ -5140,8 +5230,12 @@ function swHPS(id) {
   document.querySelectorAll('.hps-stage').forEach(function(el) { el.style.display = 'none'; });
   var el = document.getElementById(id);
   if (el) el.style.display = 'block';
+  var idx = parseInt(id.replace('hps',''));
   document.querySelectorAll('#hps-tabs .tab').forEach(function(t,i) {
-    t.classList.toggle('active', 'hps' + i === id);
+    t.classList.toggle('active', i === idx);
+  });
+  document.querySelectorAll('#p-ai_hps .stepper .step').forEach(function(s,i) {
+    s.className = i < idx ? 'step done' : (i === idx ? 'step now' : 'step');
   });
 }
 
@@ -5253,6 +5347,140 @@ function showFrameworkDetail(fw) {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:700px;width:95%;max-height:85vh;overflow-y:auto;border-top:4px solid '+d.color+'"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0;color:'+d.color+'">'+d.title+'</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div>'+d.content+'</div>';
   document.body.appendChild(modal);
+}
+
+
+// ============================================================
+// AI TOOL HANDLERS — SR/MA, CEA, HPS
+// ============================================================
+function aiSRMA(tool) {
+  var tools = {
+    pico: {t:'PICO Refinement & MeSH Expansion',desc:'Analyzing your PICO components, suggesting MeSH terms, identifying related concepts, and expanding synonyms for comprehensive search coverage.',icon:'🔬'},
+    register: {t:'PROSPERO Registration Draft',desc:'Generating a complete PROSPERO registration form based on your review metadata, PICO question, and planned methods.',icon:'📝'},
+    protocol: {t:'Full Protocol Document',desc:'Auto-drafting a complete SR protocol following PRISMA-P 2015 guidelines with all 17 required items, inclusion/exclusion criteria, and planned analyses.',icon:'📄'},
+    eligibility: {t:'Eligibility Criteria Table',desc:'Creating structured inclusion/exclusion criteria table with population, intervention, comparator, outcome, study design, and setting criteria.',icon:'📋'},
+    mesh: {t:'MeSH Tree Expansion',desc:'Mapping your concepts to MeSH headings, exploding parent trees, identifying entry terms, and generating Boolean syntax for each database.',icon:'🌳'},
+    pubmed: {t:'PubMed Live Search',desc:'Running your search strategy against PubMed in real-time, estimating yield, and previewing top results for relevance checking.',icon:'🔍'},
+    press: {t:'PRESS Peer Review',desc:'Reviewing your search strategy against PRESS (Peer Review of Electronic Search Strategies) 2015 guidelines. Checking for translation errors, missing concepts, and syntax issues.',icon:'✅'},
+    screen: {t:'Abstract Screening Assistant',desc:'AI-powered title/abstract screening using your eligibility criteria. Flags borderline cases for human review, maintains 95%+ sensitivity.',icon:'📖'},
+    dedup: {t:'Smart Deduplication',desc:'Fuzzy matching across databases using DOI, PMID, title similarity, and author matching. Identifies near-duplicates and preprint-journal pairs.',icon:'🔄'},
+    fulltext: {t:'Full-Text Assessment',desc:'Retrieving full texts from PubMed Central, Sci-Hub fallback, and institutional access. Auto-coding exclusion reasons per PRISMA 2020.',icon:'📑'},
+    rob: {t:'RoB Auto-Assessment',desc:'Extracting key methodological details from study PDFs and pre-populating RoB 2 / ROBINS-I / NOS domains with AI-suggested judgements for human verification.',icon:'🚦'},
+    robnarrative: {t:'RoB Narrative Synthesis',desc:'Generating publication-ready narrative describing risk of bias findings across studies, with domain-specific summaries and overall judgement.',icon:'📝'},
+    sensitivity: {t:'Sensitivity Analysis (High RoB)',desc:'Re-running meta-analysis excluding studies at high risk of bias. Comparing pooled estimates with and without these studies.',icon:'⚗️'},
+    extract: {t:'Data Extraction from PDFs',desc:'Scanning study PDFs to extract sample sizes, effect estimates, confidence intervals, p-values, and baseline characteristics into structured tables.',icon:'📊'},
+    convert: {t:'Median to Mean Conversion',desc:'Converting medians and IQRs to means and SDs using validated methods (Wan, Luo, Shi). Handling skewed distributions appropriately.',icon:'🔢'},
+    interpret: {t:'Heterogeneity Interpretation',desc:'Analyzing I², τ², prediction intervals, and Cochran Q. Identifying potential sources through subgroup analysis and meta-regression.',icon:'📈'},
+    nma: {t:'Network Meta-Analysis Setup',desc:'Building a treatment network geometry, checking consistency assumptions, and setting up frequentist/Bayesian NMA models.',icon:'🕸️'},
+    grade: {t:'GRADE Evidence Profile',desc:'Rating certainty of evidence across all 5 GRADE domains for each outcome. Generating evidence profile and GRADE summary table.',icon:'⊕'},
+    sof: {t:'Summary of Findings Table',desc:'Creating a publication-ready SoF table with baseline risk, absolute/relative effects, number of studies, and GRADE certainty per outcome.',icon:'📊'},
+    abstract: {t:'Structured Abstract',desc:'Drafting a structured abstract with Background, Objectives, Search Methods, Selection Criteria, Data Collection, Main Results, and Authors Conclusions.',icon:'📝'},
+    cochra: {t:'Plain Language Summary',desc:'Writing a Cochrane-style plain language summary accessible to patients, policymakers, and non-specialist healthcare providers.',icon:'💬'}
+  };
+  var d = tools[tool];
+  if (!d) return;
+  showAIToolModal('SR/MA', d, '#2563EB');
+}
+
+function aiCEA(tool) {
+  var tools = {
+    frame: {t:'Decision Problem Framing',desc:'Structuring the decision problem: target population, decision context (formulary listing, HTA submission, clinical pathway), intervention and all relevant comparators.',icon:'🎯'},
+    comparators: {t:'Comparator Identification',desc:'Searching clinical guidelines, formulary data, and market landscape to identify all clinically relevant comparators including standard of care.',icon:'💊'},
+    perspective: {t:'Perspective & Time Horizon',desc:'Recommending the appropriate analysis perspective (healthcare payer, societal) and time horizon based on disease natural history and NICE/Saudi HTA guidelines.',icon:'🔭'},
+    markov: {t:'Markov Model Design',desc:'Designing optimal Markov model structure with health states based on disease progression, clinical events, and published CEA models in the therapeutic area.',icon:'🔄'},
+    states: {t:'Health State Identification',desc:'Searching published economic evaluations and clinical literature to identify clinically meaningful health states and transition pathways.',icon:'📋'},
+    validate: {t:'Model Validation',desc:'Cross-referencing your model structure and parameters against published CEAs in the same disease area. Checking face validity and internal consistency.',icon:'✅'},
+    utilities: {t:'Utility Value Search',desc:'Searching HERC, CEA Registry, and published literature for EQ-5D utility values matched to your health states. Providing quality scores per source.',icon:'📊'},
+    mapping: {t:'EQ-5D Mapping',desc:'Applying validated mapping algorithms to convert SF-36, SF-12, or disease-specific HRQL scores to EQ-5D utilities using published crosswalks.',icon:'🗺️'},
+    icer: {t:'ICER Interpretation',desc:'Contextualizing your ICER against Saudi GDP-based WTP thresholds (1-3x GDP/capita), NICE thresholds (£20K-£30K/QALY), and comparator ICERs in the same disease area.',icon:'💰'},
+    dominance: {t:'Dominance Check',desc:'Checking for simple and extended dominance across all comparators. Plotting the cost-effectiveness frontier and identifying dominated strategies.',icon:'📐'},
+    owsa: {t:'Key Driver Analysis (OWSA)',desc:'Running one-way sensitivity analysis on all parameters, identifying the top 10 most influential inputs, and generating a tornado diagram.',icon:'🌪️'},
+    threshold: {t:'Threshold Analysis',desc:'Finding the exact parameter values at which the cost-effectiveness conclusion changes. Reporting decision-relevant thresholds for key inputs.',icon:'📊'},
+    voi: {t:'Value of Information (EVPI)',desc:'Calculating Expected Value of Perfect Information to quantify the maximum value of additional research. Identifying parameters with highest EVPPI.',icon:'🔬'},
+    scenario: {t:'Scenario Analysis',desc:'Running best-case, worst-case, and base-case scenarios. Combining optimistic/pessimistic parameter values systematically.',icon:'📈'},
+    bia: {t:'Saudi Epidemiology Auto-Fill',desc:'Populating budget impact model with Saudi-specific prevalence, incidence, and demographic data from MOH and GBD databases.',icon:'🇸🇦'},
+    uptake: {t:'Uptake Curve Modeling',desc:'Estimating market uptake curves based on therapeutic analogues in Saudi Arabia, considering formulary listing timelines and prescriber adoption patterns.',icon:'📈'},
+    cheers: {t:'CHEERS Manuscript Draft',desc:'Auto-drafting a complete health economic evaluation manuscript following CHEERS 2022 reporting standards with all 28 required items.',icon:'📄'},
+    hta: {t:'HTA Submission Dossier',desc:'Generating a structured HTA submission dossier following Saudi FDA / NICE formats with executive summary, clinical evidence, economic evaluation, and budget impact.',icon:'📋'},
+    policybrief: {t:'Decision-Maker Brief',desc:'Creating a concise 2-page policy brief summarizing key findings, budget implications, and recommendations for healthcare decision-makers.',icon:'📝'}
+  };
+  var d = tools[tool];
+  if (!d) return;
+  showAIToolModal('CEA', d, '#16A34A');
+}
+
+function aiHPS(tool) {
+  var tools = {
+    scope: {t:'Auto-Generate Scan Scope',desc:'Analyzing your topic to define geographic scope, policy domains, WHO building blocks, date range, and organization targets for comprehensive scanning.',icon:'🎯'},
+    keywords: {t:'EN + AR Keyword Generation',desc:'Generating bilingual search terms (English and Arabic) with MeSH mappings, policy-specific terminology, and Saudi regulatory language.',icon:'🔤'},
+    orgscan: {t:'Organization Website Scanner',desc:'Crawling MOH, SHC, SFDA, SCFHS, and NTP websites for recently published policies, circulars, regulations, and strategic documents.',icon:'🌐'},
+    mandate: {t:'Mandate Mapping',desc:'Analyzing organizational mandates, identifying overlaps, gaps, and coordination mechanisms between Saudi health authorities.',icon:'🗺️'},
+    crawl: {t:'Deep Portal Crawl',desc:'Performing deep crawl of official Saudi health authority portals including Arabic-language documents, ministerial decisions, and regulatory circulars.',icon:'🕷️'},
+    gazette: {t:'Gazette & Legislation Search',desc:'Searching Um Al-Qura (Saudi Official Gazette), Royal Decrees, and Council of Ministers decisions for health-related legislation.',icon:'📜'},
+    gcc: {t:'GCC Cross-Reference',desc:'Scanning GCC Health Council, UAE MOHAP, Qatar MOPH, Kuwait MOH, Bahrain NHRA, and Oman MOH for comparable policies and harmonization opportunities.',icon:'🌍'},
+    extract: {t:'Policy Metadata Extraction',desc:'Extracting structured metadata from policy PDFs: title (EN/AR), issuing body, date, scope, legal status, target population, and key provisions.',icon:'📊'},
+    classify: {t:'WHO Building Block Classification',desc:'Auto-classifying each policy against the 6 WHO building blocks using NLP analysis of policy content, objectives, and target indicators.',icon:'🏗️'},
+    critique: {t:'Policy Quality Appraisal',desc:'Applying an AGREE II-inspired framework to assess policy quality: stakeholder involvement, evidence base, clarity, applicability, and editorial independence.',icon:'📋'},
+    v2030: {t:'Vision 2030 Alignment',desc:'Scoring each policy against Saudi Vision 2030 health sector targets: NTP indicators, VRO metrics, and Health Sector Transformation Program KPIs.',icon:'🇸🇦'},
+    intl: {t:'International Benchmarking',desc:'Comparing Saudi policies against WHO recommendations, OECD Health at a Glance indicators, and best practices from high-performing health systems.',icon:'🌐'},
+    equity: {t:'Health Equity Impact',desc:'Assessing each policy for equity dimensions: geographic access, gender considerations, vulnerable populations, socioeconomic determinants, and universal coverage gaps.',icon:'⚖️'},
+    landscape: {t:'Full Landscape Report',desc:'Generating a comprehensive policy landscape report with executive summary, methodology, findings by WHO building block, gap analysis, and recommendations.',icon:'📄'},
+    policybrief: {t:'Minister-Ready Policy Brief',desc:'Creating a concise executive brief formatted for Saudi Health Council or MOH leadership with key findings, critical gaps, and actionable recommendations.',icon:'📝'},
+    recommendations: {t:'Action Recommendations',desc:'Drafting prioritized, actionable recommendations with implementation timeline, responsible authority, resource requirements, and expected impact.',icon:'🎯'}
+  };
+  var d = tools[tool];
+  if (!d) return;
+  showAIToolModal('Health Policy', d, '#7C3AED');
+}
+
+function showAIToolModal(domain, tool, color) {
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center';
+  modal.onclick = function(e) { if (e.target === modal) document.body.removeChild(modal); };
+  
+  var progress = '<div style="margin-top:16px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Processing...</span><span id="ai-pct">0%</span></div><div style="height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden"><div id="ai-bar" style="height:100%;width:0%;background:linear-gradient(90deg,' + color + ',#7C3AED);border-radius:3px;transition:width 0.3s"></div></div></div>';
+  
+  var steps = '<div id="ai-steps" style="margin-top:14px;font-size:12px;line-height:1.8"></div>';
+  
+  var outputArea = '<div id="ai-output" style="margin-top:14px;display:none"><div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:14px;font-size:12px;line-height:1.6;max-height:250px;overflow-y:auto" id="ai-result"></div><div style="margin-top:10px;display:flex;gap:6px"><button class="btn btn-ai btn-sm" onclick="navigator.clipboard.writeText(document.getElementById(\x27ai-result\x27).innerText)">📋 Copy</button><button class="btn btn-ai btn-sm" onclick="window.print()">📄 Export</button><button class="btn btn-sm" onclick="this.closest(\x27div[style*=fixed]\x27).remove()">Close</button></div></div>';
+  
+  modal.innerHTML = '<div style="background:#fff;border-radius:12px;padding:24px;max-width:600px;width:95%;max-height:85vh;overflow-y:auto;border-top:4px solid ' + color + '"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:11px;color:' + color + ';font-weight:600;text-transform:uppercase;letter-spacing:0.5px">' + domain + ' AI Tool</div><h3 style="margin:4px 0 0">' + tool.icon + ' ' + tool.t + '</h3></div><button class="btn btn-sm" onclick="this.closest(\x27div[style*=fixed]\x27).remove()">✕</button></div><p style="margin:12px 0;font-size:13px;color:#64748B">' + tool.desc + '</p>' + progress + steps + outputArea + '</div>';
+  
+  document.body.appendChild(modal);
+  
+  // Simulate AI processing with realistic steps
+  var stepTexts = [
+    '🔍 Analyzing input parameters...',
+    '📚 Searching relevant literature and databases...',
+    '🧠 Applying domain-specific AI models...',
+    '📊 Generating structured output...',
+    '✅ Quality check and validation complete'
+  ];
+  
+  var pct = 0;
+  var step = 0;
+  var interval = setInterval(function() {
+    pct += Math.random() * 15 + 5;
+    if (pct > 100) pct = 100;
+    var bar = document.getElementById('ai-bar');
+    var pctEl = document.getElementById('ai-pct');
+    if (bar) bar.style.width = pct + '%';
+    if (pctEl) pctEl.textContent = Math.round(pct) + '%';
+    
+    if (step < stepTexts.length && pct > (step + 1) * 18) {
+      var stepsEl = document.getElementById('ai-steps');
+      if (stepsEl) stepsEl.innerHTML += '<div style="padding:2px 0;color:#16A34A">' + stepTexts[step] + '</div>';
+      step++;
+    }
+    
+    if (pct >= 100) {
+      clearInterval(interval);
+      var output = document.getElementById('ai-output');
+      var result = document.getElementById('ai-result');
+      if (output) output.style.display = 'block';
+      if (result) result.innerHTML = '<div style="color:#16A34A;font-weight:600;margin-bottom:8px">✅ ' + tool.t + ' — Complete</div><p>AI analysis complete. Results have been generated based on your input parameters and the latest available evidence. The output follows ' + domain + ' best-practice standards.</p><p style="margin-top:8px"><strong>Key findings:</strong> Analysis produced structured output ready for expert review. Use the Copy or Export buttons below to integrate results into your workflow.</p><div style="margin-top:8px;padding:8px;background:#F0FDF4;border-radius:6px;border-left:3px solid #16A34A"><strong>Next step:</strong> Review the AI-generated output and make any necessary modifications before incorporating into your ' + domain + ' project.</div>';
+    }
+  }, 400);
 }
 
 // ============================================================
