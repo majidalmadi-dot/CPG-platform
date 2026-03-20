@@ -3461,8 +3461,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // ========================================
 function generateFullCPGReport() {
   var projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
-  var proj = projects.find(function(p) { return p.id === window.activeProjectId; });
-  if (!proj) { alert('No active project'); return; }
+  var activeId = localStorage.getItem('ksumc_active_project');
+  var proj = projects.find(function(p) { return p.id === activeId; });
+  if (!proj) { alert('No active project. Please select a project first.'); return; }
   
   var picos = getAllPicos();
   var report = '';
@@ -3570,8 +3571,9 @@ function generateFullCPGReport() {
 // ========================================
 function generateJournalManuscript() {
   var projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
-  var proj = projects.find(function(p) { return p.id === window.activeProjectId; });
-  if (!proj) { alert('No active project'); return; }
+  var activeId = localStorage.getItem('ksumc_active_project');
+  var proj = projects.find(function(p) { return p.id === activeId; });
+  if (!proj) { alert('No active project. Please select a project first.'); return; }
   
   var picos = getAllPicos();
   var report = '';
@@ -3661,7 +3663,7 @@ function displayReportModal(title, htmlContent) {
   // Header
   var header = document.createElement('div');
   header.style.cssText = 'border-bottom:1px solid #E5E7EB;padding:20px;display:flex;justify-content:space-between;align-items:center;';
-  header.innerHTML = '<div style="font-size:16px;font-weight:bold">' + title + '</div><button onclick="document.getElementById('report-modal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer">&times;</button>';
+  header.innerHTML = '<div style="font-size:16px;font-weight:bold">' + title + '</div><button onclick="document.getElementById(\'report-modal\').remove()" style="background:none;border:none;font-size:24px;cursor:pointer">&times;</button>';
   
   // Content area
   var content = document.createElement('div');
@@ -3671,7 +3673,7 @@ function displayReportModal(title, htmlContent) {
   // Footer with export buttons
   var footer = document.createElement('div');
   footer.style.cssText = 'border-top:1px solid #E5E7EB;padding:16px;display:flex;gap:8px;justify-content:flex-end;background:#F9FAFB;';
-  footer.innerHTML = '<button class="btn" style="padding:8px 16px;background:#F3F4F6;border:1px solid #D1D5DB;border-radius:6px;cursor:pointer;font-size:12px" onclick="navigator.clipboard.writeText(document.querySelector('#report-modal > div > div:nth-child(2)').innerText)">📋 Copy Text</button><button class="btn" style="padding:8px 16px;background:#F3F4F6;border:1px solid #D1D5DB;border-radius:6px;cursor:pointer;font-size:12px" onclick="window.print()">🖨️ Print</button>';
+  footer.innerHTML = '<button class="btn" style="padding:8px 16px;background:#F3F4F6;border:1px solid #D1D5DB;border-radius:6px;cursor:pointer;font-size:12px" onclick="navigator.clipboard.writeText(document.querySelector(\'#report-modal > div > div:nth-child(2)\').innerText)">📋 Copy Text</button><button class="btn" style="padding:8px 16px;background:#F3F4F6;border:1px solid #D1D5DB;border-radius:6px;cursor:pointer;font-size:12px" onclick="window.print()">🖨️ Print</button>';
   
   container.appendChild(header);
   container.appendChild(content);
