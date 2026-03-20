@@ -3327,19 +3327,32 @@ function populateEtRFromEvidence(idx, pico) {
     var intervention = pico.I || '';
     var comparator = pico.C || '';
     var population = pico.P || '';
-    // Clean up intervention text — remove "for Condition" if already in population
-    intervention = intervention.replace(new RegExp('\\s+for\\s+' + (pico._condition || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '');
-    // Remove parenthetical examples from intervention
-    intervention = intervention.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
-    // Build the recommendation
-    if (comparator && comparator.toLowerCase() !== 'placebo / standard care' && comparator.toLowerCase() !== 'standard care / no intervention' && comparator.toLowerCase() !== 'n/a (descriptive)') {
-      ed.recText = 'We ' + verb + ' ' + intervention.toLowerCase() + ' over ' + comparator.toLowerCase() + ' for ' + population.toLowerCase() + '.';
-    } else {
-      ed.recText = 'We ' + verb + ' ' + intervention.toLowerCase() + ' for ' + population.toLowerCase() + '.';
+    // Get the condition name from the project title
+    var conditionName = '';
+    var _activeId = localStorage.getItem('ksumc_active_project');
+    if (_activeId) {
+      var _projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
+      var _proj = _projects.find(function(p) { return p.id === _activeId; });
+      if (_proj) conditionName = _proj.title;
     }
+    // Clean up intervention text — remove 'for Condition' suffix
+    if (conditionName) {
+      var condEsc = conditionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      intervention = intervention.replace(new RegExp('\\s+for\\s+' + condEsc, 'gi'), '');
+    }
+    // Remove '(e.g., ...)' but keep functional parens like (PPI) or (H2RA)
+    intervention = intervention.replace(/\s*\(e\.g\.?,?\s*[^)]*\)\s*/g, ' ').trim();
+    intervention = intervention.replace(/\s+/g, ' ').trim();
+    // Build the recommendation
+    var recParts = ['We ' + verb + ' ' + intervention.toLowerCase()];
+    if (comparator && !/^(placebo|standard care|no intervention|n\/a)/i.test(comparator)) {
+      recParts.push('over ' + comparator.toLowerCase());
+    }
+    recParts.push('for ' + population.toLowerCase());
+    ed.recText = recParts.join(' ') + '.';
     // Add certainty qualifier
     if (cert === 'Low' || cert === 'Very Low') {
-      ed.recText += ' (certainty of evidence: ' + cert.toLowerCase() + ')';
+      ed.recText += ' (Certainty of evidence: ' + cert + ')';
     }
     ed.agreement = '';
   }
