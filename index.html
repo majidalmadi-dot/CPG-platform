@@ -1730,6 +1730,7 @@ async function aiGeneratePICOs() {
     addLog('&nbsp;&nbsp;\u26A0\uFE0F No published guidelines found. Using evidence-based templates.');
   }
   window._guidelineData = guidelineData;
+  window._usedComparisons = {}; // Reset used comparison tracker
 
   // Step 1: Define all clinical domains to scan
   addLog('<br>\uD83D\uDCDA <strong>Step 1:</strong> Scanning evidence landscape across clinical domains...');
@@ -2051,60 +2052,133 @@ function selectSubQuestion(domain, slotIdx, articleTitles, condition, context, g
   var enhancedI = tpl.I;
   var enhancedC = tpl.C;
   var enhancedSub = tpl.sub || subTopic;
-
-  // Priority 1: Use head-to-head comparisons from existing guidelines/RCTs
   var domainLower = domain.name.toLowerCase();
-  var relevantComps = (guidelineData.comparisons || []).filter(function(c) {
-    var cl = (c.a + ' ' + c.b).toLowerCase();
-    // Match comparisons relevant to this domain
-    if (domainLower.indexOf('treatment') !== -1 || domainLower.indexOf('pharmaco') !== -1) {
-      return /therapy|drug|dose|mg|oral|intravenous|inhibitor|anti|treatment/i.test(cl);
-    }
-    if (domainLower.indexOf('surgical') !== -1 || domainLower.indexOf('procedural') !== -1) {
-      return /surg|endoscop|procedure|laparoscop|operation|repair|clip|inject|thermal/i.test(cl);
-    }
-    if (domainLower.indexOf('diagnosis') !== -1) {
-      return /test|diagnos|detect|sensitiv|biopsy|breath|antigen|serology|ultrasound|imaging/i.test(cl);
-    }
-    if (domainLower.indexOf('screening') !== -1) {
-      return /screen|detect|surveil|test|population|risk/i.test(cl);
-    }
-    if (domainLower.indexOf('monitoring') !== -1) {
-      return /monitor|follow.?up|surveil|endoscop|repeat|biomarker|symptom/i.test(cl);
-    }
-    if (domainLower.indexOf('prevention') !== -1) {
-      return /prevent|prophyl|mainten|risk|reduc|protect/i.test(cl);
-    }
-    return false;
+
+  // Track which comparisons have already been used (global across PICOs)
+  if (!window._usedComparisons) window._usedComparisons = {};
+
+  // Build domain-specific drug pairs for Treatment/Pharmacotherapy
+  var specificDrugs = (guidelineData.drugs || []).filter(function(d) {
+    return ['placebo','standard care','usual care','no treatment','monotherapy',
+            'combination therapy','dual therapy','maintenance therapy','on-demand',
+            'continuous','once daily','twice daily','qd','bid','tid',
+            'loading dose','high-dose','low-dose','standard-dose',
+            'helicobacter pylori','h. pylori','h pylori'].indexOf(d.toLowerCase()) === -1;
   });
 
-  // Use a guideline-derived comparison if available (offset by slotIdx for variety)
-  if (relevantComps.length > 0) {
-    var compIdx = slotIdx % relevantComps.length;
-    var comp = relevantComps[compIdx];
-    enhancedI = comp.a;
-    enhancedC = comp.b;
-    enhancedSub = comp.a + ' vs ' + comp.b;
-  }
-  // Priority 2: Use specific drug/procedure names from literature
-  else if (extractedTerms && extractedTerms.length >= 2) {
-    // Create a head-to-head comparison from extracted terms
-    var drugs = (guidelineData.drugs || []).filter(function(d) {
-      return ['placebo','standard care','usual care','no treatment','monotherapy','combination therapy'].indexOf(d.toLowerCase()) === -1;
-    });
-    if (drugs.length >= 2 && (domainLower.indexOf('treatment') !== -1 || domainLower.indexOf('pharmaco') !== -1)) {
-      var d1 = drugs[slotIdx * 2 % drugs.length];
-      var d2 = drugs[(slotIdx * 2 + 1) % drugs.length];
-      if (d1 !== d2) {
-        enhancedI = d1.charAt(0).toUpperCase() + d1.slice(1);
-        enhancedC = d2.charAt(0).toUpperCase() + d2.slice(1);
-        enhancedSub = d1 + ' vs ' + d2;
-      } else {
-        enhancedI = tpl.I + ' (' + extractedTerms.slice(0, 2).join(', ') + ')';
-      }
-    } else {
-      enhancedI = tpl.I + ' (' + extractedTerms.slice(0, 3).join(', ') + ')';
+  // TREATMENT/PHARMACOTHERAPY: Create drug-vs-drug PICOs
+  if (domainLower.indexOf('treatment') !== -1 || domainLower.indexOf('pharmaco') !== -1) {
+    // Define clinically meaningful drug comparison pairs
+    var drugPairs = [];
+    var drugSet = specificDrugs.map(function(d) { return d.toLowerCase(); });
+    // PPI comparisons
+    var ppis = specificDrugs.filter(function(d) { return /omeprazole|lansoprazole|pantoprazole|esomeprazole|rabeprazole|dexlansoprazole|vonoprazan/i.test(d); });
+    var h2ras = specificDrugs.filter(function(d) { return /ranitidine|famotidine|cimetidine|nizatidine/i.test(d); });
+    if (ppis.length > 0 && h2ras.length > 0) drugPairs.push({ a: ppis[0] + ' (PPI)', b: h2ras[0] + ' (H2RA)' });
+    if (ppis.length >= 2) drugPairs.push({ a: ppis[0], b: ppis[1] });
+    // Triple vs quadruple therapy
+    if (drugSet.indexOf('triple therapy') !== -1 || drugSet.indexOf('quadruple therapy') !== -1) {
+      drugPairs.push({ a: 'Triple therapy (PPI + amoxicillin + clarithromycin)', b: 'Quadruple therapy (PPI + bismuth + metronidazole + tetracycline)' });
     }
+    // Antibiotic comparisons for H. pylori
+    if (drugSet.indexOf('clarithromycin') !== -1 && drugSet.indexOf('levofloxacin') !== -1) {
+      drugPairs.push({ a: 'Clarithromycin-based regimen', b: 'Levofloxacin-based regimen' });
+    }
+    // PPI + specific agents
+    if (ppis.length > 0 && drugSet.indexOf('sucralfate') !== -1) {
+      drugPairs.push({ a: ppis[0] + ' (PPI)', b: 'Sucralfate' });
+    }
+    if (ppis.length > 0 && drugSet.indexOf('misoprostol') !== -1) {
+      drugPairs.push({ a: ppis[0] + ' prophylaxis', b: 'Misoprostol prophylaxis' });
+    }
+    // Use the drug pair for this slot
+    if (drugPairs.length > 0) {
+      var dpIdx = slotIdx % drugPairs.length;
+      var dp = drugPairs[dpIdx];
+      enhancedI = dp.a + ' for ' + condition;
+      enhancedC = dp.b;
+      enhancedSub = dp.a + ' vs ' + dp.b;
+    }
+  }
+  // SURGICAL/PROCEDURAL: Use procedure-specific comparisons
+  else if (domainLower.indexOf('surgical') !== -1 || domainLower.indexOf('procedural') !== -1) {
+    var procComps = (guidelineData.comparisons || []).filter(function(c) {
+      var cl = (c.a + ' ' + c.b).toLowerCase();
+      return /surg|endoscop|laparoscop|open|repair|clip|sutur|vagotom|gastrectom/i.test(cl);
+    }).filter(function(c) { return !window._usedComparisons[c.a + '|' + c.b]; });
+    if (procComps.length > 0) {
+      var pc = procComps[slotIdx % procComps.length];
+      enhancedI = pc.a + ' for ' + condition;
+      enhancedC = pc.b;
+      enhancedSub = pc.a + ' vs ' + pc.b;
+      window._usedComparisons[pc.a + '|' + pc.b] = true;
+    } else {
+      // Use extracted procedures
+      var procs = guidelineData.procedures || [];
+      if (procs.length > 0) {
+        enhancedI = tpl.I + ' (' + procs.slice(0, 3).join(', ') + ')';
+      }
+    }
+  }
+  // DIAGNOSIS: Use diagnostic test comparisons
+  else if (domainLower.indexOf('diagnosis') !== -1) {
+    var diagComps = (guidelineData.comparisons || []).filter(function(c) {
+      var cl = (c.a + ' ' + c.b).toLowerCase();
+      return /test|diagnos|detect|biopsy|breath|antigen|serology|urease|pcr|culture|sensitiv|specifici/i.test(cl);
+    }).filter(function(c) { return !window._usedComparisons[c.a + '|' + c.b]; });
+    if (diagComps.length > 0) {
+      var dc = diagComps[slotIdx % diagComps.length];
+      enhancedI = dc.a + ' for ' + condition;
+      enhancedC = dc.b;
+      enhancedSub = dc.a + ' vs ' + dc.b;
+      window._usedComparisons[dc.a + '|' + dc.b] = true;
+    }
+  }
+  // PREVENTION: Use specific preventive interventions
+  else if (domainLower.indexOf('prevention') !== -1) {
+    var preventDrugs = specificDrugs.filter(function(d) {
+      return /omeprazole|lansoprazole|pantoprazole|esomeprazole|ppi|misoprostol|aspirin|nsaid|cox/i.test(d);
+    });
+    if (preventDrugs.length > 0) {
+      var subTemplates = [
+        { i: 'PPI prophylaxis (e.g., ' + (preventDrugs[0] || 'omeprazole') + ')', c: 'No gastroprotection', sub: 'PPI prophylaxis for NSAID users' },
+        { i: 'H. pylori eradication therapy', c: 'No eradication / test-and-treat', sub: 'H. pylori eradication for PUD recurrence prevention' },
+        { i: 'COX-2 selective inhibitor', c: 'Non-selective NSAID + PPI', sub: 'COX-2 inhibitor vs NSAID + PPI' }
+      ];
+      var st = subTemplates[slotIdx % subTemplates.length];
+      enhancedI = st.i + ' for ' + condition;
+      enhancedC = st.c;
+      enhancedSub = st.sub;
+    }
+  }
+  // MONITORING: Use specific monitoring approaches
+  else if (domainLower.indexOf('monitoring') !== -1) {
+    var monTemplates = [
+      { i: 'Repeat endoscopy (second-look endoscopy)', c: 'Clinical symptom-based follow-up', sub: 'Repeat endoscopy vs symptom-based follow-up' },
+      { i: 'Urea breath test for H. pylori eradication confirmation', c: 'Stool antigen test', sub: 'UBT vs stool antigen for eradication confirmation' },
+      { i: 'Biomarker-guided monitoring (serum gastrin, pepsinogen)', c: 'Symptom-based monitoring alone', sub: 'Biomarker vs symptom-based monitoring' }
+    ];
+    var mt = monTemplates[slotIdx % monTemplates.length];
+    enhancedI = mt.i + ' for ' + condition;
+    enhancedC = mt.c;
+    enhancedSub = mt.sub;
+  }
+  // SCREENING: Use specific screening approaches
+  else if (domainLower.indexOf('screening') !== -1) {
+    var scrTemplates = [
+      { i: 'Non-invasive H. pylori screening (urea breath test / stool antigen)', c: 'No routine screening / test-and-treat', sub: 'Non-invasive H. pylori screening strategy' },
+      { i: 'Endoscopic screening for high-risk patients (NSAID users, elderly)', c: 'No endoscopic screening', sub: 'Endoscopic screening in high-risk groups' }
+    ];
+    var sct = scrTemplates[slotIdx % scrTemplates.length];
+    enhancedI = sct.i + ' for ' + condition;
+    enhancedC = sct.c;
+    enhancedSub = sct.sub;
+  }
+  // OTHER DOMAINS: Only use terms if clinically relevant to the domain
+  else {
+    // Do NOT add parenthetical drug names to non-pharmacological domains
+    // (rehabilitation, psychosocial, implementation, etc.)
+    // Keep the original template text clean
   }
 
   // Ensure the intervention references the condition
