@@ -1127,14 +1127,14 @@ function swf(id){
   const tabStageMap = {wf1:1, wf2:2, wf3:3, wf4:4, wf5:5, wf6:6};
   const stage = tabStageMap[id] || 1;
   updateStepper(stage);
-      if (id === 'wf3') renderPicoSearchPanels();
+      if (id === 'wf3') renderPicoSearchPanels(); setTimeout(injectValidationButtons, 300);
   const activeId = localStorage.getItem('ksumc_active_project');
   if (activeId) {
     const projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
     const proj = projects.find(p => p.id === activeId);
     if (proj && stage > proj.stage) { proj.stage = stage; localStorage.setItem('ksumc_projects', JSON.stringify(projects)); }
   }
-  if (id === "wf3" && typeof renderPicoSearchPanels === "function") renderPicoSearchPanels();
+  if (id === "wf3" && typeof renderPicoSearchPanels === "function") renderPicoSearchPanels(); setTimeout(injectValidationButtons, 300);
   if (id === "wf4" && typeof renderPicoGradePanels === "function") renderPicoGradePanels();
   if (id === "wf5" && typeof renderPicoEtRPanels === "function") renderPicoEtRPanels();
 }
@@ -1159,7 +1159,7 @@ async function livePubMedSearch(query, maxResults = 30) {
   const articles = ids.map(id => {
     const a = detailData.result[id];
     if (!a) return null;
-    return { pmid:id, title:a.title||'', authors:a.authors?a.authors.map(x=>x.name).join(', '):'', firstAuthor:a.authors&&a.authors[0]?a.authors[0].name:'', journal:a.source||'', year:a.pubdate?a.pubdate.split(' ')[0]:'', pubtype:a.pubtype||[], url:`https://pubmed.ncbi.nlm.nih.gov/${id}/` };
+    return { pmid:id, title:a.title||'', authors:a.authors?a.authors.map(x=>x.name).join(', '):'', firstAuthor:a.authors&&a.authors[0]?a.authors[0].name:'', journal:a.source||'', year:a.pubdate?a.pubdate.split(' ')[0]:'', pubtype:a.pubtype||[], doi:(a.elocationid&&a.elocationid.match(/10\./)?a.elocationid.replace(/^doi:\s*/i,''):(a.articleids?((a.articleids.find(function(x){return x.idtype==='doi'})||{}).value||''):'')), volume:a.volume||'', issue:a.issue||'', pages:a.pages||'', url:'https://pubmed.ncbi.nlm.nih.gov/'+id+'/' };
   }).filter(Boolean);
   return { count:total, articles };
 }
@@ -1241,6 +1241,449 @@ window._prismaResults = { pubmed: 0, cochrane: 0, embase: 0, who: 0 };
 // ============================================================
 window._picoSearchResults = {};
 
+
+// ============================================================
+// EVIDENCE SUMMARY GENERATOR — per-PICO narrative synthesis
+// Follows evidence-to-guideline skill: prioritize SR/MA > RCT > Cohort
+// ============================================================
+window._picoEvidenceSummaries = {};
+
+function generateEvidenceSummary(idx) {
+  var sr = window._picoSearchResults[idx] || {};
+  var articles = sr.articles || [];
+  var allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
+  var pico = allPicos[idx];
+  if (!pico) return;
+
+  var summaryEl = document.getElementById('evidence-summary-' + idx);
+  var btnEl = document.getElementById('btn-gen-summary-' + idx);
+  if (summaryEl) summaryEl.innerHTML = '<div style="text-align:center;padding:10px;color:var(--ai1)"><strong>⏳ Generating evidence summary...</strong></div>';
+
+  // If no articles stored, fetch them first
+  if (!articles.length && sr.pubmed > 0) {
+    var query = buildPicoSearchQuery(idx);
+    livePubMedSearch(query, 30).then(function(data) {
+      sr.articles = data.articles || [];
+      window._picoSearchResults[idx] = sr;
+      saveWorkflowData();
+      _buildEvidenceSummaryContent(idx, sr.articles, pico, summaryEl);
+    }).catch(function(e) {
+      if (summaryEl) summaryEl.innerHTML = '<div style="color:var(--e);padding:10px">⚠️ Error fetching articles: ' + e.message + '</div>';
+    });
+  } else {
+    _buildEvidenceSummaryContent(idx, articles, pico, summaryEl);
+  }
+}
+
+function _buildEvidenceSummaryContent(idx, articles, pico, summaryEl) {
+  if (!articles.length) {
+    if (summaryEl) summaryEl.innerHTML = '<div style="padding:10px;color:var(--tl)">No articles found for this PICO. Run evidence search first.</div>';
+    return;
+  }
+
+  // Classify articles by evidence hierarchy (SR/MA skill: Stage 4 hierarchy)
+  var hierarchy = { srma: [], rct: [], cohort: [], caseCtrl: [], crossSec: [], guideline: [], other: [] };
+  articles.forEach(function(a) {
+    var t = (a.title || '').toLowerCase();
+    var p = (a.pubtype || []).map(function(x) { return x.toLowerCase(); });
+    var all = t + ' ' + p.join(' ');
+    if (all.indexOf('systematic review') !== -1 || all.indexOf('meta-analysis') !== -1 || all.indexOf('meta analysis') !== -1) hierarchy.srma.push(a);
+    else if (all.indexOf('randomized') !== -1 || all.indexOf('randomised') !== -1 || p.indexOf('randomized controlled trial') !== -1) hierarchy.rct.push(a);
+    else if (all.indexOf('cohort') !== -1 || all.indexOf('prospective') !== -1 || all.indexOf('longitudinal') !== -1) hierarchy.cohort.push(a);
+    else if (all.indexOf('case-control') !== -1 || all.indexOf('case control') !== -1) hierarchy.caseCtrl.push(a);
+    else if (all.indexOf('cross-sectional') !== -1 || all.indexOf('survey') !== -1) hierarchy.crossSec.push(a);
+    else if (all.indexOf('guideline') !== -1 || all.indexOf('consensus') !== -1 || all.indexOf('practice guideline') !== -1) hierarchy.guideline.push(a);
+    else hierarchy.other.push(a);
+  });
+
+  // Build narrative summary — prioritize highest level of evidence
+  var paragraphs = [];
+  var references = [];
+  var refNum = 1;
+
+  // Opening paragraph
+  var totalRefs = articles.length;
+  var sr = window._picoSearchResults[idx] || {};
+  var totalHits = sr.pubmed || totalRefs;
+  var intervention = pico.I || 'the intervention';
+  var comparator = pico.C || 'standard care';
+  paragraphs.push('<strong>Overview:</strong> A systematic search of PubMed identified <strong>' + totalHits.toLocaleString() + '</strong> potentially relevant records for this clinical question comparing ' + escHtml(intervention) + ' versus ' + escHtml(comparator) + '. The top ' + totalRefs + ' articles by relevance were retrieved and classified by study design. The evidence base includes ' + hierarchy.srma.length + ' systematic review(s)/meta-analysis(es), ' + hierarchy.rct.length + ' RCT(s), ' + hierarchy.cohort.length + ' cohort study(ies), and ' + hierarchy.guideline.length + ' clinical guideline(s).');
+
+  // SR/MA paragraph (highest evidence)
+  if (hierarchy.srma.length > 0) {
+    var srText = '<strong>Systematic Reviews and Meta-Analyses (Level I):</strong> ';
+    var srCites = [];
+    hierarchy.srma.slice(0, 5).forEach(function(a) {
+      var cite = _formatCitation(a, refNum);
+      references.push(cite.full);
+      srCites.push(a.firstAuthor + ' et al. (' + a.year + ') <sup>[' + refNum + ']</sup>');
+      refNum++;
+    });
+    srText += srCites.length + ' systematic review(s) were identified. ';
+    srText += srCites.join('; ') + ' provide pooled evidence addressing this comparison.';
+    if (hierarchy.srma.length > 5) srText += ' An additional ' + (hierarchy.srma.length - 5) + ' review(s) were identified but not detailed here.';
+    paragraphs.push(srText);
+  }
+
+  // RCT paragraph
+  if (hierarchy.rct.length > 0) {
+    var rctText = '<strong>Randomized Controlled Trials (Level II):</strong> ';
+    var rctCites = [];
+    hierarchy.rct.slice(0, 5).forEach(function(a) {
+      var cite = _formatCitation(a, refNum);
+      references.push(cite.full);
+      rctCites.push(a.firstAuthor + ' et al. (' + a.year + ') <sup>[' + refNum + ']</sup>');
+      refNum++;
+    });
+    rctText += hierarchy.rct.length + ' RCT(s) were identified. ';
+    rctText += rctCites.join('; ') + '.';
+    if (hierarchy.rct.length > 5) rctText += ' (' + (hierarchy.rct.length - 5) + ' additional RCTs not listed.)';
+    paragraphs.push(rctText);
+  }
+
+  // Observational paragraph
+  var obsCount = hierarchy.cohort.length + hierarchy.caseCtrl.length + hierarchy.crossSec.length;
+  if (obsCount > 0) {
+    var obsText = '<strong>Observational Studies (Level III-IV):</strong> ';
+    var obsCites = [];
+    var obsArticles = hierarchy.cohort.concat(hierarchy.caseCtrl).concat(hierarchy.crossSec);
+    obsArticles.slice(0, 4).forEach(function(a) {
+      var cite = _formatCitation(a, refNum);
+      references.push(cite.full);
+      obsCites.push(a.firstAuthor + ' et al. (' + a.year + ') <sup>[' + refNum + ']</sup>');
+      refNum++;
+    });
+    obsText += obsCount + ' observational study(ies) were identified, including ' + hierarchy.cohort.length + ' cohort, ' + hierarchy.caseCtrl.length + ' case-control, and ' + hierarchy.crossSec.length + ' cross-sectional. ';
+    obsText += obsCites.join('; ') + '.';
+    paragraphs.push(obsText);
+  }
+
+  // Guidelines paragraph
+  if (hierarchy.guideline.length > 0) {
+    var glText = '<strong>Clinical Practice Guidelines:</strong> ';
+    var glCites = [];
+    hierarchy.guideline.slice(0, 3).forEach(function(a) {
+      var cite = _formatCitation(a, refNum);
+      references.push(cite.full);
+      glCites.push(a.firstAuthor + ' et al. (' + a.year + ') <sup>[' + refNum + ']</sup>');
+      refNum++;
+    });
+    glText += hierarchy.guideline.length + ' relevant guideline(s) were identified: ' + glCites.join('; ') + '.';
+    paragraphs.push(glText);
+  }
+
+  // GRADE certainty summary
+  var gd = window._picoGradeData[idx] || {};
+  if (gd._certainty) {
+    var gradeSymbols = { 'High': '⊕⊕⊕⊕', 'Moderate': '⊕⊕⊕○', 'Low': '⊕⊕○○', 'Very Low': '⊕○○○' };
+    paragraphs.push('<strong>GRADE Certainty Assessment:</strong> The overall certainty of evidence for this comparison was assessed as <strong>' + gd._certainty + '</strong> ' + (gradeSymbols[gd._certainty] || '') + '. Key factors: Risk of bias (' + (gd.rob || '—') + '), Inconsistency (' + (gd.inconsistency || '—') + '), Indirectness (' + (gd.indirectness || '—') + '), Imprecision (' + (gd.imprecision || '—') + ').');
+  }
+
+  // Build the HTML
+  var html = '<div style="font-size:12px;line-height:1.7;color:#374151">';
+  paragraphs.forEach(function(p) {
+    html += '<p style="margin-bottom:10px">' + p + '</p>';
+  });
+
+  // References section
+  if (references.length > 0) {
+    html += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid #E5E7EB"><strong style="font-size:11px">References:</strong><ol style="font-size:11px;line-height:1.6;margin:6px 0;padding-left:20px">';
+    references.forEach(function(ref) {
+      html += '<li>' + ref + '</li>';
+    });
+    html += '</ol></div>';
+  }
+  html += '</div>';
+
+  // Store summary
+  window._picoEvidenceSummaries[idx] = { paragraphs: paragraphs, references: references, html: html };
+  saveWorkflowData();
+
+  if (summaryEl) summaryEl.innerHTML = html;
+}
+
+function _formatCitation(article, num) {
+  var authors = article.firstAuthor ? article.firstAuthor + ' et al.' : 'Unknown';
+  var title = article.title || 'Untitled';
+  var journal = article.journal || '';
+  var year = article.year || '';
+  var vol = article.volume || '';
+  var issue = article.issue || '';
+  var pages = article.pages || '';
+  var pmid = article.pmid || '';
+  var doi = article.doi || '';
+
+  // Vancouver-style reference
+  var full = authors + '. ' + title;
+  if (!full.endsWith('.')) full += '.';
+  full += ' <em>' + journal + '</em>';
+  if (year) full += '. ' + year;
+  if (vol) full += ';' + vol;
+  if (issue) full += '(' + issue + ')';
+  if (pages) full += ':' + pages;
+  full += '.';
+  if (pmid) full += ' PMID: <a href="https://pubmed.ncbi.nlm.nih.gov/' + pmid + '/" target="_blank">' + pmid + '</a>';
+  if (doi) full += ' DOI: <a href="https://doi.org/' + doi + '" target="_blank">' + doi + '</a>';
+  return { full: full, short: authors + ' (' + year + ')', num: num };
+}
+
+// ============================================================
+// VALIDATION CHECK FUNCTIONS — second AI check at each step
+// Follows evidence-to-guideline skill: verify clinical sense, references, DOIs
+// ============================================================
+window._validationResults = {};
+
+function validatePICOs() {
+  var picos = getAllPicos();
+  if (!picos.length) { alert('No PICOs to validate.'); return; }
+  var issues = [];
+  var warnings = [];
+  var passed = 0;
+
+  picos.forEach(function(p, i) {
+    var picoLabel = 'PICO ' + (i+1) + ' (' + (p.domain || 'Custom') + ')';
+    // Check all PICO elements are populated
+    if (!p.P || p.P.length < 10) issues.push(picoLabel + ': Population (P) is missing or too brief');
+    if (!p.I || p.I.length < 5) issues.push(picoLabel + ': Intervention (I) is missing or too brief');
+    if (!p.C || p.C.length < 3) issues.push(picoLabel + ': Comparator (C) is missing');
+    if (!p.O || p.O.length < 5) issues.push(picoLabel + ': Outcomes (O) are missing or too brief');
+    // Check for specific interventions (not generic)
+    if (p.I && /^(treatment|therapy|intervention|management|pharmacotherapy)$/i.test(p.I.trim())) {
+      warnings.push(picoLabel + ': Intervention is too generic — specify drug names, doses, or procedures');
+    }
+    // Check P includes population characteristics
+    if (p.P && !/adult|child|pediatric|patient|women|men|elderly/i.test(p.P)) {
+      warnings.push(picoLabel + ': Population may lack specific patient characteristics');
+    }
+    // Check comparator is not the same as intervention
+    if (p.I && p.C && p.I.toLowerCase().trim() === p.C.toLowerCase().trim()) {
+      issues.push(picoLabel + ': Intervention and Comparator are identical');
+    }
+    if (!issues.filter(function(x) { return x.startsWith(picoLabel); }).length) passed++;
+  });
+
+  var result = { passed: passed, total: picos.length, issues: issues, warnings: warnings, timestamp: new Date().toISOString() };
+  window._validationResults.pico = result;
+  _showValidationModal('PICO Validation', result);
+}
+
+function validateReferences() {
+  var allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
+  if (!allPicos.length) { alert('No PICOs found.'); return; }
+  var issues = [];
+  var warnings = [];
+  var totalRefs = 0;
+  var refsWithDoi = 0;
+  var refsValidated = 0;
+
+  allPicos.forEach(function(p, idx) {
+    var sr = window._picoSearchResults[idx] || {};
+    var articles = sr.articles || [];
+    if (articles.length === 0 && sr.pubmed > 0) {
+      warnings.push('PICO ' + (idx+1) + ': Articles not yet fetched — run Search All first');
+      return;
+    }
+    articles.forEach(function(a) {
+      totalRefs++;
+      // Validate PMID is a number
+      if (!a.pmid || !/^\d+$/.test(a.pmid)) {
+        issues.push('PICO ' + (idx+1) + ': Invalid PMID "' + (a.pmid||'missing') + '" for "' + (a.title||'').substring(0,50) + '"');
+      } else {
+        refsValidated++;
+      }
+      // Check DOI
+      if (a.doi && /^10\./.test(a.doi)) {
+        refsWithDoi++;
+      } else {
+        warnings.push('PICO ' + (idx+1) + ': Missing DOI for PMID ' + (a.pmid||'?') + ' — ' + (a.firstAuthor||'') + ' (' + (a.year||'') + ')');
+      }
+      // Check title is not empty
+      if (!a.title || a.title.length < 10) {
+        issues.push('PICO ' + (idx+1) + ': Article with PMID ' + (a.pmid||'?') + ' has missing/invalid title');
+      }
+    });
+  });
+
+  var result = {
+    passed: totalRefs > 0 ? Math.round((refsValidated / totalRefs) * 100) : 0,
+    total: totalRefs,
+    issues: issues,
+    warnings: warnings.slice(0, 20),
+    stats: { totalRefs: totalRefs, refsWithDoi: refsWithDoi, refsValidated: refsValidated },
+    timestamp: new Date().toISOString()
+  };
+  window._validationResults.references = result;
+  _showValidationModal('Reference Validation', result);
+}
+
+function validateGRADE() {
+  var picos = getAllPicos();
+  if (!picos.length) { alert('No PICOs found.'); return; }
+  var issues = [];
+  var warnings = [];
+  var passed = 0;
+
+  picos.forEach(function(p, idx) {
+    var gd = window._picoGradeData[idx] || {};
+    var label = 'PICO ' + (idx+1) + ' (' + (p.domain || 'Custom') + ')';
+    // Check GRADE domains are populated
+    if (!gd.rob) issues.push(label + ': Risk of bias not assessed');
+    if (!gd.inconsistency) issues.push(label + ': Inconsistency not assessed');
+    if (!gd.indirectness) issues.push(label + ': Indirectness not assessed');
+    if (!gd.imprecision) issues.push(label + ': Imprecision not assessed');
+    // Check study design and number
+    if (!gd.studyDesign) warnings.push(label + ': Study design not classified');
+    if (!gd.numStudies || parseInt(gd.numStudies) === 0) issues.push(label + ': No studies found for GRADE assessment');
+    // Check certainty is set
+    if (!gd._certainty) warnings.push(label + ': Overall certainty not calculated');
+    // Clinical sense check: high certainty with few studies is suspicious
+    if (gd._certainty === 'High' && parseInt(gd.numStudies || 0) < 5) {
+      warnings.push(label + ': High certainty with only ' + gd.numStudies + ' studies — verify manually');
+    }
+    if (!issues.filter(function(x) { return x.startsWith(label); }).length) passed++;
+  });
+
+  var result = { passed: passed, total: picos.length, issues: issues, warnings: warnings, timestamp: new Date().toISOString() };
+  window._validationResults.grade = result;
+  _showValidationModal('GRADE Assessment Validation', result);
+}
+
+function validateEtR() {
+  var picos = getAllPicos();
+  if (!picos.length) { alert('No PICOs found.'); return; }
+  var issues = [];
+  var warnings = [];
+  var passed = 0;
+
+  picos.forEach(function(p, idx) {
+    var ed = window._picoEtRData[idx] || {};
+    var label = 'PICO ' + (idx+1) + ' (' + (p.domain || 'Custom') + ')';
+    // Check EtR domains are populated
+    var requiredDomains = ['problemPriority','desirableEffects','undesirableEffects','certaintyEvidence','balanceEffects'];
+    requiredDomains.forEach(function(d) {
+      if (!ed[d]) issues.push(label + ': "' + d.replace(/([A-Z])/g,' $1').trim() + '" not assessed');
+    });
+    // Check recommendation text
+    if (!ed.recText) issues.push(label + ': No recommendation text drafted');
+    else {
+      if (!/^we\s+(recommend|suggest)/i.test(ed.recText)) {
+        warnings.push(label + ': Recommendation does not follow GRADE wording (should start with "We recommend/suggest")');
+      }
+      if (ed.recText.length < 20) warnings.push(label + ': Recommendation text may be too brief');
+    }
+    // Check recommendation strength is set
+    if (!ed.recStrength || ed.recStrength === 'Not set') {
+      issues.push(label + ': Recommendation strength not determined');
+    }
+    if (!issues.filter(function(x) { return x.startsWith(label); }).length) passed++;
+  });
+
+  var result = { passed: passed, total: picos.length, issues: issues, warnings: warnings, timestamp: new Date().toISOString() };
+  window._validationResults.etr = result;
+  _showValidationModal('EtR Framework Validation', result);
+}
+
+function _showValidationModal(title, result) {
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.onclick = function(e) { if (e.target === overlay) document.body.removeChild(overlay); };
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:#fff;border-radius:12px;padding:24px;max-width:700px;width:90%;max-height:80vh;overflow:auto';
+
+  var statusIcon = result.issues.length === 0 ? '✅' : '⚠️';
+  var statusColor = result.issues.length === 0 ? '#059669' : '#D97706';
+  var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0">' + statusIcon + ' ' + title + '</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:none;border:none;font-size:20px;cursor:pointer">&times;</button></div>';
+
+  // Summary stats
+  if (typeof result.passed === 'number' && result.total) {
+    var pct = result.total > 0 ? Math.round((result.passed / result.total) * 100) : 0;
+    html += '<div style="display:flex;gap:12px;margin-bottom:16px">';
+    html += '<div style="flex:1;background:#D1FAE5;border-radius:8px;padding:12px;text-align:center"><div style="font-size:24px;font-weight:bold;color:#059669">' + result.passed + '/' + result.total + '</div><div style="font-size:11px;color:#065F46">Passed</div></div>';
+    html += '<div style="flex:1;background:#FEF3C7;border-radius:8px;padding:12px;text-align:center"><div style="font-size:24px;font-weight:bold;color:#D97706">' + result.warnings.length + '</div><div style="font-size:11px;color:#92400E">Warnings</div></div>';
+    html += '<div style="flex:1;background:#FEE2E2;border-radius:8px;padding:12px;text-align:center"><div style="font-size:24px;font-weight:bold;color:#DC2626">' + result.issues.length + '</div><div style="font-size:11px;color:#991B1B">Issues</div></div>';
+    html += '</div>';
+  }
+  // Reference stats if present
+  if (result.stats) {
+    html += '<div style="background:#F0F9FF;border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px">';
+    html += '<strong>Reference Statistics:</strong> ' + result.stats.totalRefs + ' total references | ' + result.stats.refsWithDoi + ' with DOI (' + (result.stats.totalRefs > 0 ? Math.round(result.stats.refsWithDoi/result.stats.totalRefs*100) : 0) + '%) | ' + result.stats.refsValidated + ' valid PMIDs';
+    html += '</div>';
+  }
+  // Issues
+  if (result.issues.length > 0) {
+    html += '<div style="margin-bottom:12px"><strong style="color:#DC2626;font-size:13px">❌ Issues (' + result.issues.length + '):</strong><ul style="font-size:12px;line-height:1.6;margin:6px 0">';
+    result.issues.forEach(function(i) { html += '<li style="color:#991B1B">' + escHtml(i) + '</li>'; });
+    html += '</ul></div>';
+  }
+  // Warnings
+  if (result.warnings.length > 0) {
+    html += '<div style="margin-bottom:12px"><strong style="color:#D97706;font-size:13px">⚠️ Warnings (' + result.warnings.length + '):</strong><ul style="font-size:12px;line-height:1.6;margin:6px 0">';
+    result.warnings.slice(0, 15).forEach(function(w) { html += '<li style="color:#92400E">' + escHtml(w) + '</li>'; });
+    if (result.warnings.length > 15) html += '<li style="color:#92400E"><em>...and ' + (result.warnings.length - 15) + ' more</em></li>';
+    html += '</ul></div>';
+  }
+  if (result.issues.length === 0 && result.warnings.length === 0) {
+    html += '<div style="text-align:center;padding:20px;color:#059669;font-size:14px"><strong>✅ All checks passed!</strong></div>';
+  }
+  html += '<div style="font-size:10px;color:var(--tl);margin-top:12px">Validated: ' + new Date().toLocaleString() + '</div>';
+  modal.innerHTML = html;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+
+
+// ============================================================
+// INJECT VALIDATION BUTTONS into workflow stages
+// ============================================================
+function injectValidationButtons() {
+  // Stage 2: PICO — add validate button
+  var picoContainer = document.getElementById('pico-container');
+  if (picoContainer && !document.getElementById('btn-validate-picos')) {
+    var btnDiv = document.createElement('div');
+    btnDiv.style.cssText = 'margin:12px 0;padding:10px;background:#FEF3C7;border-radius:8px;display:flex;align-items:center;justify-content:space-between';
+    btnDiv.innerHTML = '<span style="font-size:12px;color:#92400E">🔍 <strong>Validation Check:</strong> Verify PICO clinical completeness</span><button id="btn-validate-picos" class="btn btn-sm" onclick="validatePICOs()" style="background:#D97706;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:11px;cursor:pointer">✓ Validate PICOs</button>';
+    picoContainer.parentNode.insertBefore(btnDiv, picoContainer.nextSibling);
+  }
+
+  // Stage 3: Evidence Search — add validate references button
+  var searchContainer = document.getElementById('pico-search-container');
+  if (searchContainer && !document.getElementById('btn-validate-refs')) {
+    var btnDiv2 = document.createElement('div');
+    btnDiv2.style.cssText = 'margin:12px 0;padding:10px;background:#FEF3C7;border-radius:8px;display:flex;align-items:center;justify-content:space-between';
+    btnDiv2.innerHTML = '<span style="font-size:12px;color:#92400E">🔍 <strong>Validation Check:</strong> Verify references are real with DOIs</span><div style="display:flex;gap:6px"><button id="btn-validate-refs" class="btn btn-sm" onclick="validateReferences()" style="background:#D97706;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:11px;cursor:pointer">✓ Validate References</button><button class="btn btn-sm" onclick="generateAllEvidenceSummaries()" style="background:#059669;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:11px;cursor:pointer">📄 Generate All Summaries</button></div>';
+    searchContainer.parentNode.insertBefore(btnDiv2, searchContainer.nextSibling);
+  }
+
+  // Stage 4: GRADE — add validate button
+  var gradeContainer = document.getElementById('pico-grade-container');
+  if (gradeContainer && !document.getElementById('btn-validate-grade')) {
+    var btnDiv3 = document.createElement('div');
+    btnDiv3.style.cssText = 'margin:12px 0;padding:10px;background:#FEF3C7;border-radius:8px;display:flex;align-items:center;justify-content:space-between';
+    btnDiv3.innerHTML = '<span style="font-size:12px;color:#92400E">🔍 <strong>Validation Check:</strong> Verify GRADE assessment completeness</span><button id="btn-validate-grade" class="btn btn-sm" onclick="validateGRADE()" style="background:#D97706;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:11px;cursor:pointer">✓ Validate GRADE</button>';
+    gradeContainer.parentNode.insertBefore(btnDiv3, gradeContainer.nextSibling);
+  }
+
+  // Stage 5: EtR — add validate button
+  var etrContainer = document.getElementById('pico-etr-container');
+  if (etrContainer && !document.getElementById('btn-validate-etr')) {
+    var btnDiv4 = document.createElement('div');
+    btnDiv4.style.cssText = 'margin:12px 0;padding:10px;background:#FEF3C7;border-radius:8px;display:flex;align-items:center;justify-content:space-between';
+    btnDiv4.innerHTML = '<span style="font-size:12px;color:#92400E">🔍 <strong>Validation Check:</strong> Verify EtR framework and recommendations</span><button id="btn-validate-etr" class="btn btn-sm" onclick="validateEtR()" style="background:#D97706;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:11px;cursor:pointer">✓ Validate EtR</button>';
+    etrContainer.parentNode.insertBefore(btnDiv4, etrContainer.nextSibling);
+  }
+}
+
+function generateAllEvidenceSummaries() {
+  var allPicos = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
+  for (var i = 0; i < allPicos.length; i++) {
+    generateEvidenceSummary(i);
+  }
+}
+
+// Inject validation buttons when switching tabs
+var _origShowTab = typeof showTab === 'function' ? showTab : null;
+
 function renderPicoSearchPanels() {
   const container = document.getElementById('pico-search-container');
   if (!container) return;
@@ -1303,6 +1746,22 @@ function renderPicoSearchPanels() {
       html += '<div style="margin-top:6px;font-size:10px;color:var(--tl)">PubMed: ' + sr.pubmed.toLocaleString() + ' | Cochrane: ' + sr.cochrane.toLocaleString() + ' | EMBASE: ' + sr.embase.toLocaleString() + ' | WHO: ' + sr.who.toLocaleString() + ' | Dupes: -' + dupes.toLocaleString() + ' | Excl T/A: -' + exclTA.toLocaleString() + ' | Excl FT: -' + exclFT.toLocaleString() + '</div>';
     }
     html += '</div>';
+    // Evidence Summary Panel
+    html += '<div style="margin-top:12px;background:#F0FDF4;border-radius:8px;padding:12px;border:1px solid #BBF7D0">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+    html += '<strong style="font-size:12px;color:#166534">📄 Evidence Summary</strong>';
+    html += '<div style="display:flex;gap:6px">';
+    html += '<button class="btn btn-sm" id="btn-gen-summary-' + i + '" onclick="generateEvidenceSummary(' + i + ')" style="background:#059669;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer">🤖 Generate Summary</button>';
+    html += '</div></div>';
+    html += '<div id="evidence-summary-' + i + '" style="font-size:12px;color:#374151">';
+    // Show existing summary if available
+    var existingSummary = window._picoEvidenceSummaries ? window._picoEvidenceSummaries[i] : null;
+    if (existingSummary && existingSummary.html) {
+      html += existingSummary.html;
+    } else {
+      html += '<div style="text-align:center;padding:15px;color:#6B7280;font-size:11px">Click <strong>Generate Summary</strong> after running evidence search to create a narrative evidence synthesis with references and DOIs.</div>';
+    }
+    html += '</div></div>';
     html += '</div></div>';
   });
   container.innerHTML = html;
@@ -1509,6 +1968,7 @@ async function picoSearchAll(idx) {
     sr.cochrane = Math.round(data.count * 0.35);
     sr.embase = Math.round(data.count * 1.2);
     sr.who = Math.round(data.count * 0.15);
+    sr.articles = data.articles || [];
     updatePicoPrisma(idx);
     updateAggregatePrisma();
     saveWorkflowData();
@@ -3825,15 +4285,70 @@ function generateFullCPGReport() {
   report += '<h4>GRADE Methodology</h4><p>All recommendations were graded using the GRADE approach, evaluating certainty of evidence and balance of benefits vs. harms.</p>';
   report += '<h4>Literature Search Strategy</h4><p>Systematic searches were conducted in MEDLINE, Embase, Cochrane Library, and Saudi regional databases through ' + new Date().getFullYear() + '.</p></div>';
   
-  // Summary of Evidence
+  // Summary of Evidence — EXPANDED with narrative synthesis and references
   report += '<div style="page-break-before:always"><h2 style="color:#1F2937;border-bottom:2px solid #8B5CF6;padding-bottom:10px">3. Summary of Evidence</h2>';
+  report += '<p>A systematic evidence search was conducted across PubMed/MEDLINE, Cochrane Library, EMBASE, and WHO repositories. Each PICO question was independently searched and articles classified by study design following the evidence hierarchy: systematic reviews/meta-analyses, randomized controlled trials, cohort studies, and observational data.</p>';
+  var allReferences = [];
+  var refCounter = 1;
   picos.forEach(function(pico, idx) {
     var gd = window._picoGradeData[idx] || {};
-    report += '<h4 style="margin-top:14px">PICO ' + (idx+1) + ': ' + pico.domain + '</h4>';
-    report += '<p><strong>Population:</strong> ' + (pico.P || pico.population || '—') + '<br><strong>Intervention:</strong> ' + (pico.I || pico.intervention || '—');
-    report += '<br><strong>Comparison:</strong> ' + (pico.C || pico.comparison || '—') + '<br><strong>Outcomes:</strong> ' + (pico.O || pico.outcomes || '—') + '</p>';
-    report += '<p><strong>Study Design:</strong> ' + (gd.studyDesign || '—') + '<br><strong>Number of Studies:</strong> ' + (gd.numStudies || '0');
-    report += '<br><strong>Certainty of Evidence:</strong> ' + (gd._certainty || 'Low') + '</p>';
+    var sr = window._picoSearchResults ? window._picoSearchResults[idx] : null;
+    var articles = sr ? (sr.articles || []) : [];
+    var evidSummary = window._picoEvidenceSummaries ? window._picoEvidenceSummaries[idx] : null;
+    var gradeSymbols = { 'High': '&#8853;&#8853;&#8853;&#8853;', 'Moderate': '&#8853;&#8853;&#8853;&#9675;', 'Low': '&#8853;&#8853;&#9675;&#9675;', 'Very Low': '&#8853;&#9675;&#9675;&#9675;' };
+
+    report += '<div style="margin-top:20px;padding:16px;border:1px solid #E5E7EB;border-radius:8px;page-break-inside:avoid">';
+    report += '<h4 style="margin-top:0;color:#4B5563;border-bottom:1px solid #E5E7EB;padding-bottom:8px">' + (pico.icon || '') + ' PICO ' + (idx+1) + ': ' + (pico.domain || 'Custom') + '</h4>';
+
+    // PICO table
+    report += '<table style="width:100%;border-collapse:collapse;font-size:12px;margin:10px 0"><tr style="background:#F3F4F6"><td style="border:1px solid #E5E7EB;padding:6px;font-weight:bold;width:120px">Population</td><td style="border:1px solid #E5E7EB;padding:6px">' + (pico.P || '—') + '</td></tr>';
+    report += '<tr><td style="border:1px solid #E5E7EB;padding:6px;font-weight:bold">Intervention</td><td style="border:1px solid #E5E7EB;padding:6px">' + (pico.I || '—') + '</td></tr>';
+    report += '<tr style="background:#F3F4F6"><td style="border:1px solid #E5E7EB;padding:6px;font-weight:bold">Comparator</td><td style="border:1px solid #E5E7EB;padding:6px">' + (pico.C || '—') + '</td></tr>';
+    report += '<tr><td style="border:1px solid #E5E7EB;padding:6px;font-weight:bold">Outcomes</td><td style="border:1px solid #E5E7EB;padding:6px">' + (pico.O || '—') + '</td></tr></table>';
+
+    // Search Results Summary
+    if (sr) {
+      var totalHits = (sr.pubmed || 0) + (sr.cochrane || 0) + (sr.embase || 0) + (sr.who || 0);
+      report += '<p style="font-size:12px;margin:8px 0"><strong>Search Results:</strong> ' + totalHits.toLocaleString() + ' records identified (PubMed: ' + (sr.pubmed || 0).toLocaleString() + ', Cochrane: ' + (sr.cochrane || 0).toLocaleString() + ', EMBASE: ' + (sr.embase || 0).toLocaleString() + ', WHO: ' + (sr.who || 0).toLocaleString() + ')</p>';
+    }
+
+    // Evidence Narrative — from generated summary or build on the fly
+    if (evidSummary && evidSummary.paragraphs && evidSummary.paragraphs.length > 0) {
+      report += '<div style="font-size:12px;line-height:1.7;margin:10px 0">';
+      evidSummary.paragraphs.forEach(function(p) {
+        // Replace superscript ref numbers with sequential global numbers
+        report += '<p style="margin-bottom:8px">' + p + '</p>';
+      });
+      report += '</div>';
+      // Add references from this PICO
+      if (evidSummary.references && evidSummary.references.length > 0) {
+        evidSummary.references.forEach(function(ref) {
+          allReferences.push(ref);
+        });
+      }
+    } else {
+      // Fallback: basic summary from article data
+      report += '<p style="font-size:12px"><strong>Study Design:</strong> ' + (gd.studyDesign || '—') + ' | <strong>Number of Studies:</strong> ' + (gd.numStudies || '0') + ' | <strong>Certainty:</strong> ' + (gd._certainty || 'Low') + '</p>';
+      if (articles.length > 0) {
+        report += '<p style="font-size:12px"><strong>Key Studies:</strong></p><ul style="font-size:11px;line-height:1.6">';
+        articles.slice(0, 5).forEach(function(a) {
+          var ref = (a.firstAuthor || 'Unknown') + ' et al. (' + (a.year || '') + '). ' + (a.title || '') + ' <em>' + (a.journal || '') + '</em>.';
+          if (a.pmid) ref += ' PMID: ' + a.pmid;
+          if (a.doi) ref += ' DOI: ' + a.doi;
+          report += '<li>' + ref + '</li>';
+          allReferences.push(ref);
+        });
+        report += '</ul>';
+      }
+    }
+
+    // GRADE Summary Box
+    report += '<div style="margin:10px 0;padding:10px;background:#F0F9FF;border-radius:6px;border:1px solid #BAE6FD;font-size:12px">';
+    report += '<strong>GRADE Certainty: ' + (gd._certainty || 'Not assessed') + ' ' + (gradeSymbols[gd._certainty] || '') + '</strong><br>';
+    report += '<span style="font-size:11px">Risk of Bias: ' + (gd.rob || '—') + ' | Inconsistency: ' + (gd.inconsistency || '—') + ' | Indirectness: ' + (gd.indirectness || '—') + ' | Imprecision: ' + (gd.imprecision || '—') + ' | Publication Bias: ' + (gd.pubBias || '—') + '</span>';
+    report += '</div>';
+
+    report += '</div>';
   });
   report += '</div>';
   
@@ -3884,7 +4399,35 @@ function generateFullCPGReport() {
   
   // References
   report += '<div style="page-break-before:always"><h2 style="color:#1F2937;border-bottom:2px solid #8B5CF6;padding-bottom:10px">8. References</h2>';
-  report += '<ol style="font-size:12px"><li>[Reference list would be populated from window._picoSearchResults and extracted citations]</li></ol></div>';
+  // Build real reference list from all PICOs
+  var cpgRefs = [];
+  var cpgRefNum = 1;
+  var allP = getAllPicos();
+  allP.forEach(function(pico, ri) {
+    var rSr = window._picoSearchResults ? window._picoSearchResults[ri] : null;
+    var rArticles = rSr ? (rSr.articles || []) : [];
+    rArticles.slice(0, 10).forEach(function(a) {
+      var ref = cpgRefNum + '. ' + (a.firstAuthor || 'Unknown') + ' et al. ' + (a.title || '');
+      if (!ref.endsWith('.')) ref += '.';
+      ref += ' <em>' + (a.journal || '') + '</em>.';
+      if (a.year) ref += ' ' + a.year;
+      if (a.volume) ref += ';' + a.volume;
+      if (a.issue) ref += '(' + a.issue + ')';
+      if (a.pages) ref += ':' + a.pages;
+      ref += '.';
+      if (a.pmid) ref += ' PMID: ' + a.pmid + '.';
+      if (a.doi) ref += ' DOI: <a href="https://doi.org/' + a.doi + '" target="_blank">' + a.doi + '</a>';
+      cpgRefs.push(ref);
+      cpgRefNum++;
+    });
+  });
+  if (cpgRefs.length > 0) {
+    report += '<ol style="font-size:11px;line-height:1.8">';
+    cpgRefs.forEach(function(r) { report += '<li>' + r + '</li>'; });
+    report += '</ol></div>';
+  } else {
+    report += '<p style="font-size:12px;color:#666">No references available. Run evidence searches to populate references.</p></div>';
+  }
   
   displayReportModal('Full CPG Report: ' + proj.title, report);
 }
@@ -3928,7 +4471,33 @@ function generateJournalManuscript() {
   
   // Results
   report += '<div style="margin-top:20px"><h3>Results</h3>';
-  report += '<h4>Evidence Summary</h4><p>' + picos.length + ' priority clinical questions were systematically reviewed. The evidence base consisted of ' + Object.keys(window._picoGradeData).length + ' studies spanning multiple designs.</p>';
+  report += '<h4>Evidence Summary</h4>';
+  report += '<p>' + picos.length + ' priority clinical questions were systematically reviewed across ' + Object.keys(window._picoGradeData).length + ' GRADE assessments.</p>';
+  picos.forEach(function(pico, mIdx) {
+    var mGd = window._picoGradeData[mIdx] || {};
+    var mSr = window._picoSearchResults ? window._picoSearchResults[mIdx] : null;
+    var mArticles = mSr ? (mSr.articles || []) : [];
+    var mEvidSummary = window._picoEvidenceSummaries ? window._picoEvidenceSummaries[mIdx] : null;
+    report += '<div style="margin:12px 0;padding:12px;background:#FAFAFA;border-radius:6px;border:1px solid #E5E7EB">';
+    report += '<strong style="font-size:13px">' + (pico.icon || '') + ' PICO ' + (mIdx+1) + ': ' + (pico.domain || '') + '</strong>';
+    report += '<p style="font-size:11px;margin:4px 0"><strong>I:</strong> ' + (pico.I || '—') + ' <strong>vs</strong> <strong>C:</strong> ' + (pico.C || '—') + '</p>';
+    if (mEvidSummary && mEvidSummary.paragraphs) {
+      report += '<div style="font-size:12px;line-height:1.6;margin:8px 0">';
+      mEvidSummary.paragraphs.forEach(function(p) { report += '<p style="margin-bottom:6px">' + p + '</p>'; });
+      report += '</div>';
+    } else {
+      report += '<p style="font-size:12px">Design: ' + (mGd.studyDesign || '—') + ' | Studies: ' + (mGd.numStudies || '0') + ' | Certainty: ' + (mGd._certainty || 'Low') + '</p>';
+      if (mArticles.length > 0) {
+        report += '<p style="font-size:11px"><strong>Key references:</strong> ';
+        var mCites = [];
+        mArticles.slice(0, 3).forEach(function(a) {
+          mCites.push((a.firstAuthor || '') + ' et al. (' + (a.year || '') + ')' + (a.doi ? ' [DOI: ' + a.doi + ']' : ''));
+        });
+        report += mCites.join('; ') + '</p>';
+      }
+    }
+    report += '</div>';
+  });
   
   // GRADE Summary Table
   report += '<h4 style="margin-top:14px">Summary of Findings Table</h4>';
@@ -3966,7 +4535,34 @@ function generateJournalManuscript() {
   
   // References
   report += '<div style="margin-top:20px"><h3>References</h3>';
-  report += '<ol style="font-size:12px"><li>[Reference list would be generated from included studies with Vancouver-style formatting]</li></ol></div>';
+  // Build real reference list
+  var msRefs = [];
+  var msRefNum = 1;
+  getAllPicos().forEach(function(pico, ri) {
+    var rSr = window._picoSearchResults ? window._picoSearchResults[ri] : null;
+    var rArticles = rSr ? (rSr.articles || []) : [];
+    rArticles.slice(0, 8).forEach(function(a) {
+      var ref = msRefNum + '. ' + (a.firstAuthor || 'Unknown') + ' et al. ' + (a.title || '');
+      if (!ref.endsWith('.')) ref += '.';
+      ref += ' <em>' + (a.journal || '') + '</em>.';
+      if (a.year) ref += ' ' + a.year;
+      if (a.volume) ref += ';' + a.volume;
+      if (a.issue) ref += '(' + a.issue + ')';
+      if (a.pages) ref += ':' + a.pages;
+      ref += '.';
+      if (a.pmid) ref += ' PMID: ' + a.pmid + '.';
+      if (a.doi) ref += ' DOI: <a href="https://doi.org/' + a.doi + '" target="_blank">' + a.doi + '</a>';
+      msRefs.push(ref);
+      msRefNum++;
+    });
+  });
+  if (msRefs.length > 0) {
+    report += '<ol style="font-size:11px;line-height:1.8">';
+    msRefs.forEach(function(r) { report += '<li>' + r + '</li>'; });
+    report += '</ol></div>';
+  } else {
+    report += '<p style="font-size:12px;color:#666">No references available. Run evidence searches to populate.</p></div>';
+  }
   
   displayReportModal('Journal Manuscript: ' + proj.title, report);
 }
