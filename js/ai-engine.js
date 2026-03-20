@@ -21,10 +21,15 @@ function _deobfuscate(str) {
   try { return atob(str).split('').reverse().join(''); } catch(e) { return ''; }
 }
 
+// Hardwired API key (fallback if no user-set key)
+var _HW = _obfuscate('AIzaSyBE_smT5wfFYR2baZetJ8FEqZ009p_Xz9g');
+
 window.AIEngine = {
   getKey: function() {
     var stored = localStorage.getItem(KEY_STORAGE);
-    return stored ? _deobfuscate(stored) : '';
+    if (stored) return _deobfuscate(stored);
+    // Fallback to hardwired key
+    return _deobfuscate(_HW);
   },
   setKey: function(key) {
     if (key) localStorage.setItem(KEY_STORAGE, _obfuscate(key));
