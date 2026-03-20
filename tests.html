@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KSUMC CPG Platform — Automated Tests</title>
+<style>
+body { font-family: 'Segoe UI', system-ui, sans-serif; padding: 24px; background: #F4F6F8; }
+h1 { margin-bottom: 16px; }
+.test { padding: 8px 16px; margin: 4px 0; border-radius: 6px; font-size: 13px; font-family: monospace; }
+.pass { background: #D1FAE5; color: #065F46; }
+.fail { background: #FEE2E2; color: #991B1B; }
+.summary { margin-top: 20px; padding: 16px; border-radius: 8px; font-size: 15px; font-weight: 600; }
+.summary.all-pass { background: #D1FAE5; color: #065F46; }
+.summary.has-fail { background: #FEE2E2; color: #991B1B; }
+</style>
+</head>
+<body>
+<h1>KSUMC CPG Platform — Test Suite</h1>
+<div id="results"></div>
+<div id="summary"></div>
+
+<iframe id="app" src="index.html" style="width:1px;height:1px;opacity:0;position:absolute" onload="runTests()"></iframe>
+
+<script>
+var results = [];
+var resultsEl = document.getElementById('results');
+
+function assert(name, condition) {
+  results.push({ name: name, pass: !!condition });
+  var div = document.createElement('div');
+  div.className = 'test ' + (condition ? 'pass' : 'fail');
+  div.textContent = (condition ? '✅ PASS' : '❌ FAIL') + ' — ' + name;
+  resultsEl.appendChild(div);
+}
+
+function runTests() {
+  var doc = document.getElementById('app').contentDocument;
+  var win = document.getElementById('app').contentWindow;
+
+  // === DOM STRUCTURE TESTS ===
+  assert('Has DOCTYPE', doc.doctype !== null);
+  assert('Has lang attribute', doc.documentElement.getAttribute('lang') === 'en');
+  assert('Has meta charset', doc.querySelector('meta[charset]') !== null);
+  assert('Has meta viewport', doc.querySelector('meta[name="viewport"]') !== null);
+  assert('Has meta description', doc.querySelector('meta[name="description"]') !== null);
+  assert('Has title', doc.title.length > 0);
+  assert('Has favicon', doc.querySelector('link[rel="icon"]') !== null);
+
+  // === ACCESSIBILITY TESTS ===
+  assert('Has skip link', doc.querySelector('.skip-link') !== null);
+  assert('Has main content landmark', doc.querySelector('[role="main"]') !== null || doc.querySelector('main') !== null);
+  assert('Has navigation landmark', doc.querySelector('[role="navigation"]') !== null || doc.querySelector('nav[aria-label]') !== null);
+  assert('Sidebar has aria-label', doc.querySelector('.sidebar[aria-label]') !== null);
+  assert('Has SR announcer', doc.getElementById('sr-announcer') !== null);
+  assert('Has offline indicator', doc.getElementById('offline-bar') !== null);
+  assert('Nav items are keyboard accessible (tabindex)', doc.querySelector('.nav-i[tabindex]') !== null);
+
+  // === PAGE STRUCTURE TESTS ===
+  var pages = doc.querySelectorAll('.page');
+  assert('Has 13+ page sections', pages.length >= 13);
+
+  var mainEl = doc.querySelector('.main, [role="main"]');
+  assert('Main content element exists', mainEl !== null);
+  if (mainEl) {
+    var pagesInMain = mainEl.querySelectorAll('.page');
+    assert('All pages inside main container', pagesInMain.length === pages.length);
+  }
+
+  // === FUNCTION EXISTENCE TESTS ===
+  var requiredFunctions = [
+    'sp', 'swf', 'openM', 'closeM',
+    'livePubMedSearch', 'escHtml',
+    'aiSRMA', 'aiCEA', 'aiHPS', 'showAIToolModal',
+    'swSRMA', 'swCEA', 'swHPS',
+    'showGuidelineDetail',
+    'trapFocus', 'announce', 'showToast',
+    'initOfflineDetection', 'fetchWithRetry',
+    'validateField', 'validateForm', 'toggleSidebar'
+  ];
+  requiredFunctions.forEach(function(fn) {
+    assert('Function exists: ' + fn, typeof win[fn] === 'function');
+  });
+
+  // === DATA STORE TESTS ===
+  assert('DataStore object exists', typeof win.DataStore === 'object');
+  assert('DataStore.save is function', typeof win.DataStore.save === 'function');
+  assert('DataStore.load is function', typeof win.DataStore.load === 'function');
+
+  // === NAVIGATION TESTS ===
+  var navItems = doc.querySelectorAll('.nav-i');
+  assert('Has navigation items', navItems.length >= 10);
+
+  // === AI WORKFLOW TESTS ===
+  var srmaStages = doc.querySelectorAll('.srma-stage');
+  assert('SR/MA has 7 stages', srmaStages.length >= 7);
+
+  var ceaStages = doc.querySelectorAll('.cea-stage');
+  assert('CEA has 7 stages', ceaStages.length >= 7);
+
+  var hpsStages = doc.querySelectorAll('.hps-stage');
+  assert('HPS has 6 stages', hpsStages.length >= 6);
+
+  // === CSS TESTS ===
+  var stylesheets = doc.querySelectorAll('link[rel="stylesheet"]');
+  assert('External CSS linked', stylesheets.length >= 1);
+
+  var scripts = doc.querySelectorAll('script[src]');
+  assert('External JS linked (2+)', scripts.length >= 2);  // supabase CDN + app.js + reports.js
+
+  // === DEMO MODE TESTS ===
+  assert('Demo banner present', doc.querySelector('.demo-banner') !== null);
+
+  // === MOBILE TESTS ===
+  assert('Hamburger menu exists', doc.querySelector('.hamburger') !== null);
+  assert('Sidebar overlay exists', doc.querySelector('.sidebar-overlay') !== null);
+
+  // === SUMMARY ===
+  var passed = results.filter(function(r) { return r.pass; }).length;
+  var failed = results.filter(function(r) { return !r.pass; }).length;
+  var summaryEl = document.getElementById('summary');
+  summaryEl.className = 'summary ' + (failed === 0 ? 'all-pass' : 'has-fail');
+  summaryEl.textContent = passed + '/' + results.length + ' tests passed' + (failed > 0 ? ' — ' + failed + ' FAILED' : ' — All clear! ✅');
+}
+</script>
+</body>
+</html>
