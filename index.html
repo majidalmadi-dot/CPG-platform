@@ -1709,8 +1709,30 @@ async function aiGeneratePICOs() {
   log.innerHTML = '<strong>\uD83D\uDD0D Smart PICO Generator</strong> analyzing evidence landscape for: <em>' + topic + '</em> (' + numPicos + ' questions)<br><br>';
   const addLog = (msg) => { log.innerHTML += msg + '<br>'; log.scrollTop = log.scrollHeight; };
 
+  // Step 0: Search for existing guidelines and extract specific interventions
+  addLog('\uD83D\uDCDA <strong>Step 0:</strong> Searching for existing clinical practice guidelines...');
+  var guidelineData = await searchExistingGuidelines(topic);
+  if (guidelineData.titles.length > 0) {
+    addLog('&nbsp;&nbsp;\u2705 Found <strong>' + guidelineData.titles.length + '</strong> existing guidelines and RCTs');
+    if (guidelineData.comparisons.length > 0) {
+      addLog('&nbsp;&nbsp;\uD83D\uDD04 Extracted <strong>' + guidelineData.comparisons.length + '</strong> head-to-head comparisons from literature');
+      guidelineData.comparisons.slice(0, 5).forEach(function(c) {
+        addLog('&nbsp;&nbsp;&nbsp;&nbsp;\u2022 ' + c.a + ' <em>vs</em> ' + c.b);
+      });
+    }
+    if (guidelineData.drugs.length > 0) {
+      addLog('&nbsp;&nbsp;\uD83D\uDC8A Identified drugs: <strong>' + guidelineData.drugs.slice(0, 8).join(', ') + '</strong>');
+    }
+    if (guidelineData.procedures.length > 0) {
+      addLog('&nbsp;&nbsp;\uD83C\uDFE5 Identified procedures: <strong>' + guidelineData.procedures.slice(0, 5).join(', ') + '</strong>');
+    }
+  } else {
+    addLog('&nbsp;&nbsp;\u26A0\uFE0F No published guidelines found. Using evidence-based templates.');
+  }
+  window._guidelineData = guidelineData;
+
   // Step 1: Define all clinical domains to scan
-  addLog('\uD83D\uDCDA <strong>Step 1:</strong> Scanning evidence landscape across clinical domains...');
+  addLog('<br>\uD83D\uDCDA <strong>Step 1:</strong> Scanning evidence landscape across clinical domains...');
   const domains = [
     { name: 'Treatment/Pharmacotherapy', queries: ['treatment','therapy','drug','pharmacotherapy','randomized controlled trial'], icon: '\uD83D\uDC8A',
       subQuestions: ['First-line pharmacotherapy','Second-line / rescue therapy','Combination therapy','Novel / emerging agents','Drug dosing and optimization','Biologic therapy','Non-pharmacological treatment'] },
@@ -1860,7 +1882,7 @@ async function aiGeneratePICOs() {
 
     // Generate sub-questions for this domain
     for (let s = 0; s < d.slots; s++) {
-      const subQ = selectSubQuestion(d, s, articleTitles, condition, context);
+      const subQ = selectSubQuestion(d, s, articleTitles, condition, context, guidelineData);
       picos.push({
         id: 'pico-ai-' + picoNum,
         num: picoNum,
@@ -1893,7 +1915,8 @@ async function aiGeneratePICOs() {
   saveWorkflowData();
 }
 
-function selectSubQuestion(domain, slotIdx, articleTitles, condition, context) {
+function selectSubQuestion(domain, slotIdx, articleTitles, condition, context, guidelineData) {
+  guidelineData = guidelineData || { comparisons: [], drugs: [], procedures: [] };
   const pop = context ? condition + ' in patients with ' + context : 'Adults with ' + condition + ' in Saudi Arabia';
   const subQs = domain.subQuestions || [];
   const subTopic = subQs[slotIdx % subQs.length] || domain.name;
@@ -2024,51 +2047,239 @@ function selectSubQuestion(domain, slotIdx, articleTitles, condition, context) {
     tpl.sub = tpl.sub.replace(/Surgical/i, 'Procedural/interventional');
   }
 
-  // Enhance intervention text with article-derived terms if available
+  // SMART ENHANCEMENT: Use guideline-derived specific interventions and comparators
   var enhancedI = tpl.I;
-  if (extractedTerms && extractedTerms.length > 0) {
-    enhancedI = tpl.I + ' (e.g., ' + extractedTerms.slice(0, 3).join(', ') + ')';
+  var enhancedC = tpl.C;
+  var enhancedSub = tpl.sub || subTopic;
+
+  // Priority 1: Use head-to-head comparisons from existing guidelines/RCTs
+  var domainLower = domain.name.toLowerCase();
+  var relevantComps = (guidelineData.comparisons || []).filter(function(c) {
+    var cl = (c.a + ' ' + c.b).toLowerCase();
+    // Match comparisons relevant to this domain
+    if (domainLower.indexOf('treatment') !== -1 || domainLower.indexOf('pharmaco') !== -1) {
+      return /therapy|drug|dose|mg|oral|intravenous|inhibitor|anti|treatment/i.test(cl);
+    }
+    if (domainLower.indexOf('surgical') !== -1 || domainLower.indexOf('procedural') !== -1) {
+      return /surg|endoscop|procedure|laparoscop|operation|repair|clip|inject|thermal/i.test(cl);
+    }
+    if (domainLower.indexOf('diagnosis') !== -1) {
+      return /test|diagnos|detect|sensitiv|biopsy|breath|antigen|serology|ultrasound|imaging/i.test(cl);
+    }
+    if (domainLower.indexOf('screening') !== -1) {
+      return /screen|detect|surveil|test|population|risk/i.test(cl);
+    }
+    if (domainLower.indexOf('monitoring') !== -1) {
+      return /monitor|follow.?up|surveil|endoscop|repeat|biomarker|symptom/i.test(cl);
+    }
+    if (domainLower.indexOf('prevention') !== -1) {
+      return /prevent|prophyl|mainten|risk|reduc|protect/i.test(cl);
+    }
+    return false;
+  });
+
+  // Use a guideline-derived comparison if available (offset by slotIdx for variety)
+  if (relevantComps.length > 0) {
+    var compIdx = slotIdx % relevantComps.length;
+    var comp = relevantComps[compIdx];
+    enhancedI = comp.a;
+    enhancedC = comp.b;
+    enhancedSub = comp.a + ' vs ' + comp.b;
+  }
+  // Priority 2: Use specific drug/procedure names from literature
+  else if (extractedTerms && extractedTerms.length >= 2) {
+    // Create a head-to-head comparison from extracted terms
+    var drugs = (guidelineData.drugs || []).filter(function(d) {
+      return ['placebo','standard care','usual care','no treatment','monotherapy','combination therapy'].indexOf(d.toLowerCase()) === -1;
+    });
+    if (drugs.length >= 2 && (domainLower.indexOf('treatment') !== -1 || domainLower.indexOf('pharmaco') !== -1)) {
+      var d1 = drugs[slotIdx * 2 % drugs.length];
+      var d2 = drugs[(slotIdx * 2 + 1) % drugs.length];
+      if (d1 !== d2) {
+        enhancedI = d1.charAt(0).toUpperCase() + d1.slice(1);
+        enhancedC = d2.charAt(0).toUpperCase() + d2.slice(1);
+        enhancedSub = d1 + ' vs ' + d2;
+      } else {
+        enhancedI = tpl.I + ' (' + extractedTerms.slice(0, 2).join(', ') + ')';
+      }
+    } else {
+      enhancedI = tpl.I + ' (' + extractedTerms.slice(0, 3).join(', ') + ')';
+    }
+  }
+
+  // Ensure the intervention references the condition
+  if (enhancedI.toLowerCase().indexOf(condition.toLowerCase()) === -1 &&
+      enhancedI.length < 80) {
+    enhancedI = enhancedI + ' for ' + condition;
   }
 
   return {
     P: pop,
     I: enhancedI,
-    C: tpl.C,
+    C: enhancedC,
     O: tpl.O,
     designs: tpl.designs || 'RCTs + cohorts',
-    subTopic: tpl.sub || subTopic
+    subTopic: enhancedSub
   };
+}
+
+// ============================================================
+// GUIDELINE AGGREGATION: Search for existing CPGs and extract
+// specific interventions, comparators, drug names from titles
+// ============================================================
+async function searchExistingGuidelines(topic) {
+  try {
+    // Search for published practice guidelines and systematic reviews
+    var guidQ = encodeURIComponent('"' + topic + '" AND (guideline[pt] OR practice guideline[pt] OR consensus[ti] OR recommendation[ti])');
+    var res = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=25&sort=relevance&term=' + guidQ);
+    var data = await res.json();
+    var ids = (data.esearchresult && data.esearchresult.idlist) || [];
+    if (ids.length === 0) return { titles: [], comparisons: [], drugs: [], procedures: [] };
+    // Fetch article details
+    var summRes = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=' + ids.join(','));
+    var summData = await summRes.json();
+    var titles = [];
+    ids.forEach(function(id) {
+      if (summData.result && summData.result[id] && summData.result[id].title) {
+        titles.push(summData.result[id].title);
+      }
+    });
+    // Also search for head-to-head RCTs to extract specific comparisons
+    await new Promise(function(r) { setTimeout(r, 300); });
+    var rctQ = encodeURIComponent('"' + topic + '" AND (versus OR compared OR vs) AND randomized controlled trial[pt]');
+    var rctRes = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=30&sort=relevance&term=' + rctQ);
+    var rctData = await rctRes.json();
+    var rctIds = (rctData.esearchresult && rctData.esearchresult.idlist) || [];
+    if (rctIds.length > 0) {
+      await new Promise(function(r) { setTimeout(r, 300); });
+      var rctSumm = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=' + rctIds.join(','));
+      var rctSummData = await rctSumm.json();
+      rctIds.forEach(function(id) {
+        if (rctSummData.result && rctSummData.result[id] && rctSummData.result[id].title) {
+          titles.push(rctSummData.result[id].title);
+        }
+      });
+    }
+    // Extract specific comparisons, drug names, procedures from all titles
+    var comparisons = extractComparisonsFromTitles(titles);
+    var drugs = extractDrugNames(titles);
+    var procedures = extractProcedureNames(titles);
+    return { titles: titles, comparisons: comparisons, drugs: drugs, procedures: procedures };
+  } catch(e) {
+    console.error('Guideline search error:', e);
+    return { titles: [], comparisons: [], drugs: [], procedures: [] };
+  }
+}
+
+// Extract "A versus B" patterns from RCT titles
+function extractComparisonsFromTitles(titles) {
+  var comparisons = [];
+  var patterns = [
+    /([A-Za-z][A-Za-z\s\-]+?)\s+(?:versus|vs\.?|compared (?:to|with))\s+([A-Za-z][A-Za-z\s\-]+?)(?:\s+(?:for|in|among|:)|$)/i,
+    /comparing\s+([A-Za-z][A-Za-z\s\-]+?)\s+(?:and|with|to)\s+([A-Za-z][A-Za-z\s\-]+?)(?:\s+(?:for|in|:)|$)/i,
+    /([A-Za-z][A-Za-z\s\-]+?)\s+or\s+([A-Za-z][A-Za-z\s\-]+?)\s+(?:for|in)\s/i
+  ];
+  titles.forEach(function(title) {
+    patterns.forEach(function(pat) {
+      var m = title.match(pat);
+      if (m && m[1].trim().length > 3 && m[2].trim().length > 3) {
+        var a = m[1].trim().replace(/^(high-dose|low-dose|oral|intravenous|iv|standard)\s*/i, function(x) { return x; }).substring(0, 60);
+        var b = m[2].trim().substring(0, 60);
+        // Filter out generic non-clinical terms
+        if (!/^(effect|impact|role|efficacy|safety|outcome)/i.test(a)) {
+          comparisons.push({ a: a, b: b, source: title.substring(0, 100) });
+        }
+      }
+    });
+  });
+  return comparisons;
+}
+
+// Medical vocabulary: common drug names and classes by therapeutic area
+var MEDICAL_DRUG_VOCAB = {
+  // GI drugs
+  gi: ['omeprazole','lansoprazole','pantoprazole','esomeprazole','rabeprazole','dexlansoprazole',
+       'ranitidine','famotidine','cimetidine','nizatidine','sucralfate','misoprostol','bismuth',
+       'amoxicillin','clarithromycin','metronidazole','tetracycline','levofloxacin','rifabutin',
+       'vonoprazan','tegoprazan','antacid','proton pump inhibitor','ppi','h2 blocker','h2ra',
+       'triple therapy','quadruple therapy','concomitant therapy','sequential therapy','hybrid therapy',
+       'helicobacter pylori','h. pylori','h pylori','nsaid','aspirin','clopidogrel','cox-2 inhibitor',
+       'celecoxib','rofecoxib','probiotics','rebamipide','ilaprazole','polaprezinc'],
+  // Cardiology
+  cardio: ['aspirin','clopidogrel','ticagrelor','prasugrel','warfarin','rivaroxaban','apixaban',
+           'dabigatran','edoxaban','heparin','enoxaparin','statin','atorvastatin','rosuvastatin',
+           'metoprolol','atenolol','carvedilol','bisoprolol','amlodipine','nifedipine','lisinopril',
+           'enalapril','ramipril','losartan','valsartan','irbesartan','furosemide','hydrochlorothiazide'],
+  // Pain/inflammation
+  pain: ['ibuprofen','naproxen','diclofenac','indomethacin','acetaminophen','paracetamol','morphine',
+         'tramadol','codeine','gabapentin','pregabalin','celecoxib','etoricoxib','ketorolac'],
+  // Iron/hematology
+  heme: ['ferrous sulfate','ferrous fumarate','ferrous gluconate','iron sucrose','ferric carboxymaltose',
+         'iron dextran','iron isomaltoside','oral iron','intravenous iron','iv iron','erythropoietin',
+         'epoetin','darbepoetin','transfusion','packed red blood cells'],
+  // General
+  general: ['placebo','standard care','usual care','watchful waiting','observation','no treatment',
+            'monotherapy','combination therapy','dual therapy','maintenance therapy','on-demand','continuous',
+            'once daily','twice daily','qd','bid','tid','loading dose','high-dose','low-dose','standard-dose']
+};
+
+var MEDICAL_PROCEDURE_VOCAB = [
+  'endoscopy','upper endoscopy','esophagogastroduodenoscopy','egd','colonoscopy','gastroscopy',
+  'biopsy','rapid urease test','urea breath test','stool antigen test','serology',
+  'hemostasis','injection therapy','epinephrine injection','thermal coagulation','hemoclip',
+  'band ligation','sclerotherapy','angiography','embolization','surgery','gastrectomy',
+  'vagotomy','pyloroplasty','oversewing','laparoscopic','laparotomy','perforation repair',
+  'balloon dilation','stent placement','endoscopic ultrasound','eus','ct scan','mri',
+  'repeat endoscopy','surveillance endoscopy','follow-up endoscopy','second-look endoscopy'
+];
+
+// Extract drug names from article titles using vocabulary matching
+function extractDrugNames(titles) {
+  var allDrugs = [];
+  Object.values(MEDICAL_DRUG_VOCAB).forEach(function(list) { allDrugs = allDrugs.concat(list); });
+  var found = {};
+  var joinedTitles = titles.join(' ').toLowerCase();
+  allDrugs.forEach(function(drug) {
+    if (drug.length > 2 && joinedTitles.indexOf(drug.toLowerCase()) !== -1) {
+      // Count occurrences
+      var regex = new RegExp(drug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      var count = (joinedTitles.match(regex) || []).length;
+      if (count >= 1) found[drug] = count;
+    }
+  });
+  return Object.entries(found).sort(function(a, b) { return b[1] - a[1]; }).map(function(e) { return e[0]; });
+}
+
+// Extract procedure names from article titles using vocabulary matching
+function extractProcedureNames(titles) {
+  var found = {};
+  var joinedTitles = titles.join(' ').toLowerCase();
+  MEDICAL_PROCEDURE_VOCAB.forEach(function(proc) {
+    if (proc.length > 2 && joinedTitles.indexOf(proc.toLowerCase()) !== -1) {
+      var regex = new RegExp(proc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      var count = (joinedTitles.match(regex) || []).length;
+      if (count >= 1) found[proc] = count;
+    }
+  });
+  return Object.entries(found).sort(function(a, b) { return b[1] - a[1]; }).map(function(e) { return e[0]; });
 }
 
 function extractKeyTermsFromTitles(titles, slotIdx, domainName) {
   if (!titles || !titles.length) return [];
-  // Extract frequently mentioned clinical terms from article titles
-  var stopWords = ['the','and','for','with','from','that','this','was','were','are','been','have','has','its','not','but','what','all','can','had','her','one','our','out','new','use','how','may','than','each','which','their','will','about','many','them','then','some','into','very','when','come','made','find','here','more','after','also','did','get','two','like','these','other','over','such','only','most','back','still','just','where','your','study','patients','results','effects','treatment','clinical','analysis','review','associated','compared','outcome','group','data','studies','trial','among','using','based','between'];
-  var wordCounts = {};
-  titles.forEach(function(title) {
-    var words = title.toLowerCase().replace(/[^a-z\s-]/g, ' ').split(/\s+/);
-    // Also extract 2-word phrases
-    for (var i = 0; i < words.length; i++) {
-      var w = words[i];
-      if (w.length > 3 && stopWords.indexOf(w) === -1) {
-        wordCounts[w] = (wordCounts[w] || 0) + 1;
-      }
-      if (i < words.length - 1) {
-        var phrase = words[i] + ' ' + words[i+1];
-        if (words[i].length > 3 && words[i+1].length > 3 && stopWords.indexOf(words[i]) === -1 && stopWords.indexOf(words[i+1]) === -1) {
-          wordCounts[phrase] = (wordCounts[phrase] || 0) + 1;
-        }
-      }
-    }
-  });
-  // Sort by frequency, return top terms that appear in multiple articles
-  var sorted = Object.entries(wordCounts).filter(function(e) { return e[1] >= 2; }).sort(function(a, b) { return b[1] - a[1]; });
-  // Skip terms that are too generic (part of the domain name)
+  // Use vocabulary-based extraction instead of word frequency
+  var drugs = extractDrugNames(titles);
+  var procs = extractProcedureNames(titles);
+  var combined = drugs.concat(procs);
+  // Remove terms that are part of the condition name or too generic
   var domainLower = domainName.toLowerCase();
-  var filtered = sorted.filter(function(e) { return domainLower.indexOf(e[0]) === -1; });
-  // Return terms offset by slotIdx to get variety across sub-questions
+  combined = combined.filter(function(t) {
+    var tl = t.toLowerCase();
+    return tl.length > 2 && domainLower.indexOf(tl) === -1 &&
+      ['placebo','standard care','usual care','no treatment'].indexOf(tl) === -1;
+  });
+  // Offset by slotIdx for variety
   var offset = slotIdx * 3;
-  return filtered.slice(offset, offset + 5).map(function(e) { return e[0]; });
+  return combined.slice(offset, offset + 5);
 }
 
 function renderAIPicos(picos) {
@@ -3038,7 +3249,24 @@ function populateEtRFromEvidence(idx, pico) {
   else { ed.recStrength = 'Not set'; }
   if (ed.recStrength !== 'Not set') {
     var verb = ed.recStrength.indexOf('Strong') !== -1 ? 'recommend' : 'suggest';
-    ed.recText = 'We ' + verb + ' ' + pico.I.toLowerCase() + ' for ' + pico.P.toLowerCase() + ' (compared to ' + pico.C.toLowerCase() + ').';
+    // Build a specific, actionable recommendation
+    var intervention = pico.I || '';
+    var comparator = pico.C || '';
+    var population = pico.P || '';
+    // Clean up intervention text — remove "for Condition" if already in population
+    intervention = intervention.replace(new RegExp('\\s+for\\s+' + (pico._condition || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '');
+    // Remove parenthetical examples from intervention
+    intervention = intervention.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+    // Build the recommendation
+    if (comparator && comparator.toLowerCase() !== 'placebo / standard care' && comparator.toLowerCase() !== 'standard care / no intervention' && comparator.toLowerCase() !== 'n/a (descriptive)') {
+      ed.recText = 'We ' + verb + ' ' + intervention.toLowerCase() + ' over ' + comparator.toLowerCase() + ' for ' + population.toLowerCase() + '.';
+    } else {
+      ed.recText = 'We ' + verb + ' ' + intervention.toLowerCase() + ' for ' + population.toLowerCase() + '.';
+    }
+    // Add certainty qualifier
+    if (cert === 'Low' || cert === 'Very Low') {
+      ed.recText += ' (certainty of evidence: ' + cert.toLowerCase() + ')';
+    }
     ed.agreement = '';
   }
   window._picoEtRData[idx] = ed;
