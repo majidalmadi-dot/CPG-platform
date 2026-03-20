@@ -1569,6 +1569,12 @@ function buildPicoSearchQuery(idx) {
     if (vsMatch && vsMatch[1].trim().length > 3) {
       specificTerms.push(vsMatch[1].trim().split(/\s+/).slice(0,2).join(' '));
     }
+    // Filter out terms already in the core topic
+    var coreWords = coreTopic.toLowerCase().split(/\s+/);
+    specificTerms = specificTerms.filter(function(t) {
+      var tw = t.toLowerCase().trim();
+      return tw.length > 2 && !coreWords.some(function(cw) { return tw === cw || tw.indexOf(cw) !== -1 || cw.indexOf(tw) !== -1; });
+    });
   }
 
   // Build clean query: condition + domain keywords + specific terms
