@@ -1320,6 +1320,12 @@ function renderPicoSearchPanels() {
       saveWorkflowData();
     });
   });
+  // Auto-generate strategies for PICOs that don't have one yet
+  var allP = [...(window._picoData.ai || []), ...(window._picoData.manual || [])];
+  for (var gi = 0; gi < allP.length; gi++) {
+    var gsr = window._picoSearchResults[gi] || {};
+    if (!gsr.strategy) generatePicoStrategy(gi);
+  }
 }
 
 function toggleSearchPanel(idx) {
@@ -1417,6 +1423,22 @@ function generatePicoStrategy(idx) {
   }
   parts.push(popLine);
 
+  // Line 1b: Intervention-specific terms from PICO I field (makes each strategy unique)
+  if (p.I) {
+    var iClean = p.I
+      .replace(/for\s+(adults|patients|people|individuals|those)\s+(with|having|diagnosed).*/gi, '')
+      .replace(/(first-line|second-line|novel|emerging|validated|structured|routine|optimal)\s+/gi, '')
+      .replace(/\b(pharmacological agents|interventions|strategies|approaches|programs|modalities|instruments|protocols)\b/gi, '')
+      .replace(new RegExp(condition.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '')
+      .replace(new RegExp((context||'XXXNOCONTEXTXXX').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '')
+      .replace(/\s+/g, ' ').trim();
+    var iWords = iClean.split(/\s+/).filter(function(w) { return w.length > 3; }).slice(0, 4);
+    if (iWords.length > 0) {
+      var iLine = '(' + iWords.map(function(w) { return '"' + w + '"[tiab]'; }).join(' OR ') + ')';
+      parts.push(iLine);
+    }
+  }
+
   // Line 2: Domain-specific MeSH terms
   var dm = domainMeSH[p.domain];
   if (dm) {
@@ -1506,7 +1528,7 @@ function buildPicoSearchQuery(idx) {
   var p = allPicos[idx];
   if (!p) return '';
 
-  // Extract the core condition/topic from the active project or from P field
+  // Extract the core condition/topic
   var activeId = localStorage.getItem('ksumc_active_project');
   var projectTitle = '';
   if (activeId) {
@@ -1515,32 +1537,57 @@ function buildPicoSearchQuery(idx) {
     if (proj) projectTitle = proj.title;
   }
 
-  // The core condition is the project title (e.g. "Anemia in IBD") or extracted from P
   var coreTopic = projectTitle || '';
   if (!coreTopic && p.P) {
     coreTopic = p.P.replace(/Adults with |patients with |in Saudi Arabia|\u226518y with/gi, '').trim();
   }
 
-  // The domain provides the clinical angle (e.g. "Treatment", "Diagnosis", "Screening")
-  // Map domain names to effective PubMed search terms
-  var domainSearchMap = {
-    'Treatment/Pharmacotherapy': 'treatment',
-    'Diagnosis': 'diagnosis',
-    'Screening': 'screening',
-    'Prevention': 'prevention',
-    'Prognosis': 'prognosis',
-    'Management/Guidelines': 'management guidelines',
-    'Monitoring': 'monitoring',
-    'Patient Education/QoL': 'quality of life',
-    'Surgical/Procedural': 'surgery',
-    'Special Populations': 'special populations'
-  };
-  var domainName = domainSearchMap[p.domain] || (p.domain || '').split('/')[0].replace(/Guidelines|QoL/g, '').trim();
+  // Extract key terms from intervention (I) field — remove generic filler words
+  var iTerms = '';
+  if (p.I) {
+    iTerms = p.I
+      .replace(/for\s+(adults|patients|people|individuals|those)\s+(with|having|diagnosed)/gi, 'for')
+      .replace(/(first-line|second-line|novel|emerging|validated|structured|routine|optimal)\s+/gi, '')
+      .replace(/\b(pharmacological agents|interventions|strategies|approaches|programs|modalities|instruments|protocols)\b/gi, '')
+      .replace(/\bfor\s+/gi, '')
+      .replace(new RegExp(coreTopic.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '')
+      .replace(/\s+/g, ' ').trim();
+    // Keep only first 4-5 meaningful words
+    var words = iTerms.split(/\s+/).filter(function(w) { return w.length > 2; });
+    iTerms = words.slice(0, 5).join(' ');
+  }
 
-  // Build query: "Anemia IBD treatment" — simple, effective
+  // Extract comparator terms if meaningful
+  var cTerms = '';
+  if (p.C && !/placebo|standard care|no intervention|usual care|no formal|N\/A/i.test(p.C)) {
+    cTerms = p.C
+      .replace(new RegExp(coreTopic.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '')
+      .replace(/\s+/g, ' ').trim();
+    var cWords = cTerms.split(/\s+/).filter(function(w) { return w.length > 2; });
+    cTerms = cWords.slice(0, 3).join(' ');
+  }
+
+  // Build a PICO-specific query
   var query = coreTopic;
-  if (domainName && domainName !== 'Custom' && !coreTopic.toLowerCase().includes(domainName.toLowerCase())) {
-    query += ' ' + domainName;
+  if (iTerms) query += ' ' + iTerms;
+  if (cTerms) query += ' ' + cTerms;
+
+  // Fallback: if no I terms extracted, use domain name
+  if (!iTerms) {
+    var domainSearchMap = {
+      'Treatment/Pharmacotherapy': 'treatment',
+      'Diagnosis': 'diagnosis',
+      'Screening': 'screening',
+      'Prevention': 'prevention',
+      'Prognosis': 'prognosis',
+      'Management/Guidelines': 'management guidelines',
+      'Monitoring': 'monitoring',
+      'Patient Education/QoL': 'quality of life',
+      'Surgical/Procedural': 'surgery',
+      'Special Populations': 'special populations'
+    };
+    var domainName = domainSearchMap[p.domain] || (p.domain || '').split('/')[0].trim();
+    if (domainName && domainName !== 'Custom') query += ' ' + domainName;
   }
 
   return query.trim();
@@ -1729,9 +1776,18 @@ async function aiGeneratePICOs() {
       d._rawShare = rawShare;
     });
 
+    // Phase 1.5: Clinical relevance filter — exclude domains with <3% of top domain's evidence
+    const topCount = activeDomains[0] ? activeDomains[0].count : 0;
+    const relevanceThreshold = Math.max(topCount * 0.03, 10); // At least 3% of top OR 10 articles
+    const relevantDomains = activeDomains.filter(d => d.count >= relevanceThreshold);
+    if (relevantDomains.length < activeDomains.length) {
+      const dropped = activeDomains.length - relevantDomains.length;
+      addLog('&nbsp;&nbsp;\u{1F50D} Filtered out ' + dropped + ' domain(s) with insufficient evidence (<' + Math.round(relevanceThreshold) + ' articles)');
+    }
+
     // Phase 2: Assign at least 1 to top domains, then distribute remainder proportionally
-    const topN = Math.min(activeDomains.length, numPicos);
-    const topDomains = activeDomains.slice(0, topN);
+    const topN = Math.min(relevantDomains.length, numPicos);
+    const topDomains = relevantDomains.slice(0, topN);
 
     // Give each qualifying domain at least 1 slot
     topDomains.forEach(d => { d.slots = 1; remaining--; });
@@ -1954,6 +2010,14 @@ function selectSubQuestion(domain, slotIdx, articleTitles, condition, context) {
       designs: 'RCTs + cohort studies',
       O: 'Critical: Primary clinical outcome\nImportant: Safety, feasibility\nLow: Cost, acceptability'
     };
+  }
+
+  // Clinical sense check: if the domain is Surgical/Procedural but evidence is very low,
+  // rephrase to be about "procedural interventions" rather than "surgery"
+  if (domain.name === 'Surgical/Procedural' && domain.count < 50) {
+    tpl.I = tpl.I.replace(/Surgical intervention versus conservative/i, 'Procedural/interventional approaches versus conservative');
+    tpl.I = tpl.I.replace(/Open surgery/i, 'Standard procedural approaches');
+    tpl.sub = tpl.sub.replace(/Surgical/i, 'Procedural/interventional');
   }
 
   // Enhance intervention text with article-derived terms if available
@@ -2785,6 +2849,15 @@ function exportGradeData() {
 // ============================================================
 // PER-PICO EVIDENCE-TO-RECOMMENDATION (EtR) FRAMEWORK
 // ============================================================
+function getAllPicos() {
+  var all = [];
+  if (window._picoData) {
+    if (window._picoData.ai) all = all.concat(window._picoData.ai);
+    if (window._picoData.manual) all = all.concat(window._picoData.manual);
+  }
+  return all;
+}
+
 var EtR_DOMAINS = [
   {key:'problemPriority', label:'Problem Priority', opts:['Yes','Probably yes','Probably no','No','Varies','Uncertain']},
   {key:'desirableEffects', label:'Desirable Effects', opts:['Large','Moderate','Small','Trivial','Varies','Uncertain']},
