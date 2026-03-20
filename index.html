@@ -629,7 +629,7 @@ tr:hover td{background:#F8FAFC}
 <div class="card-t">GRADE Evidence Profile <span class="ai-status" style="margin-left:8px">AI-Assisted</span></div>
 <div class="card-st" style="margin-bottom:10px">Per-PICO certainty assessment using GRADE methodology (5 downgrade + 3 upgrade domains)</div>
 <div style="display:flex;gap:8px;flex-wrap:wrap">
-<button class="btn btn-ai" onclick="autoGradeAllPicos()">🤖 AI: Auto-Assess All PICOs</button>
+<button class="btn btn-ai" onclick="autoGradeAllPicos()">🤖 AI: Analyze Evidence & Auto-Assess</button>
 <button class="btn btn-o" onclick="generateSoFTable()">Generate Summary of Findings</button>
 <button class="btn btn-o" onclick="exportGradeData()">Export GRADE Data</button>
 </div>
@@ -2236,34 +2236,278 @@ function autoGradeAllPicos() {
     if (window._picoData.manual) allPicos = allPicos.concat(window._picoData.manual);
   }
   if (!allPicos.length) { alert("No PICO questions found. Generate PICOs in Stage 2 first."); return; }
-  allPicos.forEach(function(pico, idx) {
-    if (!window._picoGradeData[idx]) window._picoGradeData[idx] = {};
-    var gd = window._picoGradeData[idx];
-    var domain = pico.domain || "";
-    // Smart defaults based on domain
-    if (!gd.studyDesign) {
-      if (domain.indexOf("Treatment") !== -1 || domain.indexOf("Prevention") !== -1) gd.studyDesign = "RCT";
-      else if (domain.indexOf("Prognosis") !== -1) gd.studyDesign = "Cohort";
-      else if (domain.indexOf("Diagnosis") !== -1 || domain.indexOf("Screening") !== -1) gd.studyDesign = "RCT";
-      else gd.studyDesign = "RCT";
+  // Show progress
+  var container = document.getElementById("pico-grade-container");
+  var oldHtml = container.innerHTML;
+  container.innerHTML = '<div style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">\u2699\uFE0F</div><div style="font-size:14px;font-weight:600">Analyzing Evidence from PubMed...</div><div style="font-size:12px;color:#666;margin-top:6px">Fetching article metadata for ' + allPicos.length + ' PICO questions</div><div id="grade-progress" style="margin-top:12px;font-size:11px;color:#888">Starting...</div><div style="margin-top:10px;background:#e5e7eb;border-radius:8px;height:8px;overflow:hidden"><div id="grade-progress-bar" style="width:0%;height:100%;background:linear-gradient(90deg,#10B981,#3B82F6);border-radius:8px;transition:width 0.3s"></div></div></div>';
+  fetchAndAnalyzeAllPicos(allPicos, 0);
+}
+
+async function fetchAndAnalyzeAllPicos(allPicos, startIdx) {
+  var progressEl = document.getElementById("grade-progress");
+  var progressBar = document.getElementById("grade-progress-bar");
+  var total = allPicos.length;
+
+  for (var i = startIdx; i < total; i++) {
+    var pico = allPicos[i];
+    var pct = Math.round(((i+1)/total)*100);
+    if (progressEl) progressEl.textContent = "Analyzing PICO " + (i+1) + " of " + total + ": " + (pico.domain || "General") + "...";
+    if (progressBar) progressBar.style.width = pct + "%";
+
+    try {
+      await fetchPubMedForPico(i, pico);
+    } catch(e) {
+      console.warn("Error fetching PICO " + i + ":", e);
+      setDefaultGradeForPico(i, pico);
     }
-    // Set moderate defaults for AI assessment
-    if (!gd.rob) gd.rob = "Serious";
-    if (!gd.inconsistency) gd.inconsistency = "Not serious";
-    if (!gd.indirectness) gd.indirectness = "Not serious";
-    if (!gd.imprecision) gd.imprecision = "Serious";
-    if (!gd.pubbias) gd.pubbias = "Undetected";
-    if (!gd.largeEffect) gd.largeEffect = "No";
-    if (!gd.doseResponse) gd.doseResponse = "No";
-    if (!gd.confounders) gd.confounders = "No";
-    // Set evidence count from search results if available
-    if (window._picoSearchResults && window._picoSearchResults[idx]) {
-      var sr = window._picoSearchResults[idx];
-      gd.numStudies = String(sr.pubmed || 0);
-    }
-  });
+
+    // Rate limit: 400ms between requests
+    if (i < total - 1) await new Promise(function(r) { setTimeout(r, 400); });
+  }
+
+  if (progressEl) progressEl.textContent = "Complete! All " + total + " PICOs analyzed.";
+  if (progressBar) progressBar.style.width = "100%";
   saveWorkflowData();
-  renderPicoGradePanels();
+  setTimeout(function() { renderPicoGradePanels(); }, 800);
+}
+
+async function fetchPubMedForPico(idx, pico) {
+  var query = buildPicoSearchQuery(idx);
+  // Step 1: Search PubMed for IDs (top 20 articles)
+  var searchUrl = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=20&sort=relevance&term=" + encodeURIComponent(query);
+  var searchResp = await fetch(searchUrl);
+  var searchData = await searchResp.json();
+  var ids = (searchData.esearchresult && searchData.esearchresult.idlist) || [];
+
+  if (!ids.length) {
+    setDefaultGradeForPico(idx, pico);
+    return;
+  }
+
+  // Step 2: Fetch article summaries
+  var summaryUrl = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=" + ids.join(",");
+  var summaryResp = await fetch(summaryUrl);
+  var summaryData = await summaryResp.json();
+
+  // Step 3: Analyze articles
+  analyzeArticlesForGrade(idx, pico, ids, summaryData.result || {});
+}
+
+function analyzeArticlesForGrade(idx, pico, ids, articles) {
+  if (!window._picoGradeData[idx]) window._picoGradeData[idx] = {};
+  var gd = window._picoGradeData[idx];
+  var sr = window._picoSearchResults ? window._picoSearchResults[idx] : null;
+
+  // Analyze publication types and study designs
+  var designCounts = { rct: 0, sr_ma: 0, cohort: 0, caseControl: 0, caseSeries: 0, crossSectional: 0, guideline: 0, other: 0 };
+  var totalParticipants = 0;
+  var recentArticles = 0;
+  var articleTitles = [];
+  var years = [];
+
+  ids.forEach(function(id) {
+    var art = articles[id];
+    if (!art || !art.title) return;
+    var title = (art.title || "").toLowerCase();
+    var pubTypes = (art.pubtype || []).map(function(t) { return t.toLowerCase(); });
+    var allText = title + " " + pubTypes.join(" ");
+
+    articleTitles.push(art.title);
+
+    // Extract year
+    var pubDate = art.pubdate || art.sortpubdate || "";
+    var yearMatch = pubDate.match(/\d{4}/);
+    if (yearMatch) years.push(parseInt(yearMatch[0]));
+
+    // Classify study design
+    if (allText.indexOf("systematic review") !== -1 || allText.indexOf("meta-analysis") !== -1 || allText.indexOf("meta analysis") !== -1) {
+      designCounts.sr_ma++;
+    } else if (allText.indexOf("randomized") !== -1 || allText.indexOf("randomised") !== -1 || allText.indexOf("rct") !== -1 || pubTypes.indexOf("randomized controlled trial") !== -1) {
+      designCounts.rct++;
+    } else if (allText.indexOf("cohort") !== -1 || allText.indexOf("prospective") !== -1 || allText.indexOf("longitudinal") !== -1) {
+      designCounts.cohort++;
+    } else if (allText.indexOf("case-control") !== -1 || allText.indexOf("case control") !== -1) {
+      designCounts.caseControl++;
+    } else if (allText.indexOf("cross-sectional") !== -1 || allText.indexOf("cross sectional") !== -1 || allText.indexOf("survey") !== -1) {
+      designCounts.crossSectional++;
+    } else if (allText.indexOf("case report") !== -1 || allText.indexOf("case series") !== -1) {
+      designCounts.caseSeries++;
+    } else if (allText.indexOf("guideline") !== -1 || allText.indexOf("practice guideline") !== -1 || allText.indexOf("consensus") !== -1) {
+      designCounts.guideline++;
+    } else {
+      designCounts.other++;
+    }
+
+    // Estimate sample size from title
+    var nMatch = title.match(/n\s*=\s*([\d,]+)/i) || title.match(/(\d{2,}[,.]?\d*)\s*(?:patients|subjects|participants|adults|children|cases)/i);
+    if (nMatch) {
+      var n = parseInt(nMatch[1].replace(/[,\.]/g, ""));
+      if (n > 0 && n < 500000) totalParticipants += n;
+    }
+
+    // Recent articles (last 5 years)
+    if (yearMatch && parseInt(yearMatch[0]) >= 2021) recentArticles++;
+  });
+
+  // Determine primary study design
+  var bestDesign = "RCT";
+  var maxCount = designCounts.rct;
+  if (designCounts.sr_ma > maxCount) { bestDesign = "SR/MA"; maxCount = designCounts.sr_ma; }
+  if (designCounts.cohort > maxCount) { bestDesign = "Cohort"; maxCount = designCounts.cohort; }
+  if (designCounts.caseControl > maxCount) { bestDesign = "Case-control"; maxCount = designCounts.caseControl; }
+  if (designCounts.crossSectional > maxCount) { bestDesign = "Cross-sectional"; maxCount = designCounts.crossSectional; }
+  if (designCounts.caseSeries > maxCount) { bestDesign = "Case series"; maxCount = designCounts.caseSeries; }
+
+  // Override: if domain suggests specific design
+  var domain = pico.domain || "";
+  if (domain.indexOf("Prognosis") !== -1 && designCounts.cohort > 0) bestDesign = "Cohort";
+  if (domain.indexOf("Screening") !== -1 && designCounts.crossSectional > 0) bestDesign = "Cross-sectional";
+
+  // Populate study info
+  gd.studyDesign = bestDesign;
+  gd.numStudies = String(sr ? (sr.pubmed || ids.length) : ids.length);
+  gd.participants = totalParticipants > 0 ? totalParticipants.toLocaleString() : estimateParticipants(bestDesign, sr ? sr.pubmed : ids.length);
+
+  // --- GRADE DOMAIN ASSESSMENTS ---
+  var totalStudies = sr ? sr.pubmed : ids.length;
+  var rctProp = ids.length > 0 ? (designCounts.rct + designCounts.sr_ma) / ids.length : 0;
+  var recentProp = ids.length > 0 ? recentArticles / ids.length : 0;
+
+  // Risk of Bias
+  if (bestDesign === "SR/MA" && designCounts.sr_ma >= 3) {
+    gd.rob = "Not serious";
+    gd.robNote = designCounts.sr_ma + " systematic reviews found; pooled evidence likely well-appraised";
+  } else if (bestDesign === "RCT" && designCounts.rct >= 5) {
+    gd.rob = "Not serious";
+    gd.robNote = designCounts.rct + " RCTs identified; adequate randomization expected";
+  } else if (bestDesign === "RCT" && designCounts.rct >= 2) {
+    gd.rob = "Serious";
+    gd.robNote = "Only " + designCounts.rct + " RCTs; limited evidence of allocation concealment";
+  } else if (bestDesign === "Cohort" || bestDesign === "Case-control") {
+    gd.rob = "Serious";
+    gd.robNote = "Observational design (" + bestDesign + "); inherent confounding risk";
+  } else {
+    gd.rob = "Very serious";
+    gd.robNote = "Limited high-quality evidence; primarily " + bestDesign + " studies";
+  }
+
+  // Inconsistency
+  var designDiversity = Object.values(designCounts).filter(function(c) { return c > 0; }).length;
+  if (totalStudies >= 10 && designDiversity <= 3) {
+    gd.inconsistency = "Not serious";
+    gd.inconsistencyNote = totalStudies + " studies across " + designDiversity + " design types; likely consistent";
+  } else if (totalStudies >= 5) {
+    gd.inconsistency = "Not serious";
+    gd.inconsistencyNote = "Moderate body of evidence (" + totalStudies + " PubMed results)";
+  } else {
+    gd.inconsistency = "Serious";
+    gd.inconsistencyNote = "Limited studies (" + totalStudies + "); consistency hard to assess";
+  }
+
+  // Indirectness
+  var domainMatch = assessIndirectness(pico, articleTitles);
+  gd.indirectness = domainMatch.rating;
+  gd.indirectnessNote = domainMatch.note;
+
+  // Imprecision
+  if (totalStudies >= 20 && totalParticipants >= 1000) {
+    gd.imprecision = "Not serious";
+    gd.imprecisionNote = "Large evidence base (" + totalStudies + " studies, ~" + gd.participants + " participants)";
+  } else if (totalStudies >= 10 || totalParticipants >= 500) {
+    gd.imprecision = "Not serious";
+    gd.imprecisionNote = "Adequate sample (" + totalStudies + " studies found)";
+  } else if (totalStudies >= 3) {
+    gd.imprecision = "Serious";
+    gd.imprecisionNote = "Moderate evidence (" + totalStudies + " studies); CI likely wide";
+  } else {
+    gd.imprecision = "Very serious";
+    gd.imprecisionNote = "Very few studies (" + totalStudies + "); wide confidence intervals expected";
+  }
+
+  // Publication bias
+  if (totalStudies >= 30) {
+    gd.pubbias = "Undetected";
+    gd.pubbiasNote = "Large evidence base reduces publication bias concern";
+  } else if (totalStudies >= 10) {
+    gd.pubbias = "Undetected";
+    gd.pubbiasNote = "Moderate body; funnel plot assessment recommended";
+  } else {
+    gd.pubbias = "Suspected";
+    gd.pubbiasNote = "Small evidence base (" + totalStudies + " studies); potential for selective reporting";
+  }
+
+  // Upgrade domains
+  gd.largeEffect = "No";
+  gd.largeEffectNote = "Requires quantitative assessment of effect sizes";
+  gd.doseResponse = "No";
+  gd.doseResponseNote = "Requires individual study data review";
+  gd.confounders = "No";
+  gd.confoundersNote = bestDesign === "Cohort" || bestDesign === "Case-control" ? "Check if residual confounders bias toward null" : "Not applicable for " + bestDesign;
+
+  // Effect estimate placeholder
+  if (!gd.effectEstimate) {
+    gd.effectEstimate = "See " + ids.length + " articles; quantitative synthesis needed";
+  }
+
+  // Notes
+  var yr = years.length ? " (range " + Math.min.apply(null, years) + "-" + Math.max.apply(null, years) + ")" : "";
+  gd.notes = "Auto-assessed from " + ids.length + " PubMed articles" + yr + ". ";
+  gd.notes += "Study mix: " + designCounts.sr_ma + " SR/MA, " + designCounts.rct + " RCT, " + designCounts.cohort + " cohort, " + designCounts.caseControl + " case-control, " + designCounts.crossSectional + " cross-sect, " + designCounts.caseSeries + " case series, " + designCounts.guideline + " guidelines, " + designCounts.other + " other. ";
+  gd.notes += recentProp >= 0.5 ? "Good currency (" + Math.round(recentProp*100) + "% from 2021+)." : "Consider updating search (" + Math.round(recentProp*100) + "% from 2021+).";
+
+  // Store article details for reference
+  gd._articleIds = ids;
+  gd._designCounts = designCounts;
+  gd._recentProp = recentProp;
+}
+
+function assessIndirectness(pico, titles) {
+  var p = (pico.P || "").toLowerCase();
+  var domain = (pico.domain || "").toLowerCase();
+  // Check how many article titles mention key terms from the population
+  var keyTerms = p.split(/\s+/).filter(function(w) { return w.length > 3; });
+  var matchCount = 0;
+  titles.forEach(function(t) {
+    var tl = t.toLowerCase();
+    var matched = keyTerms.some(function(k) { return tl.indexOf(k) !== -1; });
+    if (matched) matchCount++;
+  });
+  var matchProp = titles.length > 0 ? matchCount / titles.length : 0;
+
+  if (matchProp >= 0.6) return { rating: "Not serious", note: Math.round(matchProp*100) + "% of articles directly address the target population" };
+  if (matchProp >= 0.3) return { rating: "Serious", note: "Only " + Math.round(matchProp*100) + "% of articles directly match population; some extrapolation needed" };
+  return { rating: "Very serious", note: "Low population match (" + Math.round(matchProp*100) + "%); evidence may be from different populations" };
+}
+
+function estimateParticipants(design, nStudies) {
+  // Conservative estimates based on typical study sizes per design
+  var medianN = { "SR/MA": 2500, "RCT": 150, "Cohort": 500, "Case-control": 200, "Cross-sectional": 800, "Case series": 30 };
+  var est = (medianN[design] || 100) * Math.min(nStudies, 20);
+  return est > 999 ? Math.round(est/1000) + ",000+" : String(est);
+}
+
+function setDefaultGradeForPico(idx, pico) {
+  if (!window._picoGradeData[idx]) window._picoGradeData[idx] = {};
+  var gd = window._picoGradeData[idx];
+  var domain = pico.domain || "";
+  gd.studyDesign = (domain.indexOf("Prognosis") !== -1) ? "Cohort" : "RCT";
+  gd.numStudies = "0";
+  gd.participants = "Unknown";
+  gd.rob = "Very serious";
+  gd.robNote = "No articles retrieved from PubMed";
+  gd.inconsistency = "Not serious";
+  gd.inconsistencyNote = "Cannot assess with 0 studies";
+  gd.indirectness = "Very serious";
+  gd.indirectnessNote = "No direct evidence found";
+  gd.imprecision = "Very serious";
+  gd.imprecisionNote = "No data available";
+  gd.pubbias = "Undetected";
+  gd.pubbiasNote = "Cannot assess";
+  gd.largeEffect = "No";
+  gd.doseResponse = "No";
+  gd.confounders = "No";
+  gd.effectEstimate = "No evidence found";
+  gd.notes = "No PubMed articles retrieved. Manual literature search recommended.";
 }
 
 function generateSoFTable() {
@@ -2273,17 +2517,68 @@ function generateSoFTable() {
     if (window._picoData.manual) allPicos = allPicos.concat(window._picoData.manual);
   }
   if (!allPicos.length) { alert("No PICO questions to summarize."); return; }
-  var txt = "Summary of Findings Table\\n";
-  txt += "========================\\n\\n";
-  txt += "PICO | Domain | Design | Studies | Certainty\\n";
-  txt += "-----|--------|--------|---------|----------\\n";
+  // Build a visual SoF table as a modal
+  var html = '<div style="max-height:80vh;overflow-y:auto"><h3 style="margin:0 0 12px">Summary of Findings — ' + (document.getElementById("pico-topic-input") ? document.getElementById("pico-topic-input").value : "CPG") + '</h3>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:11px">';
+  html += '<tr style="background:#1F2937;color:white"><th style="padding:6px">PICO</th><th style="padding:6px">Domain</th><th style="padding:6px">Design</th><th style="padding:6px">Studies</th><th style="padding:6px">Participants</th><th style="padding:6px">RoB</th><th style="padding:6px">Incon.</th><th style="padding:6px">Indir.</th><th style="padding:6px">Imprec.</th><th style="padding:6px">Pub Bias</th><th style="padding:6px">Certainty</th></tr>';
   allPicos.forEach(function(p, idx) {
     var gd = window._picoGradeData[idx] || {};
-    txt += "PICO " + (idx+1) + " | " + (p.domain||"-") + " | " + (gd.studyDesign||"-") + " | " + (gd.numStudies||"-") + " | " + (gd._certainty||"-") + "\\n";
+    var bg = idx % 2 === 0 ? "#f9fafb" : "#ffffff";
+    var certBadge = getCertBadge(gd._certainty || "-");
+    html += '<tr style="background:' + bg + ';border-bottom:1px solid #e5e7eb">';
+    html += '<td style="padding:5px">' + (idx+1) + '</td>';
+    html += '<td style="padding:5px">' + (p.domain || "-") + '</td>';
+    html += '<td style="padding:5px">' + (gd.studyDesign || "-") + '</td>';
+    html += '<td style="padding:5px">' + (gd.numStudies || "-") + '</td>';
+    html += '<td style="padding:5px">' + (gd.participants || "-") + '</td>';
+    html += '<td style="padding:5px">' + ratingBadge(gd.rob) + '</td>';
+    html += '<td style="padding:5px">' + ratingBadge(gd.inconsistency) + '</td>';
+    html += '<td style="padding:5px">' + ratingBadge(gd.indirectness) + '</td>';
+    html += '<td style="padding:5px">' + ratingBadge(gd.imprecision) + '</td>';
+    html += '<td style="padding:5px">' + ratingBadge(gd.pubbias) + '</td>';
+    html += '<td style="padding:5px">' + certBadge + '</td>';
+    html += '</tr>';
   });
-  alert(txt);
+  html += '</table></div>';
+  // Show in modal
+  var modal = document.createElement("div");
+  modal.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center";
+  var box = document.createElement("div");
+  box.style.cssText = "background:white;border-radius:12px;padding:24px;max-width:95vw;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)";
+  box.innerHTML = html + '<div style="margin-top:12px;text-align:right"><button onclick="this.closest(\x27div[style*=fixed]\x27).remove()" class="btn btn-o">Close</button> <button onclick="copySofToClipboard()" class="btn btn-ai">Copy as Text</button></div>';
+  modal.appendChild(box);
+  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+  document.body.appendChild(modal);
 }
 
+function ratingBadge(val) {
+  if (!val || val === "-") return "-";
+  var colors = {"Not serious":"#059669","Undetected":"#059669","Serious":"#D97706","Very serious":"#DC2626","Suspected":"#D97706","Strongly suspected":"#DC2626"};
+  var c = colors[val] || "#666";
+  return '<span style="color:' + c + ';font-weight:600;font-size:10px">' + val + '</span>';
+}
+
+function getCertBadge(cert) {
+  var map = {"High":"\u2295\u2295\u2295\u2295","Moderate":"\u2295\u2295\u2295\u25EF","Low":"\u2295\u2295\u25EF\u25EF","Very Low":"\u2295\u25EF\u25EF\u25EF"};
+  var colors = {"High":"#059669","Moderate":"#3B82F6","Low":"#D97706","Very Low":"#DC2626"};
+  var sym = map[cert] || "-";
+  var c = colors[cert] || "#666";
+  return '<span style="color:' + c + ';font-weight:700">' + sym + '</span><br><span style="font-size:9px;color:' + c + '">' + (cert||"-") + '</span>';
+}
+
+function copySofToClipboard() {
+  var allPicos = [];
+  if (window._picoData) {
+    if (window._picoData.ai) allPicos = allPicos.concat(window._picoData.ai);
+    if (window._picoData.manual) allPicos = allPicos.concat(window._picoData.manual);
+  }
+  var txt = "PICO\tDomain\tDesign\tStudies\tParticipants\tRoB\tInconsistency\tIndirectness\tImprecision\tPub Bias\tCertainty\n";
+  allPicos.forEach(function(p, idx) {
+    var gd = window._picoGradeData[idx] || {};
+    txt += (idx+1) + "\t" + (p.domain||"-") + "\t" + (gd.studyDesign||"-") + "\t" + (gd.numStudies||"-") + "\t" + (gd.participants||"-") + "\t" + (gd.rob||"-") + "\t" + (gd.inconsistency||"-") + "\t" + (gd.indirectness||"-") + "\t" + (gd.imprecision||"-") + "\t" + (gd.pubbias||"-") + "\t" + (gd._certainty||"-") + "\n";
+  });
+  navigator.clipboard.writeText(txt).then(function() { alert("Summary of Findings copied to clipboard (tab-separated, paste into Excel)"); });
+}
 function exportGradeData() {
   var data = { picoGrade: window._picoGradeData, exported: new Date().toISOString() };
   var blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
