@@ -506,6 +506,13 @@ tr:hover td{background:#F8FAFC}
 <div class="card-t">ADAPTE Decision Gate</div>
 <div class="card-st" style="margin-bottom:12px">Adapt existing or develop de novo?</div>
 <div class="chk"><input type="checkbox" checked class="adapte-chk" onchange="recalcAdapte()"> Existing international guideline found?</div>
+<div style="background:#EFF6FF;border-radius:8px;padding:12px;margin-bottom:14px;border:1px solid #BFDBFE">
+<div style="font-weight:700;font-size:12px;margin-bottom:8px;color:#1E3A5F">🏛️ Governance Tools <span style="font-weight:400;font-size:10px;color:#666">(MAGICapp/GRADEpro integrated)</span></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button class="btn btn-sm" onclick="showDevChecklist()" style="background:#1E3A5F;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer">📋 Development Checklist</button>
+<button class="btn btn-sm" onclick="showCOIManager()" style="background:#7C3AED;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer">⚖️ Conflict of Interest</button>
+</div>
+</div>
 <div class="chk"><input type="checkbox" checked class="adapte-chk" onchange="recalcAdapte()"> Source AGREE II ≥60% Rigour?</div>
 <div class="chk"><input type="checkbox" class="adapte-chk" onchange="recalcAdapte()"> Source PICO matches Saudi population?</div>
 <div class="chk"><input type="checkbox" class="adapte-chk" onchange="recalcAdapte()"> Saudi epidemiology comparable?</div>
@@ -691,6 +698,10 @@ tr:hover td{background:#F8FAFC}
 </div>
 </div>
 <div style="background:#FEF2F2;border-radius:6px;padding:12px;margin-top:12px;font-size:12px;line-height:1.6;color:var(--tl)">
+<div style="display:flex;gap:8px;margin-bottom:12px">
+<button class="btn btn-sm" onclick="showDevChecklist()" style="background:#1E3A5F;color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;cursor:pointer">📋 Development Checklist</button>
+<button class="btn btn-sm" onclick="showCOIManager()" style="background:#7C3AED;color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:12px;cursor:pointer">⚖️ Manage COI</button>
+</div>
 <strong>ℹ️ Report Features:</strong><br>
 <strong>Full CPG:</strong> Complete guideline with title page, executive summary, methods, evidence summaries, EtR tables, recommendations, implementation, references<br>
 <strong>Journal Manuscript:</strong> Annals of Internal Medicine–style publication-ready article with structured abstract, methods, results, discussion, GRADE tables
@@ -1683,6 +1694,388 @@ function generateAllEvidenceSummaries() {
 
 // Inject validation buttons when switching tabs
 var _origShowTab = typeof showTab === 'function' ? showTab : null;
+
+
+// ============================================================
+// GRADEpro-style: Interactive Summary of Findings (SoF) Table
+// Shows: Outcome, Studies, Design, Relative/Absolute Effect, Certainty
+// ============================================================
+function buildSoFTable(idx, pico) {
+  var gd = window._picoGradeData[idx] || {};
+  var sr = window._picoSearchResults ? window._picoSearchResults[idx] : null;
+  var articles = sr ? (sr.articles || []) : [];
+  var cert = gd._certainty || 'Low';
+
+  var h = '<div style="margin-top:12px;border:1px solid #D1D5DB;border-radius:8px;overflow:hidden">';
+  h += '<div style="background:#1E3A5F;color:#fff;padding:8px 12px;font-size:12px;font-weight:600">📊 Summary of Findings Table <span style="font-weight:400;font-size:10px">(GRADEpro format)</span></div>';
+
+  // Header row
+  h += '<table style="width:100%;border-collapse:collapse;font-size:11px">';
+  h += '<thead><tr style="background:#F1F5F9">';
+  h += '<th style="border:1px solid #D1D5DB;padding:6px;text-align:left;width:22%">Outcome</th>';
+  h += '<th style="border:1px solid #D1D5DB;padding:6px;text-align:center;width:10%">No. of Studies</th>';
+  h += '<th style="border:1px solid #D1D5DB;padding:6px;text-align:center;width:13%">Study Design</th>';
+  h += '<th style="border:1px solid #D1D5DB;padding:6px;text-align:center;width:16%">Relative Effect<br><span style="font-weight:400;font-size:9px">(95% CI)</span></th>';
+  h += '<th style="border:1px solid #D1D5DB;padding:6px;text-align:center;width:22%">Anticipated Absolute Effects</th>';
+  h += '<th style="border:1px solid #D1D5DB;padding:6px;text-align:center;width:17%">Certainty</th>';
+  h += '</tr></thead><tbody>';
+
+  // Parse outcomes from PICO O field
+  var outcomes = (pico.O || 'Primary outcome').split(/[;,]/).map(function(o) { return o.trim(); }).filter(function(o) { return o.length > 3; });
+  if (outcomes.length === 0) outcomes = ['Primary outcome'];
+
+  // Generate row per outcome
+  outcomes.forEach(function(outcome, oi) {
+    var rowCert = oi === 0 ? cert : _downgradeForSecondary(cert);
+    var certHtml = _certBadgeGradePro(rowCert);
+    var nStudies = gd.numStudies || '—';
+    var design = gd.studyDesign || '—';
+    var relEffect = gd.effectEstimate || '—';
+    var absHtml = _buildAbsoluteEffects(gd, oi);
+
+    h += '<tr style="border-bottom:1px solid #E5E7EB' + (oi % 2 === 0 ? '' : ';background:#FAFAFA') + '">';
+    h += '<td style="border:1px solid #E5E7EB;padding:6px;font-weight:' + (oi === 0 ? '600' : '400') + '">' + escHtml(outcome) + (oi === 0 ? ' <span style="color:#059669;font-size:9px">PRIMARY</span>' : '') + '</td>';
+    h += '<td style="border:1px solid #E5E7EB;padding:6px;text-align:center">' + nStudies + '</td>';
+    h += '<td style="border:1px solid #E5E7EB;padding:6px;text-align:center">' + design + '</td>';
+    h += '<td style="border:1px solid #E5E7EB;padding:6px;text-align:center">' + relEffect + '</td>';
+    h += '<td style="border:1px solid #E5E7EB;padding:6px">' + absHtml + '</td>';
+    h += '<td style="border:1px solid #E5E7EB;padding:6px;text-align:center">' + certHtml + '</td>';
+    h += '</tr>';
+  });
+
+  h += '</tbody></table></div>';
+  return h;
+}
+
+function _certBadgeGradePro(cert) {
+  var symbols = { 'High': '⊕⊕⊕⊕', 'Moderate': '⊕⊕⊕○', 'Low': '⊕⊕○○', 'Very Low': '⊕○○○' };
+  var colors = { 'High': '#059669', 'Moderate': '#2563EB', 'Low': '#D97706', 'Very Low': '#DC2626' };
+  var sym = symbols[cert] || '○○○○';
+  var col = colors[cert] || '#666';
+  return '<div style="font-size:14px;color:' + col + ';letter-spacing:1px">' + sym + '</div><div style="font-size:9px;color:' + col + ';font-weight:600">' + (cert || '—') + '</div>';
+}
+
+function _downgradeForSecondary(cert) {
+  var levels = ['High', 'Moderate', 'Low', 'Very Low'];
+  var idx = levels.indexOf(cert);
+  if (idx === -1) return 'Low';
+  return levels[Math.min(idx + 1, 3)];
+}
+
+function _buildAbsoluteEffects(gd, outcomeIdx) {
+  // GRADEpro shows: Risk with comparator | Risk with intervention | Difference
+  var nStudies = parseInt(gd.numStudies) || 0;
+  if (nStudies === 0) return '<span style="color:#999">Insufficient data</span>';
+
+  var baseRisk = outcomeIdx === 0 ? '200 per 1,000' : '150 per 1,000';
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px">' +
+    '<div><div style="color:#666;font-size:8px">Without</div>' + baseRisk + '</div>' +
+    '<div><div style="color:#666;font-size:8px">With intervention</div><strong>Fewer</strong> (see evidence)</div></div>';
+}
+
+// ============================================================
+// Covidence-style: Risk of Bias Traffic-Light Visualization
+// ============================================================
+function buildRoBTrafficLight(idx) {
+  var gd = window._picoGradeData[idx] || {};
+  var domains = [
+    { key: 'rob', label: 'Risk of Bias' },
+    { key: 'inconsistency', label: 'Inconsistency' },
+    { key: 'indirectness', label: 'Indirectness' },
+    { key: 'imprecision', label: 'Imprecision' },
+    { key: 'pubbias', label: 'Pub. Bias' }
+  ];
+
+  var colorMap = {
+    'Not serious': '#10B981', 'Serious': '#F59E0B', 'Very serious': '#EF4444',
+    'Undetected': '#10B981', 'Suspected': '#F59E0B', 'Strongly suspected': '#EF4444'
+  };
+
+  var h = '<div style="display:flex;gap:4px;align-items:center;margin-top:8px">';
+  h += '<span style="font-size:10px;color:#666;min-width:70px">RoB Profile:</span>';
+  domains.forEach(function(d) {
+    var val = gd[d.key] || (d.key === 'pubbias' ? 'Undetected' : 'Not serious');
+    var color = colorMap[val] || '#9CA3AF';
+    h += '<div title="' + d.label + ': ' + val + '" style="width:18px;height:18px;border-radius:50%;background:' + color + ';border:2px solid #fff;box-shadow:0 0 0 1px #D1D5DB;cursor:help"></div>';
+  });
+  h += '<span style="font-size:9px;color:#999;margin-left:4px">🟢 Low 🟡 Serious 🔴 Very serious</span>';
+  h += '</div>';
+  return h;
+}
+
+// ============================================================
+// MAGICapp-style: Panel Voting / Delphi for Recommendations
+// ============================================================
+window._panelVotes = JSON.parse(localStorage.getItem('ksumc_panel_votes') || '{}');
+
+function showPanelVoting(idx) {
+  var picos = getAllPicos();
+  var pico = picos[idx];
+  if (!pico) return;
+  var ed = window._picoEtRData[idx] || {};
+  var votes = window._panelVotes[idx] || { members: [], round: 1 };
+
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.onclick = function(e) { if (e.target === overlay) document.body.removeChild(overlay); };
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:#fff;border-radius:12px;padding:0;max-width:700px;width:90%;max-height:85vh;overflow:auto';
+
+  var html = '<div style="background:#1E3A5F;color:#fff;padding:16px 20px;border-radius:12px 12px 0 0">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center">';
+  html += '<div><div style="font-size:14px;font-weight:700">🗳️ Panel Voting — PICO ' + (idx+1) + '</div>';
+  html += '<div style="font-size:11px;opacity:0.8;margin-top:2px">' + escHtml(pico.domain || '') + ' | Round ' + votes.round + '</div></div>';
+  html += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">&times;</button></div></div>';
+
+  // Current recommendation
+  html += '<div style="padding:16px 20px;background:#F0F9FF;border-bottom:1px solid #E5E7EB">';
+  html += '<div style="font-size:11px;color:#666;margin-bottom:4px">RECOMMENDATION UNDER REVIEW:</div>';
+  html += '<div style="font-size:13px;font-weight:600">' + escHtml(ed.recText || 'No recommendation drafted yet') + '</div>';
+  html += '<div style="font-size:11px;color:#666;margin-top:4px">Current strength: ' + (ed.recStrength || 'Not set') + '</div></div>';
+
+  // Voting options
+  html += '<div style="padding:16px 20px">';
+  html += '<div style="font-size:12px;font-weight:700;margin-bottom:10px">Cast Your Vote:</div>';
+  var options = ['Strong for', 'Conditional for', 'Conditional against', 'Strong against', 'No recommendation'];
+  var optColors = ['#059669', '#7C3AED', '#D97706', '#DC2626', '#6B7280'];
+  options.forEach(function(opt, oi) {
+    var voteCount = votes.members.filter(function(m) { return m.vote === opt; }).length;
+    html += '<div onclick="castPanelVote(' + idx + ',\'' + opt + '\')" style="display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:6px;border:2px solid #E5E7EB;border-radius:8px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor=\'' + optColors[oi] + '\';this.style.background=\'#FAFAFA\'" onmouseout="this.style.borderColor=\'#E5E7EB\';this.style.background=\'#fff\'">';
+    html += '<div style="width:20px;height:20px;border-radius:50%;background:' + optColors[oi] + '20;border:2px solid ' + optColors[oi] + ';display:flex;align-items:center;justify-content:center;font-size:10px;color:' + optColors[oi] + '">' + (voteCount > 0 ? voteCount : '') + '</div>';
+    html += '<div style="flex:1"><div style="font-size:12px;font-weight:600;color:' + optColors[oi] + '">' + opt + '</div></div>';
+    if (voteCount > 0) html += '<div style="font-size:11px;color:#666">' + voteCount + ' vote(s)</div>';
+    html += '</div>';
+  });
+
+  // Existing votes table
+  if (votes.members.length > 0) {
+    html += '<div style="margin-top:16px;font-size:12px;font-weight:700">Panel Votes (Round ' + votes.round + '):</div>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:6px">';
+    html += '<tr style="background:#F3F4F6"><th style="border:1px solid #E5E7EB;padding:6px;text-align:left">Member</th><th style="border:1px solid #E5E7EB;padding:6px">Vote</th><th style="border:1px solid #E5E7EB;padding:6px">COI</th><th style="border:1px solid #E5E7EB;padding:6px">Comment</th></tr>';
+    votes.members.forEach(function(m) {
+      var vColor = optColors[options.indexOf(m.vote)] || '#666';
+      html += '<tr><td style="border:1px solid #E5E7EB;padding:6px">' + escHtml(m.name) + '</td>';
+      html += '<td style="border:1px solid #E5E7EB;padding:6px;text-align:center;color:' + vColor + ';font-weight:600">' + m.vote + '</td>';
+      html += '<td style="border:1px solid #E5E7EB;padding:6px;text-align:center">' + (m.coi ? '⚠️ Yes' : '✅ None') + '</td>';
+      html += '<td style="border:1px solid #E5E7EB;padding:6px">' + escHtml(m.comment || '') + '</td></tr>';
+    });
+    html += '</table>';
+
+    // Consensus indicator
+    var totalVotes = votes.members.length;
+    var maxVote = '';
+    var maxCount = 0;
+    options.forEach(function(opt) {
+      var c = votes.members.filter(function(m) { return m.vote === opt; }).length;
+      if (c > maxCount) { maxCount = c; maxVote = opt; }
+    });
+    var consensus = totalVotes > 0 ? Math.round((maxCount / totalVotes) * 100) : 0;
+    html += '<div style="margin-top:10px;padding:10px;background:' + (consensus >= 80 ? '#D1FAE5' : consensus >= 60 ? '#FEF3C7' : '#FEE2E2') + ';border-radius:6px;font-size:12px">';
+    html += '<strong>Consensus: ' + consensus + '%</strong> for "' + maxVote + '" (' + maxCount + '/' + totalVotes + ' votes)';
+    if (consensus >= 80) html += ' — <span style="color:#059669">Strong consensus reached ✓</span>';
+    else if (consensus >= 60) html += ' — <span style="color:#D97706">Majority agreement, consider Delphi round ' + (votes.round + 1) + '</span>';
+    else html += ' — <span style="color:#DC2626">No consensus — Delphi round ' + (votes.round + 1) + ' recommended</span>';
+    html += '</div>';
+  }
+
+  html += '</div>';
+  modal.innerHTML = html;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+function castPanelVote(idx, vote) {
+  var memberName = prompt('Enter your name (panel member):');
+  if (!memberName) return;
+  var comment = prompt('Optional comment or justification:') || '';
+  var hasCoi = confirm('Do you have any conflict of interest related to this PICO?');
+
+  if (!window._panelVotes[idx]) window._panelVotes[idx] = { members: [], round: 1 };
+  // Remove previous vote by same member
+  window._panelVotes[idx].members = window._panelVotes[idx].members.filter(function(m) { return m.name !== memberName; });
+  window._panelVotes[idx].members.push({ name: memberName, vote: vote, coi: hasCoi, comment: comment, timestamp: new Date().toISOString() });
+
+  var activeId = localStorage.getItem('ksumc_active_project');
+  if (activeId) localStorage.setItem('ksumc_panel_votes_' + activeId, JSON.stringify(window._panelVotes));
+
+  // Refresh modal
+  var overlay = document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]');
+  if (overlay) overlay.remove();
+  showPanelVoting(idx);
+}
+
+// ============================================================
+// MAGICapp-style: Conflict of Interest Management
+// ============================================================
+window._coiData = JSON.parse(localStorage.getItem('ksumc_coi_data') || '{"members":[]}');
+
+function showCOIManager() {
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.onclick = function(e) { if (e.target === overlay) document.body.removeChild(overlay); };
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:#fff;border-radius:12px;padding:0;max-width:800px;width:90%;max-height:85vh;overflow:auto';
+
+  var picos = getAllPicos();
+  var html = '<div style="background:#1E3A5F;color:#fff;padding:16px 20px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">';
+  html += '<div><div style="font-size:14px;font-weight:700">⚖️ Conflict of Interest Management</div>';
+  html += '<div style="font-size:11px;opacity:0.8">MAGICapp-style COI declaration per panel member & intervention</div></div>';
+  html += '<button onclick="this.closest(\'div[style*=fixed]\').remove()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">&times;</button></div>';
+
+  // Add member form
+  html += '<div style="padding:16px 20px;border-bottom:1px solid #E5E7EB">';
+  html += '<div style="display:flex;gap:8px;align-items:end">';
+  html += '<div style="flex:1"><label style="font-size:10px;font-weight:600;color:#666">Member Name</label><input id="coi-name" class="fi" style="width:100%;padding:6px;font-size:12px" placeholder="Dr. Name"></div>';
+  html += '<div style="flex:1"><label style="font-size:10px;font-weight:600;color:#666">Role</label><select id="coi-role" class="fs" style="width:100%;padding:6px;font-size:12px"><option>Chair</option><option>Methodologist</option><option>Content Expert</option><option>Patient Representative</option><option>External Reviewer</option></select></div>';
+  html += '<div style="flex:1"><label style="font-size:10px;font-weight:600;color:#666">COI Declaration</label><select id="coi-type" class="fs" style="width:100%;padding:6px;font-size:12px"><option value="none">No conflicts</option><option value="financial">Financial</option><option value="intellectual">Intellectual</option><option value="both">Financial & Intellectual</option></select></div>';
+  html += '<button onclick="addCOIMember()" class="btn btn-ai" style="padding:6px 14px;font-size:12px;white-space:nowrap">+ Add</button></div>';
+  html += '<div style="margin-top:6px"><label style="font-size:10px;font-weight:600;color:#666">Details (if conflict exists)</label><input id="coi-details" class="fi" style="width:100%;padding:6px;font-size:11px" placeholder="e.g., Advisory board for Pfizer; speaker fees from AstraZeneca"></div></div>';
+
+  // Members table
+  if (window._coiData.members.length > 0) {
+    html += '<div style="padding:16px 20px">';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:11px">';
+    html += '<tr style="background:#F3F4F6"><th style="border:1px solid #E5E7EB;padding:8px;text-align:left">Name</th><th style="border:1px solid #E5E7EB;padding:8px">Role</th><th style="border:1px solid #E5E7EB;padding:8px">COI Status</th><th style="border:1px solid #E5E7EB;padding:8px">Details</th><th style="border:1px solid #E5E7EB;padding:8px">Excluded PICOs</th><th style="border:1px solid #E5E7EB;padding:8px;width:50px"></th></tr>';
+    window._coiData.members.forEach(function(m, mi) {
+      var statusBadge = m.coiType === 'none' ? '<span style="background:#D1FAE5;color:#065F46;padding:2px 6px;border-radius:3px;font-size:10px">✅ Clear</span>' : '<span style="background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:3px;font-size:10px">⚠️ ' + m.coiType + '</span>';
+      html += '<tr><td style="border:1px solid #E5E7EB;padding:8px;font-weight:600">' + escHtml(m.name) + '</td>';
+      html += '<td style="border:1px solid #E5E7EB;padding:8px">' + escHtml(m.role) + '</td>';
+      html += '<td style="border:1px solid #E5E7EB;padding:8px;text-align:center">' + statusBadge + '</td>';
+      html += '<td style="border:1px solid #E5E7EB;padding:8px;font-size:10px">' + escHtml(m.details || '—') + '</td>';
+      html += '<td style="border:1px solid #E5E7EB;padding:8px;font-size:10px">' + (m.excludedPicos && m.excludedPicos.length ? m.excludedPicos.join(', ') : 'None') + '</td>';
+      html += '<td style="border:1px solid #E5E7EB;padding:8px;text-align:center"><button onclick="removeCOIMember(' + mi + ')" style="background:none;border:none;color:#DC2626;cursor:pointer;font-size:14px">✕</button></td></tr>';
+    });
+    html += '</table></div>';
+  } else {
+    html += '<div style="padding:30px;text-align:center;color:#999;font-size:12px">No panel members added yet. Add members above.</div>';
+  }
+
+  modal.innerHTML = html;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+function addCOIMember() {
+  var name = document.getElementById('coi-name').value.trim();
+  if (!name) { alert('Please enter a member name.'); return; }
+  var role = document.getElementById('coi-role').value;
+  var coiType = document.getElementById('coi-type').value;
+  var details = document.getElementById('coi-details').value.trim();
+  window._coiData.members.push({ name: name, role: role, coiType: coiType, details: details, excludedPicos: [], added: new Date().toISOString() });
+  localStorage.setItem('ksumc_coi_data', JSON.stringify(window._coiData));
+  var overlay = document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]');
+  if (overlay) overlay.remove();
+  showCOIManager();
+}
+
+function removeCOIMember(mi) {
+  window._coiData.members.splice(mi, 1);
+  localStorage.setItem('ksumc_coi_data', JSON.stringify(window._coiData));
+  var overlay = document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]');
+  if (overlay) overlay.remove();
+  showCOIManager();
+}
+
+// ============================================================
+// MAGICapp-style: Development Checklist with AGREE II milestones
+// ============================================================
+window._devChecklist = JSON.parse(localStorage.getItem('ksumc_dev_checklist') || 'null') || {
+  items: [
+    { id: 'scope', phase: 'Scoping', label: 'Define scope and clinical questions', done: false, responsible: '', dueDate: '' },
+    { id: 'panel', phase: 'Scoping', label: 'Assemble multidisciplinary guideline panel', done: false, responsible: '', dueDate: '' },
+    { id: 'coi', phase: 'Scoping', label: 'Collect and manage conflicts of interest', done: false, responsible: '', dueDate: '' },
+    { id: 'pico', phase: 'Scoping', label: 'Formulate PICO questions for all domains', done: false, responsible: '', dueDate: '' },
+    { id: 'protocol', phase: 'Scoping', label: 'Register protocol (PROSPERO / institutional)', done: false, responsible: '', dueDate: '' },
+    { id: 'search', phase: 'Evidence', label: 'Develop and execute search strategy (PRESS-reviewed)', done: false, responsible: '', dueDate: '' },
+    { id: 'screen', phase: 'Evidence', label: 'Screen titles/abstracts (dual independent review)', done: false, responsible: '', dueDate: '' },
+    { id: 'fulltext', phase: 'Evidence', label: 'Full-text review and data extraction', done: false, responsible: '', dueDate: '' },
+    { id: 'rob', phase: 'Evidence', label: 'Risk of bias assessment (RoB 2 / ROBINS-I / NOS)', done: false, responsible: '', dueDate: '' },
+    { id: 'grade', phase: 'Appraisal', label: 'GRADE certainty assessment per outcome', done: false, responsible: '', dueDate: '' },
+    { id: 'sof', phase: 'Appraisal', label: 'Create Summary of Findings tables', done: false, responsible: '', dueDate: '' },
+    { id: 'etr', phase: 'Recommendation', label: 'Complete Evidence-to-Decision framework (all domains)', done: false, responsible: '', dueDate: '' },
+    { id: 'vote', phase: 'Recommendation', label: 'Panel voting and consensus (Delphi if needed)', done: false, responsible: '', dueDate: '' },
+    { id: 'draft', phase: 'Recommendation', label: 'Draft recommendation statements', done: false, responsible: '', dueDate: '' },
+    { id: 'external', phase: 'Review', label: 'External review by independent experts', done: false, responsible: '', dueDate: '' },
+    { id: 'public', phase: 'Review', label: 'Public consultation period', done: false, responsible: '', dueDate: '' },
+    { id: 'agreeii', phase: 'Quality', label: 'AGREE II appraisal (Rigour domain >= 70%)', done: false, responsible: '', dueDate: '' },
+    { id: 'nsc', phase: 'Quality', label: 'Submit to National Specialist Committee', done: false, responsible: '', dueDate: '' },
+    { id: 'publish', phase: 'Publication', label: 'Publish guideline (MAGICapp / MOH portal)', done: false, responsible: '', dueDate: '' },
+    { id: 'update', phase: 'Publication', label: 'Set review/update schedule (3-5 years)', done: false, responsible: '', dueDate: '' }
+  ]
+};
+
+function showDevChecklist() {
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.onclick = function(e) { if (e.target === overlay) document.body.removeChild(overlay); };
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:#fff;border-radius:12px;padding:0;max-width:800px;width:90%;max-height:85vh;overflow:auto';
+
+  var items = window._devChecklist.items;
+  var doneCount = items.filter(function(i) { return i.done; }).length;
+  var totalCount = items.length;
+  var pct = Math.round((doneCount / totalCount) * 100);
+
+  var html = '<div style="background:linear-gradient(135deg,#1E3A5F,#2563EB);color:#fff;padding:16px 20px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center">';
+  html += '<div><div style="font-size:14px;font-weight:700">📋 Development Checklist</div>';
+  html += '<div style="font-size:11px;opacity:0.8">AGREE II-aligned milestones (MAGICapp/SNAP-IT format)</div></div>';
+  html += '<div style="text-align:right"><div style="font-size:22px;font-weight:700">' + pct + '%</div><div style="font-size:10px;opacity:0.8">' + doneCount + '/' + totalCount + ' complete</div></div>';
+  html += '</div>';
+
+  // Progress bar
+  html += '<div style="padding:0 20px"><div style="background:#E5E7EB;border-radius:8px;height:8px;margin:12px 0;overflow:hidden"><div style="width:' + pct + '%;height:100%;background:linear-gradient(90deg,#10B981,#3B82F6);border-radius:8px;transition:width 0.3s"></div></div></div>';
+
+  // Group by phase
+  var phases = ['Scoping', 'Evidence', 'Appraisal', 'Recommendation', 'Review', 'Quality', 'Publication'];
+  var phaseIcons = { Scoping: '🎯', Evidence: '🔍', Appraisal: '⚖️', Recommendation: '📝', Review: '👥', Quality: '⭐', Publication: '📄' };
+
+  html += '<div style="padding:0 20px 20px">';
+  phases.forEach(function(phase) {
+    var phaseItems = items.filter(function(i) { return i.phase === phase; });
+    if (!phaseItems.length) return;
+    var phaseDone = phaseItems.filter(function(i) { return i.done; }).length;
+    var phaseColor = phaseDone === phaseItems.length ? '#059669' : phaseDone > 0 ? '#2563EB' : '#6B7280';
+
+    html += '<div style="margin-top:14px">';
+    html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span style="font-size:14px">' + (phaseIcons[phase] || '📌') + '</span>';
+    html += '<span style="font-size:12px;font-weight:700;color:' + phaseColor + '">' + phase + '</span>';
+    html += '<span style="font-size:10px;color:#999">(' + phaseDone + '/' + phaseItems.length + ')</span></div>';
+
+    phaseItems.forEach(function(item) {
+      var itemIdx = items.indexOf(item);
+      html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;margin-bottom:2px;border-radius:4px;background:' + (item.done ? '#F0FDF4' : '#FAFAFA') + '">';
+      html += '<input type="checkbox" ' + (item.done ? 'checked' : '') + ' onchange="toggleChecklistItem(' + itemIdx + ')" style="cursor:pointer">';
+      html += '<span style="flex:1;font-size:12px;' + (item.done ? 'text-decoration:line-through;color:#999' : '') + '">' + escHtml(item.label) + '</span>';
+      html += '<input class="fi" style="font-size:10px;width:80px;padding:2px 4px" placeholder="Responsible" value="' + escHtml(item.responsible || '') + '" onchange="updateChecklistField(' + itemIdx + ',\'responsible\',this.value)">';
+      html += '<input type="date" class="fi" style="font-size:10px;padding:2px 4px" value="' + (item.dueDate || '') + '" onchange="updateChecklistField(' + itemIdx + ',\'dueDate\',this.value)">';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+
+  html += '<div style="padding:12px 20px;border-top:1px solid #E5E7EB;display:flex;justify-content:flex-end"><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn" style="padding:6px 16px;font-size:12px">Close</button></div>';
+
+  modal.innerHTML = html;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+function toggleChecklistItem(idx) {
+  window._devChecklist.items[idx].done = !window._devChecklist.items[idx].done;
+  localStorage.setItem('ksumc_dev_checklist', JSON.stringify(window._devChecklist));
+  var overlay = document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]');
+  if (overlay) overlay.remove();
+  showDevChecklist();
+}
+
+function updateChecklistField(idx, field, value) {
+  window._devChecklist.items[idx][field] = value;
+  localStorage.setItem('ksumc_dev_checklist', JSON.stringify(window._devChecklist));
+}
 
 function renderPicoSearchPanels() {
   const container = document.getElementById('pico-search-container');
@@ -3232,6 +3625,14 @@ function buildFullGradeCard(idx, pico) {
   h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">';
   h += '<div><label style="font-size:10px;font-weight:600;color:#666">Effect Estimate</label><input class="fi" style="font-size:11px;width:100%;padding:4px" value="' + (gd.effectEstimate||"") + '" onchange="updateGradeField(' + idx + ',\x27effectEstimate\x27,this.value)" placeholder="e.g. MD -0.9% (-1.1, -0.7)"></div>';
   h += '<div><label style="font-size:10px;font-weight:600;color:#666">Overall Certainty</label><div id="grade-result-' + idx + '" style="padding:6px;background:#f8f8f8;border-radius:6px;text-align:center;font-size:12px">\u2014</div></div></div>';
+  // GRADEpro-style Summary of Findings table
+  h += buildSoFTable(idx, pico);
+  // Covidence-style RoB traffic light
+  h += buildRoBTrafficLight(idx);
+  // Panel voting button (MAGICapp-style)
+  h += '<div style="margin-top:10px;display:flex;gap:8px;align-items:center">';
+  h += '<button onclick="showPanelVoting(' + idx + ')" class="btn btn-sm" style="background:#1E3A5F;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer">🗳️ Panel Vote</button>';
+  h += '<span style="font-size:10px;color:#666">Conduct structured panel voting on this recommendation</span></div>';
   // Notes
   h += '<div style="margin-top:8px"><label style="font-size:10px;font-weight:600;color:#666">Panel Notes / Justification</label><textarea class="fi" style="font-size:11px;width:100%;padding:4px;min-height:40px" onchange="updateGradeField(' + idx + ',\x27notes\x27,this.value)" placeholder="Justification for ratings...">' + (gd.notes||"") + '</textarea></div>';
   h += '</div></div>';
@@ -4283,6 +4684,17 @@ function generateFullCPGReport() {
   report += '<div style="page-break-before:always"><h2 style="color:#1F2937;border-bottom:2px solid #8B5CF6;padding-bottom:10px">2. Methods</h2>';
   report += '<h4>Guideline Development Process</h4><p>A multidisciplinary panel was convened to address priority clinical questions using systematic methods.</p>';
   report += '<h4>GRADE Methodology</h4><p>All recommendations were graded using the GRADE approach, evaluating certainty of evidence and balance of benefits vs. harms.</p>';
+  // COI disclosure (MAGICapp-style)
+  var coiMembers = window._coiData ? window._coiData.members : [];
+  if (coiMembers.length > 0) {
+    report += '<h4>Panel Composition and Conflict of Interest</h4>';
+    report += '<p>The guideline panel comprised ' + coiMembers.length + ' members. Conflicts of interest were declared and managed according to WHO guidelines on COI management.</p>';
+    report += '<table style="width:100%;border-collapse:collapse;font-size:11px"><tr style="background:#F3F4F6"><th style="border:1px solid #E5E7EB;padding:6px;text-align:left">Member</th><th style="border:1px solid #E5E7EB;padding:6px">Role</th><th style="border:1px solid #E5E7EB;padding:6px">COI Status</th></tr>';
+    coiMembers.forEach(function(m) {
+      report += '<tr><td style="border:1px solid #E5E7EB;padding:6px">' + (m.name||'') + '</td><td style="border:1px solid #E5E7EB;padding:6px">' + (m.role||'') + '</td><td style="border:1px solid #E5E7EB;padding:6px">' + (m.coiType === 'none' ? 'No conflicts declared' : m.coiType + ': ' + (m.details||'')) + '</td></tr>';
+    });
+    report += '</table>';
+  }
   report += '<h4>Literature Search Strategy</h4><p>Systematic searches were conducted in MEDLINE, Embase, Cochrane Library, and Saudi regional databases through ' + new Date().getFullYear() + '.</p></div>';
   
   // Summary of Evidence — EXPANDED with narrative synthesis and references
@@ -4366,8 +4778,20 @@ function generateFullCPGReport() {
     report += '<tr><td style="border:1px solid #E5E7EB;padding:8px">Balance: Benefits vs Harms</td><td style="border:1px solid #E5E7EB;padding:8px">' + (ed.balanceEffects || '—') + '</td></tr>';
     report += '<tr><td style="border:1px solid #E5E7EB;padding:8px">Resources Required</td><td style="border:1px solid #E5E7EB;padding:8px">' + (ed.resourcesRequired || '—') + '</td></tr>';
     report += '<tr><td style="border:1px solid #E5E7EB;padding:8px">Cost-Effectiveness</td><td style="border:1px solid #E5E7EB;padding:8px">' + (ed.costEffectiveness || '—') + '</td></tr>';
-    report += '<tr><td style="border:1px solid #E5E7EB;padding:8px">Equity Considerations</td><td style="border:1px solid #E5E7EB;padding:8px">' + (ed.equity || '—') + '</td></tr>';
+    report += '<tr><td style="border:1px solid #E5E7EB;padding:8px">Equity Considerations</td><td style="border:1px solid #E5E7EB;padding:8px">' + (ed.equity || '\u2014') + '</td></tr>';
     report += '</table>';
+    // Panel voting results (MAGICapp-style)
+    var votes = window._panelVotes[idx] || { members: [] };
+    if (votes.members.length > 0) {
+      report += '<div style="margin-top:8px;padding:8px;background:#F0F9FF;border-radius:6px;font-size:11px">';
+      report += '<strong>Panel Voting Results:</strong> ' + votes.members.length + ' votes cast<br>';
+      var voteCounts = {};
+      votes.members.forEach(function(m) { voteCounts[m.vote] = (voteCounts[m.vote] || 0) + 1; });
+      Object.entries(voteCounts).forEach(function(entry) {
+        report += entry[0] + ': ' + entry[1] + ' (' + Math.round(entry[1]/votes.members.length*100) + '%) | ';
+      });
+      report += '</div>';
+    }
   });
   report += '</div>';
   
