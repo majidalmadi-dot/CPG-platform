@@ -647,36 +647,23 @@ tr:hover td{background:#F8FAFC}
 </div>
 
 <div id="wf5" class="wfs" style="display:none">
-<div class="card">
+<div class="card" style="border-left:4px solid var(--p);margin-bottom:14px">
 <div class="card-t">Evidence-to-Recommendation Framework <span class="ai-status" style="margin-left:8px">AI-Assisted</span></div>
-<div class="card-st" style="margin-bottom:14px">GRADE EtD — all 11 domains</div>
-<table>
-<tr><th style="width:28%">EtR Domain</th><th style="width:22%">Judgement</th><th>Saudi Context</th></tr>
-<tr><td><strong>Problem priority</strong></td><td><select class="fs" style="font-size:11px"><option selected>Yes</option><option>Probably yes</option></select></td><td><input class="fi" style="font-size:11px" value="T2DM prevalence ~24% in KSA"></td></tr>
-<tr><td><strong>Desirable effects</strong></td><td><select class="fs" style="font-size:11px"><option selected>Large</option><option>Moderate</option></select></td><td><input class="fi" style="font-size:11px" value="HbA1c + CV benefit"></td></tr>
-<tr><td><strong>Undesirable effects</strong></td><td><select class="fs" style="font-size:11px"><option>Trivial</option><option>Small</option><option selected>Moderate</option></select></td><td><input class="fi" style="font-size:11px" value="GI effects, transient"></td></tr>
-<tr><td><strong>Certainty of evidence</strong></td><td><select class="fs" style="font-size:11px"><option>High</option><option selected>Moderate</option></select></td><td><input class="fi" style="font-size:11px"></td></tr>
-<tr><td><strong>Values & preferences</strong></td><td><select class="fs" style="font-size:11px"><option>No uncertainty</option><option selected>Possibly important</option></select></td><td><input class="fi" style="font-size:11px" value="Ramadan fasting; injection preference"></td></tr>
-<tr><td><strong>Resource use</strong></td><td><select class="fs" style="font-size:11px"><option selected>Moderate costs</option><option>Large costs</option></select></td><td><input class="fi" style="font-size:11px" value="SFDA formulary covered"></td></tr>
-<tr><td><strong>Cost-effectiveness</strong></td><td><select class="fs" style="font-size:11px"><option selected>Probably favours</option></select></td><td><input class="fi" style="font-size:11px" value="ICER below Saudi WTP"></td></tr>
-<tr><td><strong>Equity</strong></td><td><select class="fs" style="font-size:11px"><option selected>Probably no impact</option></select></td><td><input class="fi" style="font-size:11px"></td></tr>
-<tr><td><strong>Acceptability</strong></td><td><select class="fs" style="font-size:11px"><option selected>Yes</option></select></td><td><input class="fi" style="font-size:11px"></td></tr>
-<tr><td><strong>Feasibility</strong></td><td><select class="fs" style="font-size:11px"><option selected>Yes</option></select></td><td><input class="fi" style="font-size:11px"></td></tr>
-</table>
-<div style="margin-top:16px;padding:14px;background:linear-gradient(135deg,#F0FDF4,#ECFDF5);border:2px solid var(--ok);border-radius:10px">
-<div style="font-weight:700;font-size:13px;margin-bottom:8px">DRAFT RECOMMENDATION</div>
-<div style="background:#fff;border-radius:8px;padding:14px;border:1px solid var(--b)">
-<p style="font-size:13px;line-height:1.6"><strong>We recommend</strong> GLP-1 receptor agonists for adults with T2DM and established CV disease, as add-on to metformin.</p>
-<div style="margin-top:10px;display:flex;gap:14px;font-size:11px">
-<span><strong>Strength:</strong> <span class="badge b-ok">Strong</span></span>
-<span><strong>Certainty:</strong> ⊕⊕⊕◯ Moderate</span>
-<span><strong>Agreement:</strong> 89%</span>
+<div class="card-st">GRADE Evidence-to-Decision (EtD) &mdash; per-PICO assessment across all 11 domains</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+<button class="btn btn-ai" onclick="autoEtRAllPicos()">&#x1F916; AI: Auto-Populate EtR from Evidence</button>
+<button class="btn btn-o" onclick="generateRecommendationSet()">Generate Full Recommendation Set</button>
+<button class="btn btn-o" onclick="exportEtRData()">Export EtR Data</button>
 </div>
 </div>
-</div>
-<div style="margin-top:12px;display:flex;gap:8px">
-<button class="btn btn-ai">🤖 AI: Draft Full Recommendation Set</button>
-<button class="btn btn-o">Submit to Delphi</button>
+<div id="pico-etr-container"></div>
+<div class="card" style="margin-top:14px;border-left:4px solid var(--ok)">
+<div style="font-weight:700;font-size:13px;margin-bottom:8px">Recommendation Summary</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px">
+<div style="text-align:center;padding:10px;background:#F0FDF4;border-radius:8px"><div style="font-size:20px;font-weight:700" id="rec-strong-for">0</div><div style="font-size:10px;color:#666">Strong For</div></div>
+<div style="text-align:center;padding:10px;background:#EFF6FF;border-radius:8px"><div style="font-size:20px;font-weight:700" id="rec-cond-for">0</div><div style="font-size:10px;color:#666">Conditional For</div></div>
+<div style="text-align:center;padding:10px;background:#FFFBEB;border-radius:8px"><div style="font-size:20px;font-weight:700" id="rec-cond-against">0</div><div style="font-size:10px;color:#666">Conditional Against</div></div>
+<div style="text-align:center;padding:10px;background:#FEF2F2;border-radius:8px"><div style="font-size:20px;font-weight:700" id="rec-strong-against">0</div><div style="font-size:10px;color:#666">Strong Against</div></div>
 </div>
 </div>
 </div>
@@ -1154,6 +1141,7 @@ function swf(id){
   }
   if (id === "wf3" && typeof renderPicoSearchPanels === "function") renderPicoSearchPanels();
   if (id === "wf4" && typeof renderPicoGradePanels === "function") renderPicoGradePanels();
+  if (id === "wf5" && typeof renderPicoEtRPanels === "function") renderPicoEtRPanels();
 }
 function openM(id){document.getElementById(id).classList.add('show');}
 function closeM(id){document.getElementById(id).classList.remove('show');}
@@ -2794,6 +2782,246 @@ function exportGradeData() {
   a.download = "grade-evidence-profile.json"; a.click();
 }
 
+// ============================================================
+// PER-PICO EVIDENCE-TO-RECOMMENDATION (EtR) FRAMEWORK
+// ============================================================
+var EtR_DOMAINS = [
+  {key:'problemPriority', label:'Problem Priority', opts:['Yes','Probably yes','Probably no','No','Varies','Uncertain']},
+  {key:'desirableEffects', label:'Desirable Effects', opts:['Large','Moderate','Small','Trivial','Varies','Uncertain']},
+  {key:'undesirableEffects', label:'Undesirable Effects', opts:['Trivial','Small','Moderate','Large','Varies','Uncertain']},
+  {key:'certaintyEvidence', label:'Certainty of Evidence', opts:['High','Moderate','Low','Very low','No included studies']},
+  {key:'valuesPrefs', label:'Values & Preferences', opts:['No important uncertainty','Possibly important uncertainty','Important uncertainty','Very important uncertainty']},
+  {key:'balanceEffects', label:'Balance of Effects', opts:['Favours intervention','Probably favours intervention','Does not favour either','Probably favours comparison','Favours comparison','Varies','Uncertain']},
+  {key:'resourcesRequired', label:'Resources Required', opts:['Large savings','Moderate savings','Negligible costs/savings','Moderate costs','Large costs','Varies','Uncertain']},
+  {key:'costEffectiveness', label:'Cost-Effectiveness', opts:['Favours intervention','Probably favours intervention','Does not favour either','Probably favours comparison','Favours comparison','No included studies','Varies']},
+  {key:'equity', label:'Equity', opts:['Increased','Probably increased','Probably no impact','Probably reduced','Reduced','Varies','Uncertain']},
+  {key:'acceptability', label:'Acceptability', opts:['Yes','Probably yes','Probably no','No','Varies','Uncertain']},
+  {key:'feasibility', label:'Feasibility', opts:['Yes','Probably yes','Probably no','No','Varies','Uncertain']}
+];
+window._picoEtRData = window._picoEtRData || {};
+
+function updateEtRField(idx, field, value) {
+  if (!window._picoEtRData[idx]) window._picoEtRData[idx] = {};
+  window._picoEtRData[idx][field] = value;
+  updateRecommendationSummary();
+  saveWorkflowData();
+}
+
+function toggleEtRPanel(idx) {
+  var body = document.getElementById('etr-body-' + idx);
+  if (body) body.style.display = body.style.display === 'none' ? 'block' : 'none';
+}
+
+function getRecStrengthBadge(strength) {
+  if (!strength || strength === 'Not set') return '<span class="badge" style="font-size:10px;background:#E5E7EB;color:#6B7280">Not set</span>';
+  if (strength === 'Strong for') return '<span class="badge b-ok" style="font-size:10px">Strong FOR</span>';
+  if (strength === 'Conditional for') return '<span class="badge b-i" style="font-size:10px">Conditional FOR</span>';
+  if (strength === 'Conditional against') return '<span class="badge b-w" style="font-size:10px">Conditional AGAINST</span>';
+  if (strength === 'Strong against') return '<span class="badge b-err" style="font-size:10px">Strong AGAINST</span>';
+  return '<span class="badge" style="font-size:10px">' + escHtml(strength) + '</span>';
+}
+
+function buildEtRCard(idx, pico) {
+  var ed = window._picoEtRData[idx] || {};
+  var gd = window._picoGradeData[idx] || {};
+  if (gd._certainty && !ed.certaintyEvidence) { ed.certaintyEvidence = gd._certainty === 'Very Low' ? 'Very low' : gd._certainty; }
+  if (!ed.recStrength) ed.recStrength = 'Not set';
+  if (!ed.recText) ed.recText = '';
+  window._picoEtRData[idx] = ed;
+  var html = '<div class="card" style="border-left:4px solid var(--p);margin-bottom:10px">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleEtRPanel(' + idx + ')">';
+  html += '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">' + (pico.icon||'\u{1F4CB}') + '</span>';
+  html += '<strong style="font-size:13px">PICO ' + pico.num + ' \u2014 ' + escHtml(pico.domain) + '</strong>';
+  html += '<span id="etr-rec-' + idx + '">' + getRecStrengthBadge(ed.recStrength) + '</span>';
+  if (gd._certainty) html += ' ' + getCertBadge(gd._certainty);
+  html += '</div><span style="font-size:11px;color:var(--tl)">\u25BC expand</span></div>';
+  html += '<div id="etr-body-' + idx + '" style="display:none;margin-top:12px">';
+  html += '<div style="background:var(--bg);padding:8px 10px;border-radius:6px;font-size:11px;margin-bottom:10px">';
+  html += '<strong>P:</strong> ' + escHtml(pico.P) + ' &nbsp;|&nbsp; <strong>I:</strong> ' + escHtml(pico.I) + ' &nbsp;|&nbsp; <strong>C:</strong> ' + escHtml(pico.C) + '</div>';
+  html += '<table style="font-size:11px"><tr><th style="width:22%">EtR Domain</th><th style="width:28%">Judgement</th><th>Saudi Context / Justification</th></tr>';
+  EtR_DOMAINS.forEach(function(d) {
+    var currentVal = ed[d.key] || d.opts[0];
+    html += '<tr><td><strong>' + d.label + '</strong></td><td>';
+    html += '<select class="fs" style="font-size:10px;padding:3px;min-width:140px" onchange="updateEtRField(' + idx + ',\'' + d.key + '\',this.value)">';
+    d.opts.forEach(function(o) { html += '<option' + (o === currentVal ? ' selected' : '') + '>' + escHtml(o) + '</option>'; });
+    html += '</select></td><td><input class="fi" style="font-size:10px" value="' + escHtml(ed[d.key + '_ctx']||'') + '" onchange="updateEtRField(' + idx + ',\'' + d.key + '_ctx\',this.value)" placeholder="Saudi/local context..."></td></tr>';
+  });
+  html += '</table>';
+  html += '<div style="margin-top:12px;padding:14px;background:linear-gradient(135deg,#F0FDF4,#ECFDF5);border:2px solid var(--ok);border-radius:10px">';
+  html += '<div style="font-weight:700;font-size:12px;margin-bottom:8px">DRAFT RECOMMENDATION</div>';
+  html += '<div style="display:flex;gap:8px;margin-bottom:8px">';
+  html += '<div class="fg" style="flex:1"><label class="fl" style="font-size:10px">Strength & Direction</label>';
+  html += '<select class="fs" style="font-size:11px;padding:4px" onchange="updateEtRField(' + idx + ',\'recStrength\',this.value);document.getElementById(\'etr-rec-' + idx + '\').innerHTML=getRecStrengthBadge(this.value)">';
+  ['Not set','Strong for','Conditional for','Conditional against','Strong against'].forEach(function(o) {
+    html += '<option' + (o === ed.recStrength ? ' selected' : '') + '>' + o + '</option>';
+  });
+  html += '</select></div>';
+  html += '<div class="fg" style="flex:1"><label class="fl" style="font-size:10px">Panel Agreement (%)</label>';
+  html += '<input class="fi" style="font-size:11px" value="' + escHtml(ed.agreement||'') + '" onchange="updateEtRField(' + idx + ',\'agreement\',this.value)" placeholder="e.g. 85%"></div>';
+  html += '</div>';
+  html += '<div class="fg"><label class="fl" style="font-size:10px">Recommendation Text</label>';
+  html += '<textarea class="ft" style="font-size:11px;min-height:50px" onchange="updateEtRField(' + idx + ',\'recText\',this.value)" placeholder="We recommend / suggest...">' + escHtml(ed.recText) + '</textarea></div>';
+  html += '</div>';
+  html += '</div></div>';
+  return html;
+}
+
+function renderPicoEtRPanels() {
+  var container = document.getElementById('pico-etr-container');
+  if (!container) return;
+  var picos = getAllPicos();
+  if (!picos.length) {
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--tl);font-size:13px"><div style="font-size:28px;margin-bottom:8px">\u2696\uFE0F</div>No PICO questions yet. Go to <strong>Step 2</strong> to generate PICO questions first.</div>';
+    return;
+  }
+  var html = '';
+  picos.forEach(function(p, i) { html += buildEtRCard(i, p); });
+  container.innerHTML = html;
+  updateRecommendationSummary();
+}
+
+function updateRecommendationSummary() {
+  var counts = {'Strong for':0,'Conditional for':0,'Conditional against':0,'Strong against':0};
+  Object.values(window._picoEtRData).forEach(function(ed) {
+    if (ed.recStrength && counts.hasOwnProperty(ed.recStrength)) counts[ed.recStrength]++;
+  });
+  var el;
+  el = document.getElementById('rec-strong-for'); if(el) el.textContent = counts['Strong for'];
+  el = document.getElementById('rec-cond-for'); if(el) el.textContent = counts['Conditional for'];
+  el = document.getElementById('rec-cond-against'); if(el) el.textContent = counts['Conditional against'];
+  el = document.getElementById('rec-strong-against'); if(el) el.textContent = counts['Strong against'];
+}
+
+// ============================================================
+// AI EtR Auto-Population from GRADE + PubMed
+// ============================================================
+async function autoEtRAllPicos() {
+  var picos = getAllPicos();
+  if (!picos.length) { alert('No PICO questions. Generate PICOs in Step 2 first.'); return; }
+  var container = document.getElementById('pico-etr-container');
+  container.innerHTML = '<div style="padding:20px;text-align:center"><div style="font-size:28px;margin-bottom:8px">\u2696\uFE0F</div><strong>AI Evidence-to-Recommendation in Progress</strong><div id="etr-progress-bar" style="margin:12px auto;width:80%;height:8px;background:#E5E7EB;border-radius:4px;overflow:hidden"><div id="etr-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--p),#8B5CF6);transition:width 0.3s"></div></div><div id="etr-progress-text" style="font-size:12px;color:var(--tl)">Analyzing PICO 1 of ' + picos.length + '...</div></div>';
+  var hasGrade = Object.keys(window._picoGradeData).length > 0;
+  if (!hasGrade) {
+    document.getElementById('etr-progress-text').textContent = 'Running GRADE assessment first...';
+    for (var g = 0; g < picos.length; g++) {
+      await fetchPubMedForGrade(g, picos[g]);
+      await new Promise(function(r) { setTimeout(r, 250); });
+    }
+  }
+  for (var i = 0; i < picos.length; i++) {
+    document.getElementById('etr-progress-fill').style.width = Math.round(((i+1)/picos.length)*100) + '%';
+    document.getElementById('etr-progress-text').textContent = 'Populating EtR for PICO ' + (i+1) + ' of ' + picos.length + ': ' + picos[i].domain + '...';
+    populateEtRFromEvidence(i, picos[i]);
+    await new Promise(function(r) { setTimeout(r, 150); });
+  }
+  document.getElementById('etr-progress-fill').style.width = '100%';
+  document.getElementById('etr-progress-text').textContent = 'Complete! Rendering results...';
+  setTimeout(function() { renderPicoEtRPanels(); }, 500);
+}
+
+function populateEtRFromEvidence(idx, pico) {
+  var gd = window._picoGradeData[idx] || {};
+  var nStudies = parseInt(gd.numStudies) || 0;
+  var cert = gd._certainty || 'Low';
+  var ed = window._picoEtRData[idx] || {};
+  ed.problemPriority = nStudies > 10 ? 'Yes' : nStudies > 3 ? 'Probably yes' : 'Uncertain';
+  ed.problemPriority_ctx = nStudies > 0 ? nStudies + ' studies identified \u2014 active research area' : 'Limited evidence found';
+  if (gd.studyDesign === 'RCT' && nStudies >= 3) ed.desirableEffects = 'Moderate';
+  else if (nStudies > 5) ed.desirableEffects = 'Moderate';
+  else ed.desirableEffects = 'Small';
+  ed.desirableEffects_ctx = gd.studyDesign + '-based evidence (' + nStudies + ' studies)';
+  ed.undesirableEffects = nStudies > 5 ? 'Small' : 'Uncertain';
+  ed.undesirableEffects_ctx = 'Safety profile from ' + nStudies + ' studies';
+  ed.certaintyEvidence = cert === 'Very Low' ? 'Very low' : cert;
+  ed.certaintyEvidence_ctx = 'GRADE assessment: ' + (gd.rob||'\u2014') + ' RoB, ' + (gd.imprecision||'\u2014') + ' imprecision';
+  ed.valuesPrefs = 'Possibly important uncertainty';
+  ed.valuesPrefs_ctx = 'Saudi patient preferences \u2014 consider Ramadan, cultural factors';
+  if (cert === 'High' || cert === 'Moderate') ed.balanceEffects = 'Probably favours intervention';
+  else ed.balanceEffects = 'Uncertain';
+  ed.balanceEffects_ctx = 'Based on ' + cert + ' certainty evidence';
+  ed.resourcesRequired = 'Moderate costs';
+  ed.resourcesRequired_ctx = 'Check SFDA formulary and MOH coverage';
+  ed.costEffectiveness = nStudies > 5 ? 'Probably favours intervention' : 'No included studies';
+  ed.costEffectiveness_ctx = nStudies > 5 ? 'Sufficient evidence base for economic analysis' : 'Insufficient data for economic conclusion';
+  ed.equity = 'Probably no impact';
+  ed.equity_ctx = 'Ensure equitable access across Saudi regions';
+  ed.acceptability = nStudies > 3 ? 'Probably yes' : 'Uncertain';
+  ed.acceptability_ctx = 'Stakeholder input recommended';
+  ed.feasibility = 'Probably yes';
+  ed.feasibility_ctx = 'Align with Saudi healthcare infrastructure capacity';
+  if (cert === 'High' && nStudies >= 5) { ed.recStrength = 'Strong for'; }
+  else if (cert === 'Moderate' && nStudies >= 3) { ed.recStrength = 'Conditional for'; }
+  else if (cert === 'Low' && nStudies >= 2) { ed.recStrength = 'Conditional for'; }
+  else { ed.recStrength = 'Not set'; }
+  if (ed.recStrength !== 'Not set') {
+    var verb = ed.recStrength.indexOf('Strong') !== -1 ? 'recommend' : 'suggest';
+    ed.recText = 'We ' + verb + ' ' + pico.I.toLowerCase() + ' for ' + pico.P.toLowerCase() + ' (compared to ' + pico.C.toLowerCase() + ').';
+    ed.agreement = '';
+  }
+  window._picoEtRData[idx] = ed;
+}
+
+function generateRecommendationSet() {
+  var picos = getAllPicos();
+  if (!picos.length) { alert('No PICO questions.'); return; }
+  var html = '<div style="max-height:70vh;overflow:auto"><h3 style="margin-bottom:12px">Full Recommendation Set</h3>';
+  picos.forEach(function(p, i) {
+    var ed = window._picoEtRData[i] || {};
+    var gd = window._picoGradeData[i] || {};
+    html += '<div style="margin-bottom:16px;padding:14px;border:1px solid var(--b);border-radius:8px">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+    html += '<strong>' + (p.icon||'') + ' PICO ' + p.num + ' \u2014 ' + escHtml(p.domain) + '</strong>';
+    html += getRecStrengthBadge(ed.recStrength) + ' ' + getCertBadge(gd._certainty||'Very Low');
+    html += '</div>';
+    if (ed.recText) html += '<p style="font-size:13px;line-height:1.6;margin:8px 0">' + escHtml(ed.recText) + '</p>';
+    else html += '<p style="font-size:12px;color:var(--tl);margin:8px 0"><em>No recommendation drafted yet</em></p>';
+    if (ed.agreement) html += '<span style="font-size:11px">Agreement: ' + escHtml(ed.agreement) + '</span>';
+    html += '</div>';
+  });
+  html += '</div><div style="margin-top:12px;text-align:right"><button class="btn btn-o" onclick="copyRecsToClipboard()">\u{1F4CB} Copy to Clipboard</button></div>';
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.onclick = function(e) { if (e.target === overlay) document.body.removeChild(overlay); };
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:#fff;border-radius:12px;padding:24px;max-width:800px;width:90%;max-height:80vh;overflow:auto';
+  modal.innerHTML = html;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+function copyRecsToClipboard() {
+  var picos = getAllPicos();
+  var text = 'RECOMMENDATION SET\n' + '========================================\n\n';
+  picos.forEach(function(p, i) {
+    var ed = window._picoEtRData[i] || {};
+    var gd = window._picoGradeData[i] || {};
+    text += 'PICO ' + p.num + ' \u2014 ' + p.domain + '\n';
+    text += 'Strength: ' + (ed.recStrength||'Not set') + ' | Certainty: ' + (gd._certainty||'Not assessed') + '\n';
+    text += 'Recommendation: ' + (ed.recText||'Not drafted') + '\n';
+    if (ed.agreement) text += 'Agreement: ' + ed.agreement + '\n';
+    text += '\n';
+  });
+  navigator.clipboard.writeText(text).then(function() { alert('Copied!'); });
+}
+
+function exportEtRData() {
+  var picos = getAllPicos();
+  var text = 'EVIDENCE-TO-RECOMMENDATION FRAMEWORK EXPORT\n' + '==================================================\n\n';
+  picos.forEach(function(p, i) {
+    var ed = window._picoEtRData[i] || {};
+    text += 'PICO ' + p.num + ' \u2014 ' + p.domain + '\n' + '----------------------------------------\n';
+    text += 'Population: ' + p.P + '\nIntervention: ' + p.I + '\nComparator: ' + p.C + '\n\n';
+    EtR_DOMAINS.forEach(function(d) {
+      text += d.label + ': ' + (ed[d.key]||'\u2014') + (ed[d.key + '_ctx'] ? ' (' + ed[d.key + '_ctx'] + ')' : '') + '\n';
+    });
+    text += '\nRecommendation: ' + (ed.recStrength||'Not set') + '\n' + (ed.recText||'') + '\n\n';
+  });
+  var blob = new Blob([text], { type: 'text/plain' });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'EtR_Framework_' + new Date().toISOString().slice(0,10) + '.txt'; a.click();
+}
+
+
 
 // ============================================================
 // SUPABASE AUTH (connects when credentials are configured)
@@ -2948,6 +3176,7 @@ function saveWorkflowData() {
   });
   data._picoData = window._picoData;
   data._picoGradeData = window._picoGradeData;
+  data._picoEtRData = window._picoEtRData;
   data._picoSearchResults = window._picoSearchResults;
   const activeProject = localStorage.getItem('ksumc_active_project');
   if (activeProject) {
@@ -2986,6 +3215,7 @@ function loadWorkflowData() {
     }
     // Restore PICO data
         if (data._picoGradeData) { window._picoGradeData = data._picoGradeData; }
+    if (data._picoEtRData) { window._picoEtRData = data._picoEtRData; }
 if (data._picoData) {
       window._picoData = data._picoData;
       if (data._picoData.ai && data._picoData.ai.length) renderAIPicos(data._picoData.ai);
