@@ -1,8 +1,9 @@
 // ============================================================
-// KSUMC CPG PLATFORM — LIVE AI ENGINE (Anthropic Claude)
+// KSUMC CPG PLATFORM — LIVE AI ENGINE (Google Gemini)
 // ============================================================
 // Provides real AI-powered analysis for all 48 tools across
 // SR/MA, CEA, and Health Policy Scanner workflows.
+// Uses Google Gemini API (free tier: 15 RPM).
 // API key stored persistently in localStorage with basic obfuscation.
 // ============================================================
 
@@ -30,7 +31,7 @@ window.AIEngine = {
     else localStorage.removeItem(KEY_STORAGE);
   },
   getModel: function() {
-    return localStorage.getItem(MODEL_STORAGE) || 'claude-sonnet-4-20250514';
+    return localStorage.getItem(MODEL_STORAGE) || 'gemini-2.0-flash';
   },
   setModel: function(m) {
     localStorage.setItem(MODEL_STORAGE, m);
@@ -63,22 +64,22 @@ window.openAISettings = function() {
     '<button class="btn btn-sm" onclick="this.closest(\'[role=dialog]\').remove()">✕</button></div>' +
 
     '<div style="margin-bottom:16px">' +
-    '<label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Anthropic API Key</label>' +
-    '<div style="font-size:11px;color:#64748B;margin-bottom:6px">Your key is stored locally on this device and sent only to the Anthropic API. Get yours at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--ai1)">console.anthropic.com</a></div>' +
-    '<input id="ai-key-input" type="password" placeholder="sk-ant-api03-..." value="' + (currentKey || '') + '" style="width:100%;padding:10px 12px;border:1px solid var(--b);border-radius:8px;font-size:13px;font-family:monospace">' +
+    '<label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Google Gemini API Key</label>' +
+    '<div style="font-size:11px;color:#64748B;margin-bottom:6px">Your key is stored locally on this device and sent only to the Google AI API. Get your free key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--ai1)">aistudio.google.com/apikey</a></div>' +
+    '<input id="ai-key-input" type="password" placeholder="AIza..." value="' + (currentKey || '') + '" style="width:100%;padding:10px 12px;border:1px solid var(--b);border-radius:8px;font-size:13px;font-family:monospace">' +
     (currentKey ? '<div style="margin-top:4px;font-size:11px;color:var(--ok)">✅ Key configured: ' + masked + '</div>' : '<div style="margin-top:4px;font-size:11px;color:var(--warn)">⚠️ No API key set — AI tools will show simulated output</div>') +
     '</div>' +
 
     '<div style="margin-bottom:16px">' +
     '<label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Model</label>' +
     '<select id="ai-model-select" style="width:100%;padding:10px 12px;border:1px solid var(--b);border-radius:8px;font-size:13px">' +
-    '<option value="claude-sonnet-4-20250514"' + (currentModel === 'claude-sonnet-4-20250514' ? ' selected' : '') + '>Claude Sonnet 4 (Recommended — fast + capable)</option>' +
-    '<option value="claude-opus-4-20250514"' + (currentModel === 'claude-opus-4-20250514' ? ' selected' : '') + '>Claude Opus 4 (Most capable — slower)</option>' +
-    '<option value="claude-haiku-3-5-20241022"' + (currentModel === 'claude-haiku-3-5-20241022' ? ' selected' : '') + '>Claude Haiku 3.5 (Fastest — most affordable)</option>' +
+    '<option value="gemini-2.0-flash"' + (currentModel === 'gemini-2.0-flash' ? ' selected' : '') + '>Gemini 2.0 Flash (Recommended — fast + free)</option>' +
+    '<option value="gemini-2.5-flash-preview-05-20"' + (currentModel === 'gemini-2.5-flash-preview-05-20' ? ' selected' : '') + '>Gemini 2.5 Flash (Latest — most capable)</option>' +
+    '<option value="gemini-2.0-flash-lite"' + (currentModel === 'gemini-2.0-flash-lite' ? ' selected' : '') + '>Gemini 2.0 Flash-Lite (Fastest — lightest)</option>' +
     '</select></div>' +
 
     '<div style="margin-bottom:18px;padding:12px;background:#F8FAFC;border-radius:8px;font-size:11px;color:#64748B">' +
-    '<strong>How it works:</strong> Each AI tool sends a domain-specific prompt to Claude with context from your current workflow. Results stream in real-time. Your API key never leaves your browser except to call the Anthropic API directly.' +
+    '<strong>How it works:</strong> Each AI tool sends a domain-specific prompt to Gemini with context from your current workflow. Results stream in real-time. The free tier supports 15 requests per minute. Your API key never leaves your browser except to call the Google AI API directly.' +
     '</div>' +
 
     '<div style="display:flex;gap:8px;justify-content:flex-end">' +
@@ -101,7 +102,7 @@ window.saveAISettings = function() {
   var banner = document.querySelector('.demo-banner');
   if (banner) {
     if (key) {
-      banner.innerHTML = '🟢 <strong>AI Engine Live</strong> — Connected to Claude (' + model.split('-').slice(0,2).join(' ') + '). All 48 tools are active.';
+      banner.innerHTML = '🟢 <strong>AI Engine Live</strong> — Connected to Gemini (' + model + '). All 48 tools are active. Free tier.';
       banner.style.background = 'linear-gradient(90deg, #D1FAE5, #A7F3D0)';
       banner.style.color = '#065F46';
       banner.style.borderColor = '#10B981';
@@ -116,8 +117,8 @@ window.saveAISettings = function() {
   showToast(key ? 'AI Engine connected — all tools are live!' : 'AI settings saved (no key)', key ? 'ok' : 'info');
 };
 
-// ---- CALL CLAUDE API (with streaming) ----
-window.callClaude = async function(systemPrompt, userMessage, onChunk, onDone, onError) {
+// ---- CALL GEMINI API (with streaming) ----
+window.callGemini = async function(systemPrompt, userMessage, onChunk, onDone, onError) {
   var key = AIEngine.getKey();
   if (!key) {
     if (onError) onError('NO_KEY');
@@ -125,30 +126,33 @@ window.callClaude = async function(systemPrompt, userMessage, onChunk, onDone, o
   }
 
   var model = AIEngine.getModel();
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':streamGenerateContent?alt=sse&key=' + key;
+
   var body = {
-    model: model,
-    max_tokens: 4096,
-    stream: true,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userMessage }]
+    system_instruction: {
+      parts: [{ text: systemPrompt }]
+    },
+    contents: [{
+      role: 'user',
+      parts: [{ text: userMessage }]
+    }],
+    generationConfig: {
+      maxOutputTokens: 8192,
+      temperature: 0.7
+    }
   };
 
   try {
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+    var resp = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
 
     if (!resp.ok) {
       var errBody = await resp.text();
       try { errBody = JSON.parse(errBody).error.message; } catch(e) {}
-      if (onError) onError(resp.status === 401 ? 'INVALID_KEY' : 'API_ERROR: ' + errBody);
+      if (onError) onError(resp.status === 400 && errBody.indexOf('API key') !== -1 ? 'INVALID_KEY' : 'API_ERROR: ' + errBody);
       return;
     }
 
@@ -169,13 +173,19 @@ window.callClaude = async function(systemPrompt, userMessage, onChunk, onDone, o
         var line = lines[i].trim();
         if (!line.startsWith('data: ')) continue;
         var data = line.substring(6);
-        if (data === '[DONE]') continue;
+        if (data === '[DONE]' || !data) continue;
 
         try {
           var evt = JSON.parse(data);
-          if (evt.type === 'content_block_delta' && evt.delta && evt.delta.text) {
-            fullText += evt.delta.text;
-            if (onChunk) onChunk(evt.delta.text, fullText);
+          // Gemini streams candidates[0].content.parts[0].text
+          if (evt.candidates && evt.candidates[0] && evt.candidates[0].content && evt.candidates[0].content.parts) {
+            var parts = evt.candidates[0].content.parts;
+            for (var j = 0; j < parts.length; j++) {
+              if (parts[j].text) {
+                fullText += parts[j].text;
+                if (onChunk) onChunk(parts[j].text, fullText);
+              }
+            }
           }
         } catch(e) {}
       }
@@ -596,7 +606,7 @@ window.showAIToolModal = function(domain, tool, color) {
     return;
   }
 
-  // LIVE MODE — call Claude
+  // LIVE MODE — call Gemini
   var domainPrompts = PROMPTS[domain];
   var toolKey = findToolKey(domain, tool.t);
   var promptConfig = domainPrompts ? domainPrompts[toolKey] : null;
@@ -611,12 +621,12 @@ window.showAIToolModal = function(domain, tool, color) {
   var systemPrompt = promptConfig.system;
   var userPrompt = promptConfig.buildPrompt(context);
 
-  statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;border:2px solid ' + color + ';border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite"></div> Calling Claude (' + AIEngine.getModel().split('-').slice(0,2).join(' ') + ')...</div>' +
+  statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;border:2px solid ' + color + ';border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite"></div> Calling Gemini (' + AIEngine.getModel() + ')...</div>' +
     '<style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
   outputEl.style.display = 'block';
   resultEl.textContent = '';
 
-  callClaude(
+  callGemini(
     systemPrompt,
     userPrompt,
     // onChunk
@@ -728,14 +738,14 @@ function runDemoMode(domain, tool, color, statusEl, outputEl, resultEl, actionsE
       clearInterval(interval);
       statusEl.innerHTML = '<div style="color:var(--ok);font-weight:600">✅ Demo complete</div>';
       resultEl.innerHTML = '<div style="color:var(--ok);font-weight:600;margin-bottom:8px">✅ ' + tool.t + ' — Complete <span class="demo-badge">Simulated Output</span></div>' +
-        '<p>This is a simulated demo output. Connect your Anthropic API key in Settings to get real AI-powered analysis.</p>' +
+        '<p>This is a simulated demo output. Connect your Google Gemini API key in Settings to get real AI-powered analysis.</p>' +
         '<p style="margin-top:8px"><strong>What you\'d get with a live connection:</strong></p>' +
-        '<div style="padding:2px 0 2px 16px">• Domain-specific analysis from Claude AI</div>' +
+        '<div style="padding:2px 0 2px 16px">• Domain-specific analysis from Gemini AI</div>' +
         '<div style="padding:2px 0 2px 16px">• Structured output following ' + domain + ' methodology standards</div>' +
         '<div style="padding:2px 0 2px 16px">• Context-aware results based on your current workflow inputs</div>' +
         '<div style="padding:2px 0 2px 16px">• Real-time streaming response</div>' +
         '<div style="margin-top:8px;padding:8px;background:#F0FDF4;border-radius:6px;border-left:3px solid #16A34A">' +
-        '<strong>To activate:</strong> Click the ⚙️ Settings icon in the sidebar or <a href="#" onclick="event.preventDefault();openAISettings()" style="color:var(--ai1);font-weight:600">click here</a> to enter your Anthropic API key.</div>';
+        '<strong>To activate:</strong> Click the ⚙️ Settings icon in the sidebar or <a href="#" onclick="event.preventDefault();openAISettings()" style="color:var(--ai1);font-weight:600">click here</a> to enter your Gemini API key.</div>';
       actionsEl.style.display = 'flex';
     }
   }, 400);
@@ -747,7 +757,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var banner = document.querySelector('.demo-banner');
     if (banner) {
       var model = AIEngine.getModel();
-      banner.innerHTML = '🟢 <strong>AI Engine Live</strong> — Connected to Claude (' + model.split('-').slice(0,2).join(' ') + '). All 48 tools are active.';
+      banner.innerHTML = '🟢 <strong>AI Engine Live</strong> — Connected to Gemini (' + model + '). All 48 tools are active. Free tier.';
       banner.style.background = 'linear-gradient(90deg, #D1FAE5, #A7F3D0)';
       banner.style.color = '#065F46';
       banner.style.borderColor = '#10B981';
