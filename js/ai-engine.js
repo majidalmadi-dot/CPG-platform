@@ -36,7 +36,7 @@ window.AIEngine = {
     else localStorage.removeItem(KEY_STORAGE);
   },
   getModel: function() {
-    return localStorage.getItem(MODEL_STORAGE) || 'gemini-2.0-flash';
+    return localStorage.getItem(MODEL_STORAGE) || 'gemini-2.5-flash';
   },
   setModel: function(m) {
     localStorage.setItem(MODEL_STORAGE, m);
@@ -78,9 +78,8 @@ window.openAISettings = function() {
     '<div style="margin-bottom:16px">' +
     '<label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Model</label>' +
     '<select id="ai-model-select" style="width:100%;padding:10px 12px;border:1px solid var(--b);border-radius:8px;font-size:13px">' +
-    '<option value="gemini-2.0-flash"' + (currentModel === 'gemini-2.0-flash' ? ' selected' : '') + '>Gemini 2.0 Flash (Recommended — fast + free)</option>' +
-    '<option value="gemini-2.5-flash-preview-05-20"' + (currentModel === 'gemini-2.5-flash-preview-05-20' ? ' selected' : '') + '>Gemini 2.5 Flash (Latest — most capable)</option>' +
-    '<option value="gemini-2.0-flash-lite"' + (currentModel === 'gemini-2.0-flash-lite' ? ' selected' : '') + '>Gemini 2.0 Flash-Lite (Fastest — lightest)</option>' +
+    '<option value="gemini-2.5-flash"' + (currentModel === 'gemini-2.5-flash' ? ' selected' : '') + '>Gemini 2.5 Flash (Recommended — 5 RPM free)</option>' +
+    '<option value="gemini-2.5-flash-lite"' + (currentModel === 'gemini-2.5-flash-lite' ? ' selected' : '') + '>Gemini 2.5 Flash Lite (Faster — 10 RPM free)</option>' +
     '</select></div>' +
 
     '<div style="margin-bottom:18px;padding:12px;background:#F8FAFC;border-radius:8px;font-size:11px;color:#64748B">' +
