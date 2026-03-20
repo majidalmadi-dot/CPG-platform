@@ -1671,140 +1671,348 @@ async function aiGeneratePICOs() {
   const numPicos = parseInt(document.getElementById('pico-count-select').value) || 5;
   const log = document.getElementById('pico-gen-log');
   log.style.display = 'block';
-  log.innerHTML = '<strong>\u{1F50D} AI PICO Generator</strong> analyzing: <em>' + topic + '</em> (' + numPicos + ' questions)<br><br>';
+  log.innerHTML = '<strong>\uD83D\uDD0D Smart PICO Generator</strong> analyzing evidence landscape for: <em>' + topic + '</em> (' + numPicos + ' questions)<br><br>';
   const addLog = (msg) => { log.innerHTML += msg + '<br>'; log.scrollTop = log.scrollHeight; };
 
-  addLog('\u{1F4DA} <strong>Step 1:</strong> Identifying clinical domains...');
+  // Step 1: Define all clinical domains to scan
+  addLog('\uD83D\uDCDA <strong>Step 1:</strong> Scanning evidence landscape across clinical domains...');
   const domains = [
-    { name: 'Diagnosis', queries: ['diagnosis','diagnostic accuracy','sensitivity specificity'], icon: '\u{1FA7A}' },
-    { name: 'Treatment/Pharmacotherapy', queries: ['treatment','therapy','drug','pharmacotherapy','randomized'], icon: '\u{1F48A}' },
-    { name: 'Screening', queries: ['screening','early detection','surveillance'], icon: '\u{1F52C}' },
-    { name: 'Prevention', queries: ['prevention','prophylaxis','risk reduction'], icon: '\u{1F6E1}\uFE0F' },
-    { name: 'Prognosis', queries: ['prognosis','mortality','survival','outcomes'], icon: '\u{1F4C8}' },
-    { name: 'Management/Guidelines', queries: ['management','guideline','protocol','pathway'], icon: '\u{1F4CB}' },
-    { name: 'Monitoring', queries: ['monitoring','follow-up','biomarker','laboratory'], icon: '\u{1F9EA}' },
-    { name: 'Patient Education/QoL', queries: ['quality of life','patient education','self-management','adherence'], icon: '\u{1F465}' },
-    { name: 'Surgical/Procedural', queries: ['surgery','surgical','procedure','endoscopy','intervention'], icon: '\u{1F3E5}' },
-    { name: 'Special Populations', queries: ['pediatric','pregnancy','elderly','comorbid','renal'], icon: '\u{1F476}' }
+    { name: 'Treatment/Pharmacotherapy', queries: ['treatment','therapy','drug','pharmacotherapy','randomized controlled trial'], icon: '\uD83D\uDC8A',
+      subQuestions: ['First-line pharmacotherapy','Second-line / rescue therapy','Combination therapy','Novel / emerging agents','Drug dosing and optimization','Biologic therapy','Non-pharmacological treatment'] },
+    { name: 'Diagnosis', queries: ['diagnosis','diagnostic accuracy','sensitivity specificity','biomarker'], icon: '\uD83E\uDE7A',
+      subQuestions: ['Laboratory diagnostic tests','Imaging modalities','Point-of-care testing','Differential diagnosis criteria','Histological / pathological diagnosis','Novel biomarkers for diagnosis'] },
+    { name: 'Screening', queries: ['screening','early detection','surveillance','population screening'], icon: '\uD83D\uDD2C',
+      subQuestions: ['Population-level screening programs','High-risk group targeted screening','Screening interval and frequency','Cost-effectiveness of screening strategies','Screening tool validation'] },
+    { name: 'Prevention', queries: ['prevention','prophylaxis','risk reduction','primary prevention'], icon: '\uD83D\uDEE1\uFE0F',
+      subQuestions: ['Primary prevention strategies','Secondary prevention','Chemoprevention','Lifestyle / behavioral prevention','Vaccination / immunoprophylaxis'] },
+    { name: 'Prognosis', queries: ['prognosis','mortality','survival','outcomes','natural history'], icon: '\uD83D\uDCC8',
+      subQuestions: ['Prognostic factors and risk scores','Long-term outcomes and survival','Disease progression predictors','Complication risk stratification','Recurrence and relapse prediction'] },
+    { name: 'Management/Guidelines', queries: ['management','guideline','protocol','clinical pathway','standard of care'], icon: '\uD83D\uDCCB',
+      subQuestions: ['Clinical pathway design','Multidisciplinary care models','Stepwise management algorithms','Acute vs chronic management','Guideline adherence and implementation'] },
+    { name: 'Monitoring', queries: ['monitoring','follow-up','biomarker monitoring','surveillance','disease activity'], icon: '\uD83E\uDDEA',
+      subQuestions: ['Biomarker-guided monitoring','Imaging-based surveillance','Optimal monitoring intervals','Therapeutic drug monitoring','Remote / digital monitoring'] },
+    { name: 'Patient Education/QoL', queries: ['quality of life','patient education','self-management','patient-reported outcomes'], icon: '\uD83D\uDC65',
+      subQuestions: ['Structured patient education programs','Self-management interventions','Quality of life measurement tools','Shared decision-making','Health literacy interventions'] },
+    { name: 'Surgical/Procedural', queries: ['surgery','surgical','procedure','endoscopy','minimally invasive'], icon: '\uD83C\uDFE5',
+      subQuestions: ['Surgical vs conservative management','Minimally invasive procedures','Timing of surgical intervention','Post-operative management','Endoscopic interventions'] },
+    { name: 'Special Populations', queries: ['pediatric','pregnancy','elderly','comorbid','adolescent'], icon: '\uD83D\uDC76',
+      subQuestions: ['Pediatric management','Pregnancy and lactation','Elderly / geriatric considerations','Patients with renal impairment','Patients with hepatic impairment','Immunocompromised patients'] },
+    { name: 'Rehabilitation', queries: ['rehabilitation','physical therapy','recovery','functional outcomes'], icon: '\uD83C\uDFC3',
+      subQuestions: ['Physical rehabilitation programs','Occupational therapy','Cognitive rehabilitation','Return to work / function','Telerehabilitation'] },
+    { name: 'Psychosocial', queries: ['psychosocial','mental health','depression','anxiety','psychological'], icon: '\uD83E\uDDE0',
+      subQuestions: ['Psychological screening and assessment','Psychosocial interventions','Mental health comorbidity management','Support groups and peer support','Caregiver burden and support'] },
+    { name: 'Cost-Effectiveness', queries: ['cost-effectiveness','economic evaluation','cost-utility','budget impact'], icon: '\uD83D\uDCB0',
+      subQuestions: ['Cost-effectiveness of interventions','Budget impact analysis','Resource utilization patterns','Health technology assessment','Value-based care models'] },
+    { name: 'Implementation', queries: ['implementation','quality improvement','clinical practice','barriers facilitators'], icon: '\u2699\uFE0F',
+      subQuestions: ['Implementation strategies','Barriers and facilitators','Quality improvement interventions','Clinical audit and feedback','Knowledge translation'] }
   ];
 
-  const domainCounts = [];
+  // Step 2: Query PubMed for evidence volume per domain
+  const domainResults = [];
   for (const d of domains) {
     try {
       const q = encodeURIComponent(topic + ' AND (' + d.queries.join(' OR ') + ')');
       const res = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=0&term=' + q);
       const data = await res.json();
       const count = parseInt(data.esearchresult.count) || 0;
-      domainCounts.push({ ...d, count });
+      domainResults.push({ ...d, count });
       if (count > 0) addLog('&nbsp;&nbsp;' + d.icon + ' ' + d.name + ': <strong>' + count.toLocaleString() + '</strong> articles');
-    } catch(e) { domainCounts.push({ ...d, count: 0 }); }
+      await new Promise(r => setTimeout(r, 150));
+    } catch(e) { domainResults.push({ ...d, count: 0 }); }
   }
 
-  domainCounts.sort((a, b) => b.count - a.count);
-  const topDomains = domainCounts.filter(d => d.count > 0).slice(0, numPicos);
-  addLog('<br>\u{1F3AF} <strong>Step 2:</strong> Selected top ' + topDomains.length + ' domains by evidence volume');
+  // Step 3: Smart allocation — proportional distribution based on evidence weight
+  addLog('<br>\uD83E\uDDE0 <strong>Step 2:</strong> Calculating evidence-weighted PICO allocation...');
+  const activeDomains = domainResults.filter(d => d.count > 0).sort((a, b) => b.count - a.count);
+  const totalEvidence = activeDomains.reduce((s, d) => s + d.count, 0);
 
-  addLog('<br>\u{1F9E0} <strong>Step 3:</strong> Generating PICO questions...');
-  const picos = [];
+  // Calculate proportional allocation with minimum 1 and maximum cap
+  let allocation = [];
+  if (activeDomains.length === 0) {
+    addLog('\u26A0\uFE0F No PubMed evidence found. Using balanced default allocation.');
+    allocation = domains.slice(0, Math.min(numPicos, domains.length)).map(d => ({ ...d, count: 0, slots: 1 }));
+  } else {
+    // Phase 1: Calculate raw proportional shares
+    let remaining = numPicos;
+    const maxPerDomain = Math.max(2, Math.ceil(numPicos * 0.4)); // No domain gets >40%
+
+    activeDomains.forEach(d => {
+      const rawShare = (d.count / totalEvidence) * numPicos;
+      d._rawShare = rawShare;
+    });
+
+    // Phase 2: Assign at least 1 to top domains, then distribute remainder proportionally
+    const topN = Math.min(activeDomains.length, numPicos);
+    const topDomains = activeDomains.slice(0, topN);
+
+    // Give each qualifying domain at least 1 slot
+    topDomains.forEach(d => { d.slots = 1; remaining--; });
+
+    // Distribute remaining slots proportionally among top domains
+    if (remaining > 0) {
+      const topTotal = topDomains.reduce((s, d) => s + d.count, 0);
+      // Calculate extra shares
+      let extras = topDomains.map(d => ({
+        domain: d,
+        share: (d.count / topTotal) * remaining
+      }));
+
+      // Assign integer parts first
+      extras.forEach(e => {
+        const intPart = Math.floor(e.share);
+        const extra = Math.min(intPart, maxPerDomain - e.domain.slots);
+        e.domain.slots += extra;
+        remaining -= extra;
+        e.remainder = e.share - intPart;
+      });
+
+      // Distribute leftover by largest remainder
+      extras.sort((a, b) => b.remainder - a.remainder);
+      for (let e of extras) {
+        if (remaining <= 0) break;
+        if (e.domain.slots < maxPerDomain) {
+          e.domain.slots++;
+          remaining--;
+        }
+      }
+    }
+
+    allocation = topDomains;
+  }
+
+  // Log the allocation
+  allocation.forEach(d => {
+    const bar = '\u2588'.repeat(d.slots) + '\u2591'.repeat(Math.max(0, 8 - d.slots));
+    addLog('&nbsp;&nbsp;' + d.icon + ' ' + d.name + ': <strong>' + d.slots + ' PICO' + (d.slots > 1 ? 's' : '') + '</strong> ' + bar + ' (' + d.count.toLocaleString() + ' articles)');
+  });
+
+  // Step 4: Fetch sample articles for each domain to inform sub-question generation
+  addLog('<br>\uD83D\uDCDD <strong>Step 3:</strong> Generating specific PICO questions from literature...');
   const topicParts = topic.split(/\s+in\s+|\s+and\s+|\s+with\s+|\s+for\s+/i);
   const condition = topicParts[0] || topic;
   const context = topicParts[1] || '';
+  const picos = [];
+  let picoNum = 1;
 
-  for (let i = 0; i < topDomains.length; i++) {
-    const d = topDomains[i];
-    let pico = generatePICOForDomain(topic, condition, context, d, i + 1);
-    pico.evidenceCount = d.count;
-    picos.push(pico);
-    addLog('&nbsp;&nbsp;' + d.icon + ' PICO ' + (i+1) + ': <strong>' + d.name + '</strong> \u2014 ' + d.count.toLocaleString() + ' studies');
-  }
+  for (const d of allocation) {
+    // Fetch top article titles for this domain to inform sub-questions
+    let articleTitles = [];
+    try {
+      const q = encodeURIComponent(topic + ' AND (' + d.queries.join(' OR ') + ')');
+      const searchRes = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&retmode=json&retmax=15&sort=relevance&term=' + q);
+      const searchData = await searchRes.json();
+      const ids = (searchData.esearchresult && searchData.esearchresult.idlist) || [];
+      if (ids.length > 0) {
+        const summRes = await fetch('https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id=' + ids.join(','));
+        const summData = await summRes.json();
+        ids.forEach(id => {
+          if (summData.result && summData.result[id] && summData.result[id].title) {
+            articleTitles.push(summData.result[id].title);
+          }
+        });
+      }
+      await new Promise(r => setTimeout(r, 200));
+    } catch(e) { /* continue with template-based generation */ }
 
-  if (picos.length < numPicos) {
-    const genericDomains = ['Epidemiology & Burden','Cost-Effectiveness','Health Equity','Rehabilitation','Nutrition & Diet','Psychosocial Support','Palliative Care','Comorbidity Management','Digital Health & Telemedicine','Pharmacovigilance','Health Literacy','Caregiver Support','Workforce & Training','Implementation Science','Cultural & Religious Considerations','Emergency & Acute Care','Transition of Care','Shared Decision-Making','Bioethics & Consent','Community-Based Interventions','Environmental & Occupational Factors','Genomics & Personalized Medicine','Vaccination & Immunization','Antimicrobial Stewardship','Maternal & Neonatal','Adolescent Health','Geriatric Care','Rural & Remote Access','Quality Improvement','Patient Safety'];
-    for (let i = picos.length; i < numPicos && (i - picos.length) < genericDomains.length; i++) {
+    // Generate sub-questions for this domain
+    for (let s = 0; s < d.slots; s++) {
+      const subQ = selectSubQuestion(d, s, articleTitles, condition, context);
       picos.push({
-        id: 'pico-ai-' + (i+1), num: i + 1,
-        domain: genericDomains[i - topDomains.length], icon: '\u{1F4CA}',
-        P: 'Adults with ' + topic + ' in Saudi Arabia',
-        I: '[To be defined by guideline panel]',
-        C: 'Standard care / no intervention',
-        O: 'Disease burden, resource utilization, equity outcomes',
-        S: 'Saudi healthcare system', T: 'Variable',
-        designs: 'All designs', context: 'Saudi/GCC healthcare context', evidenceCount: 0
+        id: 'pico-ai-' + picoNum,
+        num: picoNum,
+        domain: d.name,
+        icon: d.icon,
+        P: subQ.P,
+        I: subQ.I,
+        C: subQ.C,
+        O: subQ.O,
+        S: 'MOH / KSUMC tertiary and secondary hospitals',
+        T: d.name === 'Prognosis' ? '\u226512 months' : '\u226524 weeks',
+        designs: subQ.designs,
+        context: 'Saudi/GCC epidemiology, SFDA formulary, Ramadan considerations',
+        evidenceCount: d.count,
+        _subTopic: subQ.subTopic
       });
+      addLog('&nbsp;&nbsp;' + d.icon + ' PICO ' + picoNum + ': <strong>' + d.name + '</strong> \u2014 ' + subQ.subTopic);
+      picoNum++;
     }
   }
 
   window._picoData.ai = picos;
   renderAIPicos(picos);
   updatePicoSummary();
-  addLog('<br><div style="padding:8px 12px;background:#D1FAE5;border-radius:6px">\u2705 <strong>' + picos.length + ' PICO questions generated.</strong> Review and edit each one \u2014 click any field to modify.</div>');
+  addLog('<br><div style="padding:8px 12px;background:#D1FAE5;border-radius:6px">\u2705 <strong>' + picos.length + ' evidence-guided PICO questions generated.</strong> Distribution based on ' + totalEvidence.toLocaleString() + ' total PubMed articles. Click any field to edit.</div>');
   saveWorkflowData();
 }
 
-function generatePICOForDomain(topic, condition, context, domain, num) {
+function selectSubQuestion(domain, slotIdx, articleTitles, condition, context) {
   const pop = context ? condition + ' in patients with ' + context : 'Adults with ' + condition + ' in Saudi Arabia';
-  const picoTemplates = {
-    'Diagnosis': {
-      I: 'Novel diagnostic biomarkers / imaging modalities for ' + condition,
-      C: 'Standard diagnostic criteria / conventional testing',
-      O: 'Critical: Sensitivity, specificity, diagnostic accuracy\nImportant: Time to diagnosis, cost\nLow: Patient acceptability'
-    },
-    'Treatment/Pharmacotherapy': {
-      I: 'Pharmacological interventions for ' + condition,
-      C: 'Standard of care / placebo / active comparator',
-      O: 'Critical: Disease remission, symptom improvement\nImportant: Adverse events, quality of life\nLow: Treatment adherence'
-    },
-    'Screening': {
-      I: 'Systematic screening protocols for ' + condition,
-      C: 'No screening / opportunistic screening',
-      O: 'Critical: Early detection rate, stage at diagnosis\nImportant: False positive rate, cost per case detected\nLow: Patient anxiety'
-    },
-    'Prevention': {
-      I: 'Preventive strategies (pharmacological/behavioral) for ' + condition,
-      C: 'No prevention / standard care',
-      O: 'Critical: Incidence reduction, NNT\nImportant: Adverse effects, adherence\nLow: Cost-effectiveness'
-    },
-    'Prognosis': {
-      I: 'Prognostic factors / risk stratification tools for ' + condition,
-      C: 'No risk stratification / standard follow-up',
-      O: 'Critical: Mortality, disease progression\nImportant: Hospitalization, complications\nLow: Healthcare utilization'
-    },
-    'Management/Guidelines': {
-      I: 'Structured management pathways / clinical protocols for ' + condition,
-      C: 'Usual care / unstructured management',
-      O: 'Critical: Clinical outcomes, guideline adherence\nImportant: Patient satisfaction, resource use\nLow: Provider workload'
-    },
-    'Monitoring': {
-      I: 'Biomarker-guided monitoring / structured follow-up for ' + condition,
-      C: 'Symptom-based monitoring / standard intervals',
-      O: 'Critical: Disease control, early relapse detection\nImportant: Unnecessary testing reduction\nLow: Patient convenience'
-    },
-    'Patient Education/QoL': {
-      I: 'Patient education programs / self-management interventions for ' + condition,
-      C: 'Standard information / no structured education',
-      O: 'Critical: Quality of life, self-efficacy\nImportant: Symptom burden, treatment adherence\nLow: Healthcare utilization'
-    },
-    'Surgical/Procedural': {
-      I: 'Surgical/procedural interventions for ' + condition,
-      C: 'Conservative management / medical therapy alone',
-      O: 'Critical: Procedure success, complication rate\nImportant: Recovery time, long-term outcomes\nLow: Cost, hospital stay'
-    },
-    'Special Populations': {
-      I: 'Adapted management strategies for ' + condition + ' in special populations',
-      C: 'Standard adult management protocols',
-      O: 'Critical: Safety, efficacy in target population\nImportant: Dosing adjustments, monitoring frequency\nLow: Caregiver burden'
-    }
-  };
-  const t = picoTemplates[domain.name] || picoTemplates['Treatment/Pharmacotherapy'];
+  const subQs = domain.subQuestions || [];
+  const subTopic = subQs[slotIdx % subQs.length] || domain.name;
+
+  // Try to extract specific interventions from article titles
+  const extractedTerms = extractKeyTermsFromTitles(articleTitles, slotIdx, domain.name);
+
+  const templates = {
+    'Treatment/Pharmacotherapy': [
+      { sub: 'First-line pharmacotherapy', I: 'First-line pharmacological agents for ' + condition, C: 'Placebo / standard care', designs: 'RCTs, SR/MA', O: 'Critical: Disease remission, response rate\nImportant: Adverse events, discontinuation\nLow: Cost' },
+      { sub: 'Second-line / rescue therapy', I: 'Second-line or rescue therapies for refractory ' + condition, C: 'Alternative second-line agent / continued first-line', designs: 'RCTs, cohort studies', O: 'Critical: Response in refractory cases\nImportant: Safety profile, time to response\nLow: Adherence' },
+      { sub: 'Combination therapy', I: 'Combination pharmacotherapy regimens for ' + condition, C: 'Monotherapy / single-agent treatment', designs: 'RCTs', O: 'Critical: Additive/synergistic efficacy\nImportant: Adverse event profile, drug interactions\nLow: Pill burden' },
+      { sub: 'Novel / emerging agents', I: 'Novel or emerging therapeutic agents for ' + condition, C: 'Current standard-of-care agents', designs: 'RCTs, phase II/III trials', O: 'Critical: Efficacy, safety\nImportant: Long-term data, availability\nLow: Cost-effectiveness' },
+      { sub: 'Drug dosing and optimization', I: 'Dose optimization strategies for ' + condition + ' therapies', C: 'Standard fixed dosing', designs: 'RCTs, pharmacokinetic studies', O: 'Critical: Therapeutic response, toxicity\nImportant: Drug levels, dose-response relationship\nLow: Convenience' },
+      { sub: 'Biologic therapy', I: 'Biologic / targeted therapies for ' + condition, C: 'Conventional therapy / placebo', designs: 'RCTs, SR/MA', O: 'Critical: Clinical remission, mucosal healing\nImportant: Immunogenicity, infections\nLow: Administration route' },
+      { sub: 'Non-pharmacological treatment', I: 'Non-pharmacological interventions (dietary, supplements) for ' + condition, C: 'Pharmacotherapy alone / placebo', designs: 'RCTs, cohort', O: 'Critical: Symptom improvement, disease markers\nImportant: Adherence, quality of life\nLow: Cost' }
+    ],
+    'Diagnosis': [
+      { sub: 'Laboratory diagnostic tests', I: 'Laboratory tests (blood, stool, urine) for diagnosing ' + condition, C: 'Reference standard / gold standard test', designs: 'Cross-sectional, diagnostic accuracy studies', O: 'Critical: Sensitivity, specificity, AUC\nImportant: PPV, NPV, time to result\nLow: Cost per test' },
+      { sub: 'Imaging modalities', I: 'Imaging modalities (ultrasound, CT, MRI, endoscopy) for ' + condition, C: 'Standard diagnostic workup', designs: 'Cross-sectional, cohort', O: 'Critical: Diagnostic accuracy, lesion detection\nImportant: Radiation exposure, invasiveness\nLow: Availability' },
+      { sub: 'Point-of-care testing', I: 'Point-of-care / rapid diagnostic tests for ' + condition, C: 'Conventional laboratory testing', designs: 'Diagnostic accuracy studies', O: 'Critical: Sensitivity, specificity\nImportant: Turnaround time, ease of use\nLow: Cost' },
+      { sub: 'Differential diagnosis criteria', I: 'Clinical criteria and scoring systems for differentiating subtypes of ' + condition, C: 'Expert clinical judgment alone', designs: 'Cohort, validation studies', O: 'Critical: Diagnostic accuracy, classification\nImportant: Inter-rater reliability\nLow: Complexity' },
+      { sub: 'Histological / pathological diagnosis', I: 'Histological/pathological markers for confirming ' + condition, C: 'Clinical diagnosis alone', designs: 'Cross-sectional, cohort', O: 'Critical: Diagnostic yield, concordance\nImportant: Biopsy adequacy, turnaround time\nLow: Procedure risk' },
+      { sub: 'Novel biomarkers for diagnosis', I: 'Novel or emerging biomarkers for early detection of ' + condition, C: 'Established diagnostic markers', designs: 'Cohort, discovery/validation studies', O: 'Critical: Sensitivity for early disease\nImportant: Specificity, reproducibility\nLow: Assay availability' }
+    ],
+    'Screening': [
+      { sub: 'Population-level screening programs', I: 'Universal screening programs for ' + condition + ' in general population', C: 'No systematic screening / case-finding only', designs: 'RCTs, cohort studies, modeling', O: 'Critical: Detection rate, stage shift\nImportant: False positive rate, cost per case\nLow: Screening uptake' },
+      { sub: 'High-risk group targeted screening', I: 'Targeted screening in high-risk populations for ' + condition, C: 'General population screening / no screening', designs: 'Cohort, RCTs', O: 'Critical: Yield in high-risk group\nImportant: Risk stratification accuracy\nLow: Resource allocation' },
+      { sub: 'Screening interval and frequency', I: 'Optimal screening intervals for ' + condition, C: 'Current recommended intervals / annual screening', designs: 'Cohort, modeling studies', O: 'Critical: Interval cancer/miss rate\nImportant: Overdiagnosis, cost\nLow: Patient adherence' },
+      { sub: 'Cost-effectiveness of screening strategies', I: 'Health economic evaluation of screening strategies for ' + condition, C: 'No screening / alternative strategies', designs: 'Economic evaluations, modeling', O: 'Critical: ICER, NNS\nImportant: Budget impact, equity\nLow: Sustainability' },
+      { sub: 'Screening tool validation', I: 'Validation of screening instruments/questionnaires for ' + condition, C: 'Reference diagnostic standard', designs: 'Cross-sectional, validation studies', O: 'Critical: Sensitivity, specificity\nImportant: Feasibility, acceptability\nLow: Time to administer' }
+    ],
+    'Prevention': [
+      { sub: 'Primary prevention strategies', I: 'Primary prevention strategies for ' + condition, C: 'No prevention / standard care', designs: 'RCTs, cohort', O: 'Critical: Incidence reduction, NNT\nImportant: Adverse effects\nLow: Adherence' },
+      { sub: 'Secondary prevention', I: 'Secondary prevention to prevent progression/recurrence of ' + condition, C: 'No secondary prevention', designs: 'RCTs, cohort', O: 'Critical: Recurrence rate, progression\nImportant: Adverse effects, adherence\nLow: Cost' },
+      { sub: 'Chemoprevention', I: 'Chemopreventive agents for ' + condition, C: 'Placebo / no chemoprevention', designs: 'RCTs', O: 'Critical: Risk reduction, NNT\nImportant: Long-term safety\nLow: Compliance' },
+      { sub: 'Lifestyle / behavioral prevention', I: 'Lifestyle/dietary interventions to prevent ' + condition, C: 'No lifestyle modification', designs: 'RCTs, cohort', O: 'Critical: Incidence reduction\nImportant: Sustainability, quality of life\nLow: Cost' },
+      { sub: 'Vaccination / immunoprophylaxis', I: 'Vaccination or immunoprophylaxis against ' + condition, C: 'No vaccination / standard care', designs: 'RCTs, case-control', O: 'Critical: Efficacy, seroconversion\nImportant: Safety, durability\nLow: Access' }
+    ],
+    'Prognosis': [
+      { sub: 'Prognostic factors and risk scores', I: 'Prognostic factors / validated risk scores for ' + condition, C: 'No formal risk stratification', designs: 'Cohort, validation studies', O: 'Critical: Discrimination (C-statistic), calibration\nImportant: Clinical utility, reclassification\nLow: Ease of use' },
+      { sub: 'Long-term outcomes and survival', I: 'Long-term clinical outcomes and survival in ' + condition, C: 'General population / matched controls', designs: 'Cohort, registry studies', O: 'Critical: Mortality, disease-free survival\nImportant: Morbidity, functional status\nLow: Quality of life' },
+      { sub: 'Disease progression predictors', I: 'Predictors of disease progression in ' + condition, C: 'Stable disease / remission', designs: 'Cohort, longitudinal studies', O: 'Critical: Time to progression, risk factors\nImportant: Biomarker dynamics\nLow: Healthcare costs' },
+      { sub: 'Complication risk stratification', I: 'Risk stratification for complications of ' + condition, C: 'No formal risk assessment', designs: 'Cohort, case-control', O: 'Critical: Complication rates by risk group\nImportant: Preventable fraction\nLow: Resource use' },
+      { sub: 'Recurrence and relapse prediction', I: 'Predictors of recurrence/relapse in ' + condition, C: 'Clinical monitoring alone', designs: 'Cohort, longitudinal', O: 'Critical: Relapse rate, time to relapse\nImportant: Early relapse markers\nLow: Cost of surveillance' }
+    ]
+  ,
+    'Monitoring': [
+      { sub: 'Biomarker-guided monitoring', I: 'Biomarker-guided monitoring protocols for ' + condition, C: 'Symptom-based / fixed-interval monitoring', designs: 'RCTs, cohort', O: 'Critical: Early relapse detection, disease control\nImportant: Unnecessary testing reduction\nLow: Cost' },
+      { sub: 'Imaging-based surveillance', I: 'Imaging-based surveillance strategies for ' + condition, C: 'Clinical assessment alone', designs: 'Cohort, diagnostic studies', O: 'Critical: Detection of complications/progression\nImportant: Radiation exposure, cost\nLow: Patient burden' },
+      { sub: 'Optimal monitoring intervals', I: 'Optimal monitoring intervals and frequency for ' + condition, C: 'Current standard monitoring schedules', designs: 'Cohort, modeling studies', O: 'Critical: Missed events, overmonitoring\nImportant: Resource use, patient adherence\nLow: Convenience' },
+      { sub: 'Therapeutic drug monitoring', I: 'Therapeutic drug monitoring for ' + condition + ' medications', C: 'Empiric dosing without drug levels', designs: 'RCTs, pharmacokinetic studies', O: 'Critical: Drug efficacy, toxicity prevention\nImportant: Cost-effectiveness\nLow: Lab turnaround time' },
+      { sub: 'Remote / digital monitoring', I: 'Remote/digital monitoring and telemedicine for ' + condition, C: 'In-person clinic monitoring', designs: 'RCTs, cohort', O: 'Critical: Clinical outcomes, patient safety\nImportant: Patient satisfaction, access\nLow: Technology costs' }
+    ],
+    'Patient Education/QoL': [
+      { sub: 'Structured patient education programs', I: 'Structured education programs for patients with ' + condition, C: 'Standard information provision', designs: 'RCTs, quasi-experimental', O: 'Critical: Disease knowledge, self-efficacy\nImportant: Adherence, quality of life\nLow: Healthcare utilization' },
+      { sub: 'Self-management interventions', I: 'Self-management support interventions for ' + condition, C: 'Usual care / no self-management support', designs: 'RCTs', O: 'Critical: Self-management behaviors, clinical outcomes\nImportant: Patient confidence\nLow: Cost' },
+      { sub: 'Quality of life measurement', I: 'Validated QoL instruments for assessing ' + condition + ' impact', C: 'Generic QoL measures / no formal assessment', designs: 'Validation studies, cross-sectional', O: 'Critical: Responsiveness, validity\nImportant: Feasibility, cultural adaptation\nLow: Completion time' },
+      { sub: 'Shared decision-making', I: 'Shared decision-making tools for ' + condition + ' management', C: 'Clinician-directed decisions', designs: 'RCTs, mixed methods', O: 'Critical: Decision quality, decisional conflict\nImportant: Patient satisfaction\nLow: Consultation time' },
+      { sub: 'Health literacy interventions', I: 'Health literacy-adapted interventions for ' + condition, C: 'Standard health materials', designs: 'RCTs, quasi-experimental', O: 'Critical: Comprehension, adherence\nImportant: Health outcomes by literacy level\nLow: Material development cost' }
+    ],
+    'Surgical/Procedural': [
+      { sub: 'Surgical vs conservative management', I: 'Surgical intervention versus conservative management for ' + condition, C: 'Medical therapy alone', designs: 'RCTs, cohort', O: 'Critical: Clinical remission, complication rates\nImportant: Recovery time, long-term outcomes\nLow: Cost, hospital stay' },
+      { sub: 'Minimally invasive procedures', I: 'Minimally invasive / laparoscopic approaches for ' + condition, C: 'Open surgery / conventional procedures', designs: 'RCTs, cohort', O: 'Critical: Efficacy, complication rate\nImportant: Recovery time, cosmesis\nLow: Equipment cost' },
+      { sub: 'Timing of surgical intervention', I: 'Optimal timing of surgical intervention for ' + condition, C: 'Delayed surgery / medical therapy first', designs: 'Cohort, RCTs', O: 'Critical: Outcomes by timing, emergency conversion\nImportant: Post-operative complications\nLow: Resource planning' },
+      { sub: 'Post-operative management', I: 'Post-operative management protocols after surgery for ' + condition, C: 'Standard post-operative care', designs: 'RCTs, cohort', O: 'Critical: Surgical site complications, readmission\nImportant: Pain management, functional recovery\nLow: Length of stay' },
+      { sub: 'Endoscopic interventions', I: 'Endoscopic therapeutic interventions for ' + condition, C: 'Medical therapy / surgical intervention', designs: 'RCTs, cohort', O: 'Critical: Procedural success, complications\nImportant: Recurrence, repeat procedures\nLow: Cost per procedure' }
+    ],
+    'Special Populations': [
+      { sub: 'Pediatric management', I: 'Management of ' + condition + ' in pediatric patients', C: 'Adult protocols adapted / no specific pediatric protocol', designs: 'RCTs, cohort', O: 'Critical: Efficacy, growth and development\nImportant: Age-appropriate dosing, safety\nLow: Palatability' },
+      { sub: 'Pregnancy and lactation', I: 'Management of ' + condition + ' during pregnancy and lactation', C: 'Standard non-pregnancy management', designs: 'Cohort, case series', O: 'Critical: Maternal and fetal safety\nImportant: Teratogenicity, drug transfer\nLow: Breastfeeding compatibility' },
+      { sub: 'Elderly / geriatric considerations', I: 'Age-adapted management of ' + condition + ' in elderly patients', C: 'Standard adult dosing and protocols', designs: 'Cohort, sub-group analyses', O: 'Critical: Safety, polypharmacy interactions\nImportant: Functional outcomes, falls risk\nLow: Simplified regimens' },
+      { sub: 'Renal impairment', I: 'Management of ' + condition + ' in patients with renal impairment', C: 'Standard dosing without renal adjustment', designs: 'Cohort, pharmacokinetic studies', O: 'Critical: Drug safety, dose adjustments\nImportant: Renal function preservation\nLow: Monitoring frequency' },
+      { sub: 'Immunocompromised patients', I: 'Management of ' + condition + ' in immunocompromised patients', C: 'Immunocompetent patient protocols', designs: 'Cohort, case series', O: 'Critical: Efficacy, infection risk\nImportant: Immunosuppression management\nLow: Vaccination timing' },
+      { sub: 'Comorbid patients', I: 'Management of ' + condition + ' with multiple comorbidities', C: 'Single-disease management approach', designs: 'Cohort, pragmatic trials', O: 'Critical: Integrated outcomes, drug interactions\nImportant: Treatment burden\nLow: Care coordination cost' }
+    ],
+    'Rehabilitation': [
+      { sub: 'Physical rehabilitation programs', I: 'Physical rehabilitation programs for ' + condition, C: 'No formal rehabilitation / usual care', designs: 'RCTs, cohort', O: 'Critical: Functional recovery, physical capacity\nImportant: Quality of life, return to work\nLow: Program adherence' },
+      { sub: 'Occupational therapy', I: 'Occupational therapy interventions for ' + condition, C: 'Standard care without OT', designs: 'RCTs, quasi-experimental', O: 'Critical: Functional independence, ADL performance\nImportant: Patient satisfaction\nLow: Service availability' },
+      { sub: 'Telerehabilitation', I: 'Telerehabilitation / remote rehabilitation for ' + condition, C: 'In-person rehabilitation', designs: 'RCTs, equivalence studies', O: 'Critical: Functional outcomes equivalence\nImportant: Access, patient preference\nLow: Technology requirements' }
+    ],
+    'Psychosocial': [
+      { sub: 'Psychological screening', I: 'Routine psychological screening in patients with ' + condition, C: 'No formal screening / ad hoc assessment', designs: 'Cross-sectional, cohort', O: 'Critical: Detection of depression/anxiety\nImportant: Referral rates, treatment initiation\nLow: Screening time' },
+      { sub: 'Psychosocial interventions', I: 'Psychosocial interventions (CBT, counseling) for ' + condition, C: 'Standard medical care without psychological support', designs: 'RCTs', O: 'Critical: Psychological outcomes, disease coping\nImportant: Quality of life, adherence\nLow: Access to therapists' },
+      { sub: 'Caregiver support', I: 'Caregiver support programs for families of ' + condition + ' patients', C: 'No formal caregiver support', designs: 'RCTs, mixed methods', O: 'Critical: Caregiver burden, mental health\nImportant: Patient outcomes\nLow: Program cost' }
+    ],
+    'Cost-Effectiveness': [
+      { sub: 'Cost-effectiveness of interventions', I: 'Cost-effectiveness analysis of major interventions for ' + condition, C: 'Current standard of care', designs: 'Economic evaluations, decision models', O: 'Critical: ICER, QALY gain\nImportant: Budget impact, WTP threshold\nLow: Sensitivity to assumptions' },
+      { sub: 'Budget impact analysis', I: 'Budget impact of implementing new ' + condition + ' treatments', C: 'Current healthcare expenditure patterns', designs: 'Budget impact models', O: 'Critical: Total cost impact over 3-5 years\nImportant: Per-patient cost, uptake scenarios\nLow: Indirect costs' },
+      { sub: 'Resource utilization', I: 'Healthcare resource utilization patterns in ' + condition, C: 'General population / chronic disease average', designs: 'Cohort, claims data analyses', O: 'Critical: Direct costs, hospitalizations\nImportant: Outpatient visits, medications\nLow: Productivity loss' }
+    ],
+    'Implementation': [
+      { sub: 'Implementation strategies', I: 'Evidence-based implementation strategies for ' + condition + ' guidelines', C: 'Passive guideline dissemination', designs: 'Implementation studies, cluster RCTs', O: 'Critical: Guideline adherence, clinical outcomes\nImportant: Sustainability, scalability\nLow: Implementation cost' },
+      { sub: 'Barriers and facilitators', I: 'Barriers and facilitators to optimal ' + condition + ' management', C: 'N/A (descriptive)', designs: 'Qualitative, mixed methods, surveys', O: 'Critical: Modifiable barriers identified\nImportant: Stakeholder perspectives\nLow: Contextual factors' },
+      { sub: 'Quality improvement', I: 'Quality improvement interventions for ' + condition + ' care pathways', C: 'Pre-intervention / usual care', designs: 'Before-after, interrupted time series', O: 'Critical: Process measures, clinical outcomes\nImportant: Sustainability\nLow: Staff satisfaction' }
+    ],
+    'Management/Guidelines': [
+      { sub: 'Clinical pathway design', I: 'Structured clinical pathways for managing ' + condition, C: 'Unstructured / physician-directed management', designs: 'Cohort, before-after studies', O: 'Critical: Guideline concordance, outcomes\nImportant: Length of stay, costs\nLow: Provider satisfaction' },
+      { sub: 'Multidisciplinary care models', I: 'Multidisciplinary team-based care for ' + condition, C: 'Single-physician management', designs: 'RCTs, cohort', O: 'Critical: Clinical outcomes, care quality\nImportant: Patient experience\nLow: Coordination overhead' },
+      { sub: 'Stepwise management algorithms', I: 'Stepwise/treat-to-target algorithms for ' + condition, C: 'Clinician judgment-based management', designs: 'RCTs, pragmatic trials', O: 'Critical: Target achievement, remission rates\nImportant: Time to target, safety\nLow: Visit frequency' },
+      { sub: 'Acute vs chronic management', I: 'Differentiated acute vs chronic management strategies for ' + condition, C: 'Uniform management approach', designs: 'RCTs, cohort', O: 'Critical: Acute response, long-term stability\nImportant: Transition protocols\nLow: Resource shifts' },
+      { sub: 'Guideline adherence', I: 'Interventions to improve guideline adherence for ' + condition, C: 'No adherence support / passive dissemination', designs: 'Cluster RCTs, implementation studies', O: 'Critical: Adherence rates, patient outcomes\nImportant: Sustainability\nLow: Implementation cost' }
+    ]};
+
+  // Get the appropriate template
+  var domainTemplates = templates[domain.name];
+  var tpl;
+  if (domainTemplates && domainTemplates[slotIdx]) {
+    tpl = domainTemplates[slotIdx];
+  } else if (domainTemplates) {
+    tpl = domainTemplates[slotIdx % domainTemplates.length];
+  } else {
+    // Generic template for domains not in the map
+    tpl = {
+      sub: subTopic,
+      I: subTopic + ' for ' + condition,
+      C: 'Standard care / no intervention',
+      designs: 'RCTs + cohort studies',
+      O: 'Critical: Primary clinical outcome\nImportant: Safety, feasibility\nLow: Cost, acceptability'
+    };
+  }
+
+  // Enhance intervention text with article-derived terms if available
+  var enhancedI = tpl.I;
+  if (extractedTerms && extractedTerms.length > 0) {
+    enhancedI = tpl.I + ' (e.g., ' + extractedTerms.slice(0, 3).join(', ') + ')';
+  }
+
   return {
-    id: 'pico-ai-' + num, num: num, domain: domain.name, icon: domain.icon,
-    P: pop, I: t.I, C: t.C, O: t.O,
-    S: 'MOH / KSUMC tertiary and secondary hospitals',
-    T: domain.name === 'Prognosis' ? '\u226512 months' : '\u226524 weeks',
-    designs: domain.name === 'Diagnosis' ? 'Cross-sectional / cohort' : domain.name === 'Treatment/Pharmacotherapy' ? 'RCTs only' : 'RCTs + cohorts',
-    context: 'Saudi/GCC epidemiology, SFDA formulary, Ramadan considerations',
-    evidenceCount: 0
+    P: pop,
+    I: enhancedI,
+    C: tpl.C,
+    O: tpl.O,
+    designs: tpl.designs || 'RCTs + cohorts',
+    subTopic: tpl.sub || subTopic
   };
+}
+
+function extractKeyTermsFromTitles(titles, slotIdx, domainName) {
+  if (!titles || !titles.length) return [];
+  // Extract frequently mentioned clinical terms from article titles
+  var stopWords = ['the','and','for','with','from','that','this','was','were','are','been','have','has','its','not','but','what','all','can','had','her','one','our','out','new','use','how','may','than','each','which','their','will','about','many','them','then','some','into','very','when','come','made','find','here','more','after','also','did','get','two','like','these','other','over','such','only','most','back','still','just','where','your','study','patients','results','effects','treatment','clinical','analysis','review','associated','compared','outcome','group','data','studies','trial','among','using','based','between'];
+  var wordCounts = {};
+  titles.forEach(function(title) {
+    var words = title.toLowerCase().replace(/[^a-z\s-]/g, ' ').split(/\s+/);
+    // Also extract 2-word phrases
+    for (var i = 0; i < words.length; i++) {
+      var w = words[i];
+      if (w.length > 3 && stopWords.indexOf(w) === -1) {
+        wordCounts[w] = (wordCounts[w] || 0) + 1;
+      }
+      if (i < words.length - 1) {
+        var phrase = words[i] + ' ' + words[i+1];
+        if (words[i].length > 3 && words[i+1].length > 3 && stopWords.indexOf(words[i]) === -1 && stopWords.indexOf(words[i+1]) === -1) {
+          wordCounts[phrase] = (wordCounts[phrase] || 0) + 1;
+        }
+      }
+    }
+  });
+  // Sort by frequency, return top terms that appear in multiple articles
+  var sorted = Object.entries(wordCounts).filter(function(e) { return e[1] >= 2; }).sort(function(a, b) { return b[1] - a[1]; });
+  // Skip terms that are too generic (part of the domain name)
+  var domainLower = domainName.toLowerCase();
+  var filtered = sorted.filter(function(e) { return domainLower.indexOf(e[0]) === -1; });
+  // Return terms offset by slotIdx to get variety across sub-questions
+  var offset = slotIdx * 3;
+  return filtered.slice(offset, offset + 5).map(function(e) { return e[0]; });
 }
 
 function renderAIPicos(picos) {
