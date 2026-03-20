@@ -1878,6 +1878,10 @@ async function aiGeneratePICOs() {
   }
 
   window._picoData.ai = picos;
+  // Clear stale downstream data so search/GRADE/EtR regenerate from new PICOs
+  window._picoSearchResults = {};
+  window._picoGradeData = {};
+  window._picoEtRData = {};
   renderAIPicos(picos);
   updatePicoSummary();
   addLog('<br><div style="padding:8px 12px;background:#D1FAE5;border-radius:6px">\u2705 <strong>' + picos.length + ' evidence-guided PICO questions generated.</strong> Distribution based on ' + totalEvidence.toLocaleString() + ' total PubMed articles. Click any field to edit.</div>');
@@ -3506,8 +3510,8 @@ function generateFullCPGReport() {
   picos.forEach(function(pico, idx) {
     var gd = window._picoGradeData[idx] || {};
     report += '<h4 style="margin-top:14px">PICO ' + (idx+1) + ': ' + pico.domain + '</h4>';
-    report += '<p><strong>Population:</strong> ' + pico.population + '<br><strong>Intervention:</strong> ' + pico.intervention;
-    report += '<br><strong>Comparison:</strong> ' + pico.comparison + '<br><strong>Outcomes:</strong> ' + (pico.outcomes || '—') + '</p>';
+    report += '<p><strong>Population:</strong> ' + (pico.P || pico.population || '—') + '<br><strong>Intervention:</strong> ' + (pico.I || pico.intervention || '—');
+    report += '<br><strong>Comparison:</strong> ' + (pico.C || pico.comparison || '—') + '<br><strong>Outcomes:</strong> ' + (pico.O || pico.outcomes || '—') + '</p>';
     report += '<p><strong>Study Design:</strong> ' + (gd.studyDesign || '—') + '<br><strong>Number of Studies:</strong> ' + (gd.numStudies || '0');
     report += '<br><strong>Certainty of Evidence:</strong> ' + (gd._certainty || 'Low') + '</p>';
   });
@@ -3611,7 +3615,7 @@ function generateJournalManuscript() {
   report += '<table style="width:100%;border-collapse:collapse;font-size:11px;margin:10px 0"><tr style="background:#F3F4F6"><th style="border:1px solid #E5E7EB;padding:8px;text-align:left">PICO</th><th style="border:1px solid #E5E7EB;padding:8px">Study Design</th><th style="border:1px solid #E5E7EB;padding:8px">N Studies</th><th style="border:1px solid #E5E7EB;padding:8px">Certainty</th><th style="border:1px solid #E5E7EB;padding:8px">Effect</th></tr>';
   picos.forEach(function(p, idx) {
     var gd = window._picoGradeData[idx] || {};
-    report += '<tr><td style="border:1px solid #E5E7EB;padding:8px">' + p.domain + '</td><td style="border:1px solid #E5E7EB;padding:8px">' + (gd.studyDesign || '—') + '</td><td style="border:1px solid #E5E7EB;padding:8px">' + (gd.numStudies || '0') + '</td><td style="border:1px solid #E5E7EB;padding:8px">' + (gd._certainty || 'Low') + '</td><td style="border:1px solid #E5E7EB;padding:8px">' + (gd.effect || '—') + '</td></tr>';
+    report += '<tr><td style="border:1px solid #E5E7EB;padding:8px">' + (p.domain || '—') + ' — ' + (p.I || p.intervention || '').substring(0,50) + '</td><td style="border:1px solid #E5E7EB;padding:8px">' + (gd.studyDesign || '—') + '</td><td style="border:1px solid #E5E7EB;padding:8px">' + (gd.numStudies || '0') + '</td><td style="border:1px solid #E5E7EB;padding:8px">' + (gd._certainty || 'Low') + '</td><td style="border:1px solid #E5E7EB;padding:8px">' + (gd.effect || '—') + '</td></tr>';
   });
   report += '</table>';
   
