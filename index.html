@@ -1577,13 +1577,20 @@ function buildPicoSearchQuery(idx) {
     });
   }
 
-  // Build clean query: condition + domain keywords + specific terms
-  var parts = [coreTopic];
-  var dk = domainKeywords[p.domain];
-  if (dk) parts.push(dk);
-  if (specificTerms.length > 0) parts.push(specificTerms.join(' '));
-
-  return parts.join(' ').trim();
+  // Build clean query: "Topic" AND (keyword1 OR keyword2 OR keyword3)
+  var dk = domainKeywords[p.domain] || '';
+  var dkTerms = dk ? dk.split(/\s+/) : [];
+  // Merge domain keywords and specific terms, remove duplicates
+  var allTerms = dkTerms.concat(specificTerms);
+  var seen = {};
+  allTerms = allTerms.filter(function(t) {
+    var low = t.toLowerCase();
+    if (seen[low] || low.length < 3) return false;
+    seen[low] = true;
+    return true;
+  });
+  if (allTerms.length === 0) return '"' + coreTopic + '"';
+  return '"' + coreTopic + '" AND (' + allTerms.join(' OR ') + ')';
 }
 
 
