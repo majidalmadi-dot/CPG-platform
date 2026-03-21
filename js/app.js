@@ -3999,7 +3999,7 @@ function showRoBToolSelector() {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Guideline Details: ' + g.title);
+  modal.setAttribute('aria-label', 'Tool Details');
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:650px;width:95%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">🔧 RoB Tool Selector — By Study Design</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div>'+h+'</div>';
   document.body.appendChild(modal);
   trapFocus(modal);
@@ -4026,7 +4026,7 @@ function showFrameworkDetail(fw) {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Guideline Details: ' + g.title);
+  modal.setAttribute('aria-label', 'Framework Details: ' + d.title);
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:700px;width:95%;max-height:85vh;overflow-y:auto;border-top:4px solid '+d.color+'"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0;color:'+d.color+'">'+d.title+'</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div>'+d.content+'</div>';
   document.body.appendChild(modal);
   trapFocus(modal);
@@ -4163,7 +4163,7 @@ function showGuidelineDetail(id) {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Guideline Details: ' + g.title);
+  modal.setAttribute('aria-label', 'Tool Details');
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:700px;width:95%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">📋 Guideline Details</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div>'+h+'</div>';
   document.body.appendChild(modal);
   trapFocus(modal);
@@ -4294,7 +4294,7 @@ function showFunnelPlot() {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Guideline Details: ' + g.title);
+  modal.setAttribute('aria-label', 'Tool Details');
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:600px;width:95%"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">🔍 Funnel Plot — Publication Bias Assessment</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div>'+svg+'<div style="margin-top:12px;padding:10px;background:#FEF3C7;border-radius:8px;font-size:12px"><strong>Egger test p-value:</strong> 0.23 (no significant asymmetry)<br><strong>Begg rank correlation:</strong> τ = -0.13, p = 0.45<br><strong>Trim-and-fill:</strong> 0 studies imputed — no evidence of publication bias<br><em>Visual inspection of funnel symmetry suggests low risk of publication bias.</em></div></div>';
   document.body.appendChild(modal);
   trapFocus(modal);
@@ -4317,7 +4317,7 @@ function showLeaveOneOut() {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Guideline Details: ' + g.title);
+  modal.setAttribute('aria-label', 'Tool Details');
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:600px;width:95%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">🔬 Leave-One-Out Sensitivity Analysis</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div>'+h+'</div>';
   document.body.appendChild(modal);
   trapFocus(modal);
@@ -4349,7 +4349,7 @@ function showSubgroupAnalysis() {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Guideline Details: ' + g.title);
+  modal.setAttribute('aria-label', 'Tool Details');
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:700px;width:95%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">📋 Subgroup Analysis</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div>'+h+'</div>';
   document.body.appendChild(modal);
   trapFocus(modal);
@@ -4408,7 +4408,7 @@ function showRoBMatrixBuilder() {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Guideline Details: ' + g.title);
+  modal.setAttribute('aria-label', 'Tool Details');
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:750px;width:95%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">🚦 Risk of Bias Matrix — RoB 2 (Covidence-style)</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div>'+h+'</div>';
   document.body.appendChild(modal);
   trapFocus(modal);
@@ -4432,7 +4432,7 @@ function showSRProtocolGenerator() {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Guideline Details: ' + g.title);
+  modal.setAttribute('aria-label', 'Tool Details');
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:650px;width:95%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">📋 SR Protocol Generator (PRISMA-P 2015)</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div>'+h+'</div>';
   document.body.appendChild(modal);
   trapFocus(modal);
@@ -4459,7 +4459,7 @@ function showSearchStrategyBuilder() {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Guideline Details: ' + g.title);
+  modal.setAttribute('aria-label', 'Tool Details');
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:650px;width:95%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">🔍 Search Strategy Builder (PRESS Checklist)</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div>'+h+'</div>';
   document.body.appendChild(modal);
   trapFocus(modal);
@@ -4503,7 +4503,7 @@ function showPRISMAManuscriptBuilder() {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Guideline Details: ' + g.title);
+  modal.setAttribute('aria-label', 'Tool Details');
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:650px;width:95%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">📝 PRISMA 2020 Manuscript Builder</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div>'+h+'</div>';
   document.body.appendChild(modal);
   trapFocus(modal);
@@ -4669,7 +4669,7 @@ function showTornadoDiagram() {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Guideline Details: ' + g.title);
+  modal.setAttribute('aria-label', 'Tool Details');
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:700px;width:95%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">🌪️ Tornado Diagram — One-Way Sensitivity Analysis</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div><div style="overflow-x:auto">'+svg+'</div><div style="margin-top:12px;padding:10px;background:#FEF3C7;border-radius:8px;font-size:12px"><strong>Top driver:</strong> Treatment utility has the greatest impact on ICER (range: SAR 8,200–18,500/QALY).<br><strong>Robust parameters:</strong> Time horizon and AE disutility have minimal impact.<br><span style="color:#3B82F6">■</span> Low value <span style="color:#EF4444">■</span> High value</div></div>';
   document.body.appendChild(modal);
   trapFocus(modal);
@@ -4722,7 +4722,7 @@ function runPSAMonteCarlo() {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Guideline Details: ' + g.title);
+  modal.setAttribute('aria-label', 'Tool Details');
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:600px;width:95%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">🎯 PSA — Cost-Effectiveness Plane (1,000 iterations)</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div><div style="text-align:center">'+svg+'</div><div style="margin-top:12px;padding:12px;background:#F0FDF4;border-radius:8px;font-size:13px"><strong>Probability of cost-effectiveness:</strong> <span style="font-size:18px;font-weight:700;color:'+(pctCE>=50?'#16A34A':'#DC2626')+'">'+pctCE+'%</span> at WTP = SAR 81,000/QALY<br><strong>Iterations:</strong> 1,000 Monte Carlo simulations<br><span style="color:#2563EB">●</span> Cost-effective <span style="color:#DC2626">●</span> Not cost-effective</div></div>';
   document.body.appendChild(modal);
   trapFocus(modal);
@@ -4789,7 +4789,7 @@ function showCEACCurve() {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Guideline Details: ' + g.title);
+  modal.setAttribute('aria-label', 'Tool Details');
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:600px;width:95%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">📈 Cost-Effectiveness Acceptability Curve</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div><div style="text-align:center">'+svg+'</div><div style="margin-top:12px;padding:10px;background:#F0F9FF;border-radius:8px;font-size:12px"><strong>At Saudi WTP (SAR 81,000/QALY):</strong> 78% probability of being cost-effective<br><strong>50% threshold crossed at:</strong> ~SAR 40,000/QALY<br><strong>95% confidence at:</strong> ~SAR 200,000/QALY</div></div>';
   document.body.appendChild(modal);
   trapFocus(modal);
@@ -4923,7 +4923,7 @@ function showBenchmarkingScorecard() {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Guideline Details: ' + g.title);
+  modal.setAttribute('aria-label', 'Tool Details');
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:700px;width:95%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">📊 Benchmarking Scorecard ��� Saudi vs WHO Standards</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div>'+h+'<div style="margin-top:12px;padding:10px;background:#FEF3C7;border-radius:8px;font-size:12px"><strong>Key finding:</strong> Health data interoperability shows the largest gap (−25 points). Emergency preparedness exceeds WHO targets (+2). Overall alignment: 6/8 indicators below target.</div></div>';
   document.body.appendChild(modal);
   trapFocus(modal);
@@ -4964,7 +4964,7 @@ function showPolicyCritiqueFramework() {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Guideline Details: ' + g.title);
+  modal.setAttribute('aria-label', 'Tool Details');
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:700px;width:95%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">📋 Policy Critique Framework</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div>'+h+'</div>';
   document.body.appendChild(modal);
   trapFocus(modal);
@@ -5004,7 +5004,7 @@ function showPolicyTimeline() {
   modal.onclick=function(e){if(e.target===modal)document.body.removeChild(modal);};
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  modal.setAttribute('aria-label', 'Guideline Details: ' + g.title);
+  modal.setAttribute('aria-label', 'Tool Details');
   modal.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:600px;width:95%;max-height:85vh;overflow-y:auto"><div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">📅 Saudi Health Policy Timeline (2016–2026)</h3><button onclick="this.closest(\'div[style*=fixed]\').remove()" class="btn btn-sm">✕</button></div>'+h+'</div>';
   document.body.appendChild(modal);
   trapFocus(modal);
