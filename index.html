@@ -161,25 +161,7 @@ Access is by invitation only. Contact the platform administrator if you need an 
 <div><div class="card-t">Guideline Development Pipeline</div><div class="card-st">AI-assisted tracking across all stages</div></div>
 <button class="btn btn-p btn-sm" onclick="openM('new-gl-modal')">+ New Guideline</button>
 </div>
-<div class="kanban">
-<div class="kb-col"><div class="kb-ct"><span style="width:7px;height:7px;border-radius:50%;background:var(--info)"></span>Scoping & PICO</div>
-<div class="kb-card" onclick="sp('ai_etg')"><h4>Diabetic Retinopathy Screening</h4><p>MOH · Primary Care</p><div style="margin-top:6px"><span class="badge b-i">PICO Draft</span></div></div>
-<div class="kb-card"><h4>Sickle Cell Disease</h4><p>KSUMC · Hematology</p><div style="margin-top:6px"><span class="badge b-i">Scoping</span></div></div>
-</div>
-<div class="kb-col"><div class="kb-ct"><span style="width:7px;height:7px;border-radius:50%;background:var(--s)"></span>Evidence Search</div>
-<div class="kb-card"><h4>H. pylori Eradication</h4><p>Saudi Gastro Society</p><div style="margin-top:6px"><span class="badge b-s">SR in Progress</span></div></div>
-</div>
-<div class="kb-col"><div class="kb-ct"><span style="width:7px;height:7px;border-radius:50%;background:var(--warn)"></span>GRADE Appraisal</div>
-<div class="kb-card"><h4>CRC Screening Protocol</h4><p>NTP · Oncology</p><div style="margin-top:6px"><span class="badge b-w">RoB Assessment</span></div></div>
-<div class="kb-card"><h4>Hypertension in Pregnancy</h4><p>KSUMC · OB/GYN</p><div style="margin-top:6px"><span class="badge b-w">GRADE Profiles</span></div></div>
-</div>
-<div class="kb-col"><div class="kb-ct"><span style="width:7px;height:7px;border-radius:50%;background:var(--a)"></span>EtR & Consensus</div>
-<div class="kb-card"><h4>Asthma — Adult</h4><p>Saudi Thoracic Society</p><div style="margin-top:6px"><span class="badge b-p">Delphi Round 2</span></div></div>
-</div>
-<div class="kb-col"><div class="kb-ct"><span style="width:7px;height:7px;border-radius:50%;background:var(--ok)"></span>External Review</div>
-<div class="kb-card"><h4>NAFLD/NASH Pathway</h4><p>KSUMC · Hepatology</p><div style="margin-top:6px"><span class="badge b-ok">Public Comment</span></div></div>
-</div>
-</div>
+<div id="kanban-container" class="kanban"></div>
 </div>
 
 <!-- Framework Compliance + Activity -->
@@ -194,13 +176,7 @@ Access is by invitation only. Contact the platform administrator if you need an 
 </div>
 <div class="card">
 <div class="card-t" style="margin-bottom:12px">Recent Activity</div>
-<div class="tl">
-<div class="tl-i done"><div class="tl-d"></div><div><strong>CRC Screening</strong> — AI completed RoB assessment <span style="font-size:10px;color:var(--tl)">2h ago</span></div></div>
-<div class="tl-i"><div class="tl-d"></div><div><strong>Asthma CPG</strong> — Delphi Round 2 results in <span style="font-size:10px;color:var(--tl)">5h ago</span></div></div>
-<div class="tl-i"><div class="tl-d"></div><div><strong>H. pylori SR</strong> — AI forest plot generated <span style="font-size:10px;color:var(--tl)">8h ago</span></div></div>
-<div class="tl-i"><div class="tl-d"></div><div><strong>Policy Scanner</strong> — Found 3 new MOH policies <span style="font-size:10px;color:var(--tl)">1d ago</span></div></div>
-<div class="tl-i"><div class="tl-d"></div><div><strong>NAFLD CEA</strong> — Markov model ICER calculated <span style="font-size:10px;color:var(--tl)">1d ago</span></div></div>
-</div>
+<div id="activity-container" class="tl"></div>
 </div>
 </div>
 </div>
@@ -1823,47 +1799,125 @@ const CPG_PROJECTS = [{"id": "t2dm", "title": "Type 2 Diabetes Mellitus — Adul
 // ============================================================
 
 function renderDashboard() {
-    const published = CPG_PROJECTS.filter(p => p.status === 'published');
-    const inDev = CPG_PROJECTS.filter(p => p.status === 'in_dev');
-    const totalPanel = CPG_PROJECTS.reduce((sum, p) => sum + p.panelSize, 0);
-    const newThisYear = published.filter(p => p.publishDate && p.publishDate.includes('2024')).length;
-    const advancing = inDev.filter(p => ['etr_consensus', 'grade_appraisal'].includes(p.stage)).length;
+    const published = CPG_PROJECTS.filter(p => p.status === 'published' || p.status === 'overdue');
+    const inDev = CPG_PROJECTS.filter(p => ['in_dev','external_review','review'].includes(p.status));
+    const totalPanel = CPG_PROJECTS.reduce((s, p) => s + p.panelSize, 0);
+    const newThisYear = published.filter(p => p.publishDate && p.publishDate.startsWith('2024')).length;
+    const advancing = CPG_PROJECTS.filter(p => ['etr_consensus','grade_appraisal','external_review'].includes(p.stage)).length;
     const committees = new Set(CPG_PROJECTS.map(p => p.department)).size;
-    
-    // Update stats
-    const statValues = document.querySelectorAll('#p-dashboard .stat .sv');
-    if (statValues[0]) statValues[0].textContent = published.length;
-    if (statValues[1]) statValues[1].textContent = inDev.length;
-    if (statValues[2]) statValues[2].textContent = totalPanel;
-    
-    // Update stat descriptions
-    const statDesc = document.querySelectorAll('#p-dashboard .stat .sc');
-    if (statDesc[0]) statDesc[0].textContent = '↑ ' + newThisYear + ' new this year';
-    if (statDesc[1]) statDesc[1].textContent = '↑ ' + advancing + ' advancing';
-    if (statDesc[2]) statDesc[2].textContent = committees + ' committees';
+
+    const sv = document.querySelectorAll('#p-dashboard .stat .sv');
+    if(sv[0]) sv[0].textContent = published.length;
+    if(sv[1]) sv[1].textContent = inDev.length;
+    if(sv[2]) sv[2].textContent = totalPanel;
+    const sc = document.querySelectorAll('#p-dashboard .stat .sc');
+    if(sc[0]) sc[0].innerHTML = '\u2191 ' + newThisYear + ' new this year';
+    if(sc[1]) sc[1].innerHTML = '\u2191 ' + advancing + ' advancing';
+    if(sc[2]) sc[2].textContent = committees + ' committees';
+
+    const stages = [
+        {key:'scoping', label:'Scoping & PICO', color:'var(--info)', badge:'b-i'},
+        {key:'evidence_search', label:'Evidence Search', color:'var(--s)', badge:'b-s'},
+        {key:'grade_appraisal', label:'GRADE Appraisal', color:'var(--warn)', badge:'b-w'},
+        {key:'etr_consensus', label:'EtR & Consensus', color:'var(--a)', badge:'b-p'},
+        {key:'external_review', label:'External Review', color:'var(--ok)', badge:'b-ok'}
+    ];
+    const kanban = document.getElementById('kanban-container');
+    if(kanban) {
+        let kh = '';
+        stages.forEach(s => {
+            const projs = CPG_PROJECTS.filter(p => p.stage === s.key && p.status !== 'published' && p.status !== 'overdue');
+            kh += '<div class="kb-col"><div class="kb-ct"><span style="width:7px;height:7px;border-radius:50%;background:'+s.color+'"></span>'+s.label+' <span style="color:var(--tl);font-size:10px">('+projs.length+')</span></div>';
+            projs.forEach(p => {
+                kh += '<div class="kb-card" onclick="showGuidelineDetail(\''+p.id+'\')"><h4>'+p.title+'</h4><p>'+p.department+' \u00b7 '+p.domain+'</p><div style="margin-top:6px"><span class="badge '+s.badge+'">'+p.stageDetail+'</span></div></div>';
+            });
+            kh += '</div>';
+        });
+        kanban.innerHTML = kh;
+    }
+
+    const actContainer = document.getElementById('activity-container');
+    if(actContainer) {
+        const timeRank = t => {
+            if(t.includes('hour')) return 0;
+            if(t.includes('day')) return 1;
+            if(t.includes('week')) return 2;
+            if(t.includes('mo') || t.includes('month')) return 3;
+            return 99;
+        };
+        const sorted = [...CPG_PROJECTS].sort((a,b) => timeRank(a.lastActivity.timeAgo) - timeRank(b.lastActivity.timeAgo));
+        let ah = '';
+        sorted.slice(0,8).forEach((p,i) => {
+            const short = p.title.split(/\s[\u2014\-]\s/)[0].split(' ').slice(0,3).join(' ');
+            ah += '<div class="tl-i'+(i===0?' done':'')+'"><div class="tl-d"></div><div><strong>'+short+'</strong> \u2014 '+p.lastActivity.text+' <span style="font-size:10px;color:var(--tl)">'+p.lastActivity.timeAgo+'</span></div></div>';
+        });
+        actContainer.innerHTML = ah;
+    }
 }
 
 function renderLifecycle() {
-    const sorted = CPG_PROJECTS.sort((a, b) => {
-        const order = {'overdue': 0, 'in_dev': 1, 'review': 2, 'published': 3};
-        return (order[a.status] || 99) - (order[b.status] || 99);
+    const sorted = [...CPG_PROJECTS].sort((a,b) => {
+        const order = {'overdue':0,'in_dev':1,'external_review':2,'review':3,'published':4};
+        return (order[a.status]||99) - (order[b.status]||99);
     });
-    
-    const published = CPG_PROJECTS.filter(p => p.status === 'published');
-    const avgAgree = Math.round(published.reduce((sum, p) => sum + (p.agreeII || 0), 0) / (published.length || 1));
-    
-    // Update analytics
-    const statVals = document.querySelectorAll('#p-lifecycle .stat .sv');
-    if (statVals[0]) statVals[0].textContent = published.length;
-    if (statVals[1]) statVals[1].textContent = avgAgree + '%';
+    const published = CPG_PROJECTS.filter(p => p.status === 'published' || p.status === 'overdue');
+    const avgAgree = Math.round(published.reduce((s,p) => s + (p.agreeII||0), 0) / (published.length||1));
+
+    const table = document.querySelector('#p-lifecycle table');
+    if(table) {
+        let th = '<tr><th>Guideline</th><th>Ver</th><th>Status</th><th>Published</th><th>Review Due</th><th>AGREE II</th><th>GIN</th><th></th><th></th></tr>';
+        sorted.forEach(p => {
+            const sb = p.status==='published'?'b-ok':p.status==='overdue'?'b-err':(p.status==='review'||p.status==='external_review')?'b-i':p.status==='in_dev'?'b-w':'b-s';
+            const sl = p.status==='published'?'Published':p.status==='overdue'?'Overdue':(p.status==='review'||p.status==='external_review')?'Review':p.status==='in_dev'?'In Dev':'Draft';
+            const pd = p.publishDate ? new Date(p.publishDate).toLocaleDateString('en-US',{month:'short',year:'numeric'}) : '\u2014';
+            const rd = p.reviewDue ? new Date(p.reviewDue).toLocaleDateString('en-US',{month:'short',year:'numeric'}) : '\u2014';
+            const isOD = p.status==='overdue';
+            const ac = p.agreeII>=85?'var(--ok)':p.agreeII>=75?'var(--warn)':p.agreeII?'var(--err)':'var(--tl)';
+            const gc = p.ginScore ? (parseInt(p.ginScore)>=15?'var(--ok)':parseInt(p.ginScore)>=12?'var(--warn)':'var(--err)') : 'var(--tl)';
+            const ab = isOD ? '<button class="btn btn-sm" style="background:var(--err);color:#fff">Update \u2192</button>'
+                : p.status==='in_dev' ? '<button class="btn btn-sm" style="background:var(--ai1);color:#fff">Continue \u2192</button>'
+                : '<button class="btn btn-sm btn-o">View \u2192</button>';
+            th += '<tr data-gl-id="'+p.id+'" style="cursor:pointer" onclick="showGuidelineDetail(\''+p.id+'\')">'
+                +'<td><strong>'+p.title+'</strong><br><span style="font-size:10px;color:var(--tl)">'+p.code+'</span></td>'
+                +'<td>'+p.version+'</td><td><span class="badge '+sb+'">'+sl+'</span></td>'
+                +'<td>'+pd+'</td><td'+(isOD?' style="color:var(--err);font-weight:600"':'')+'>'+rd+(isOD?' \u26a0\ufe0f':'')+'</td>'
+                +'<td style="color:'+ac+';font-weight:600">'+(p.agreeII?p.agreeII+'%':'\u2014')+'</td>'
+                +'<td style="color:'+gc+';font-weight:600">'+(p.ginScore||'\u2014')+'</td>'
+                +'<td>'+ab+'</td>'
+                +'<td><button class="btn btn-sm" style="color:var(--err);font-size:11px" onclick="event.stopPropagation();archiveGuideline(\''+p.id+'\',\''+p.title.replace("'","\\'")+'\')">&#128465;</button></td></tr>';
+        });
+        table.innerHTML = th;
+    }
+
+    const sv = document.querySelectorAll('#p-lifecycle .stat .sv');
+    const overdue = CPG_PROJECTS.filter(p=>p.status==='overdue').length;
+    const onTime = published.length>0 ? Math.round(((published.length-overdue)/published.length)*100) : 0;
+    if(sv[0]) sv[0].textContent = published.length;
+    if(sv[1]) sv[1].textContent = avgAgree + '%';
+    if(sv[3]) sv[3].textContent = onTime + '%';
+
+    const repoGrid = document.querySelector('#published-repo .grid');
+    if(repoGrid) {
+        const pubOnly = CPG_PROJECTS.filter(p => p.status==='published' || p.status==='overdue');
+        let rh = '';
+        pubOnly.forEach(p => {
+            const isOD = p.status==='overdue';
+            const bc = isOD?'var(--err)':'var(--ok)';
+            const pdt = p.publishDate ? new Date(p.publishDate).toLocaleDateString('en-US',{month:'short',year:'numeric'}) : '';
+            rh += '<div class="card" data-gl-id="'+p.id+'" style="border-left:4px solid '+bc+';cursor:pointer" onclick="showGuidelineDetail(\''+p.id+'\')">'
+                +'<div style="display:flex;justify-content:space-between;align-items:center"><span class="badge '+(isOD?'b-err':'b-ok')+'">'+(isOD?'Overdue':'Published')+'</span><span style="font-size:11px;color:var(--tl)">'+pdt+'</span></div>'
+                +'<div class="card-t" style="margin:8px 0 4px">'+p.title+'</div>'
+                +'<div style="font-size:12px;color:var(--tl)">'+p.code+' \u00b7 '+p.version+' \u00b7 AGREE II: '+(p.agreeII||'\u2014')+'%</div>'
+                +'<div style="margin-top:8px;display:flex;gap:6px"><button class="btn btn-sm" style="font-size:11px">&#128229; PDF</button><button class="btn btn-sm" style="font-size:11px">&#128203; Summary</button></div></div>';
+        });
+        repoGrid.innerHTML = rh;
+    }
 }
 
-// Call render functions on page load
 document.addEventListener('DOMContentLoaded', () => {
     renderDashboard();
     renderLifecycle();
 });
-
 </script>
 </body>
 </html>
