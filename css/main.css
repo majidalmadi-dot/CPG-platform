@@ -299,3 +299,605 @@ textarea:invalid:not(:placeholder-shown) ~ .field-error {
   .sidebar, .header, .offline-bar, .demo-banner, .toast-container { display: none !important; }
   .main { margin: 0 !important; padding: 20px !important; }
 }
+
+/* ============================================================================
+   COMPREHENSIVE MOBILE RESPONSIVE STYLES
+   ============================================================================ */
+
+/* === HAMBURGER BUTTON (.hamburger-btn) === */
+.hamburger-btn {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  background: var(--p);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+  z-index: 105;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(13, 92, 62, 0.2);
+}
+
+.hamburger-btn:hover {
+  background: var(--pd);
+  box-shadow: 0 4px 12px rgba(13, 92, 62, 0.3);
+}
+
+.hamburger-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+/* === SIDEBAR SLIDE-OUT DRAWER (Body.sidebar-open) === */
+body.sidebar-open .sidebar {
+  transform: translateX(0);
+  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.15);
+}
+
+body.sidebar-open .sidebar-overlay {
+  display: block !important;
+  animation: fadeIn 0.2s ease;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+  display: none;
+  cursor: pointer;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* === MOBILE BREAKPOINT: < 768px === */
+@media (max-width: 767px) {
+  /* Show hamburger button */
+  .hamburger-btn {
+    display: flex;
+  }
+
+  /* Hide sidebar by default, enable drawer behavior */
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 28px;
+    bottom: 0;
+    width: 70%;
+    max-width: 260px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 101;
+    box-shadow: none;
+  }
+
+  /* Adjust header and main for mobile */
+  .header {
+    left: 0;
+    padding: 0 16px;
+    padding-left: 56px;
+  }
+
+  .main {
+    margin-left: 0;
+    padding: 16px 12px;
+  }
+
+  /* Grid layouts collapse to single column */
+  .g4,
+  .g3,
+  .g2 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Kanban collapses to single column */
+  .kanban {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Card adjustments */
+  .card {
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  .card-t {
+    font-size: 14px;
+  }
+
+  /* Stat card adjustments */
+  .stat {
+    padding: 14px;
+  }
+
+  .stat .sv {
+    font-size: 22px;
+  }
+
+  .stat .sl {
+    font-size: 10px;
+  }
+
+  /* Font size adjustments */
+  body {
+    font-size: 14px;
+  }
+
+  .header h1 {
+    font-size: 15px;
+    margin-left: 0;
+  }
+
+  /* Table: horizontal scroll */
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+    border: 1px solid var(--b);
+  }
+
+  table {
+    font-size: 12px;
+    min-width: 100%;
+  }
+
+  th,
+  td {
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+
+  /* Tabs: horizontal scroll */
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+  }
+
+  .tab {
+    padding: 8px 14px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  /* Stepper: horizontal scroll */
+  .stepper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding-bottom: 8px;
+  }
+
+  .step {
+    flex-shrink: 0;
+    min-width: 70px;
+  }
+
+  .step-c {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+    border-width: 2px;
+    margin: 0 auto 4px;
+  }
+
+  .step-l {
+    font-size: 9px;
+  }
+
+  .step-cn {
+    top: 16px;
+  }
+
+  /* Modal: full-screen on mobile */
+  .modal-ov {
+    align-items: flex-end;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 16px 16px 0 0;
+    padding: 20px;
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  /* Forms stack vertically */
+  .form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .form-row > * {
+    width: 100%;
+  }
+
+  .fg {
+    margin-bottom: 12px;
+  }
+
+  .fi,
+  .fs,
+  .ft {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  /* Button sizing for touch targets (min 44x44px) */
+  .btn {
+    padding: 10px 14px;
+    font-size: 12px;
+    min-height: 44px;
+    min-width: 44px;
+    border-radius: 6px;
+  }
+
+  .btn-sm {
+    padding: 8px 12px;
+    min-height: 40px;
+  }
+
+  /* Badge sizing */
+  .badge {
+    padding: 4px 8px;
+    font-size: 10px;
+    min-height: 24px;
+  }
+
+  /* Role badge hidden on very small screens */
+  .header-right .role-badge {
+    display: none;
+  }
+
+  /* Avatar visible but sized appropriately */
+  .avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Pyramid layout adjusts */
+  .pyramid {
+    gap: 8px;
+  }
+
+  .pyr-l {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 12px;
+  }
+
+  /* Flow component wraps */
+  .flow {
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-start;
+  }
+
+  .flow-n {
+    flex: 0 1 calc(50% - 4px);
+    padding: 8px 12px;
+    font-size: 11px;
+    min-width: 90px;
+  }
+
+  /* Timeline adjusts */
+  .tl {
+    padding-left: 20px;
+  }
+
+  .tl::before {
+    left: 5px;
+  }
+
+  .tl-d {
+    left: -19px;
+    width: 8px;
+    height: 8px;
+  }
+
+  /* Command input adjusts */
+  .cmd-input {
+    padding: 10px;
+    font-size: 12px;
+  }
+
+  /* Checkbox list */
+  .chk {
+    font-size: 12px;
+    gap: 10px;
+  }
+
+  .chk input {
+    min-width: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Toast notifications repositioned for mobile */
+  .toast-container {
+    bottom: 16px;
+    right: 12px;
+    left: 12px;
+  }
+
+  .toast {
+    max-width: none;
+    padding: 14px 16px;
+    font-size: 12px;
+  }
+
+  /* Field error messages */
+  .field-error {
+    font-size: 10px;
+  }
+
+  /* Sidebar brand adjusts */
+  .sidebar-brand {
+    padding: 12px 14px;
+  }
+
+  .sidebar-brand .logo {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .sidebar-brand h2 {
+    font-size: 12px;
+  }
+
+  .sidebar-brand small {
+    font-size: 8px;
+  }
+
+  /* Navigation items */
+  .nav-i {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+
+  .nav-s {
+    padding: 6px 14px 2px;
+    font-size: 8px;
+  }
+
+  /* Sidebar footer */
+  .sidebar-footer {
+    padding: 10px 14px;
+    font-size: 9px;
+  }
+}
+
+/* === TABLET BREAKPOINT: 768px–1024px === */
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Grid adjustments for tablet */
+  .g4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .g3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .g2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Kanban adjusts to 2 columns */
+  .kanban {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  /* Table padding reduced */
+  table {
+    font-size: 12px;
+  }
+
+  th,
+  td {
+    padding: 10px;
+  }
+
+  /* Card padding adjusted */
+  .card {
+    padding: 18px;
+  }
+
+  .main {
+    padding: 18px;
+  }
+
+  /* Stepper tabs scroll if needed */
+  .stepper {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  .step {
+    min-width: 80px;
+  }
+
+  /* Font sizes slightly smaller */
+  .header h1 {
+    font-size: 16px;
+  }
+
+  .card-t {
+    font-size: 14px;
+  }
+
+  /* Button sizing */
+  .btn {
+    min-height: 40px;
+  }
+
+  /* Avatar adjusts */
+  .avatar {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+/* === LARGE SCREENS: > 1440px === */
+@media (min-width: 1440px) {
+  /* Content max-width to prevent long lines */
+  .main {
+    max-width: calc(100vw - var(--sw));
+    margin-left: var(--sw);
+  }
+
+  .container,
+  .content-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Larger font sizes for readability */
+  body {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .header h1 {
+    font-size: 18px;
+  }
+
+  .card-t {
+    font-size: 16px;
+  }
+
+  .stat .sv {
+    font-size: 28px;
+  }
+
+  th {
+    font-size: 12px;
+    padding: 10px 14px;
+  }
+
+  td {
+    padding: 10px 14px;
+  }
+
+  .btn {
+    padding: 8px 18px;
+    font-size: 13px;
+    min-height: 42px;
+  }
+
+  .tab {
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+
+  /* Grid can breathe more */
+  .grid {
+    gap: 24px;
+  }
+
+  .kanban {
+    gap: 16px;
+  }
+}
+
+/* === REDUCED MOTION SUPPORT === */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .step.now .step-c {
+    animation: none;
+  }
+
+  .ai-status::before {
+    animation: none;
+  }
+
+  .modal {
+    animation: none;
+  }
+
+  .toast {
+    animation: none;
+  }
+}
+
+/* === PRINT STYLES === */
+@media print {
+  .sidebar,
+  .header,
+  .offline-bar,
+  .demo-banner,
+  .toast-container,
+  .hamburger-btn,
+  .sidebar-overlay {
+    display: none !important;
+  }
+
+  .main {
+    margin: 0 !important;
+    margin-left: 0 !important;
+    padding: 20px !important;
+    min-height: auto !important;
+  }
+
+  .card {
+    page-break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+
+  table {
+    page-break-inside: avoid;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+/* === DARK MODE SUPPORT (Optional Future Use) === */
+@media (prefers-color-scheme: dark) {
+  /* Can be extended with dark mode variables */
+  /* For now, light mode is primary */
+}

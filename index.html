@@ -11,7 +11,7 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="css/main.css?v=delphi1">
+<link rel="stylesheet" href="css/main.css?v=prod1">
 </head>
 <body>
 
@@ -1779,9 +1779,16 @@ Net Budget Impact = Cost<sub>new mix</sub> − Cost<sub>current mix</sub><br>
 </div>
 </div>
 
-<script src="js/app.js?v=delphi1"></script>
-<script src="js/ai-engine.js?v=delphi1"></script>
-<script src="js/reports.js?v=delphi1"></script>
+<!-- Security & Utilities (load first) -->
+<script src="js/sanitize.js?v=prod1"></script>
+<script src="js/modal.js?v=prod1"></script>
+<script src="js/supabase-dal.js?v=prod1"></script>
+<script src="js/ai-proxy-client.js?v=prod1"></script>
+
+<!-- Core Application -->
+<script src="js/app.js?v=prod1"></script>
+<script src="js/ai-engine.js?v=prod1"></script>
+<script src="js/reports.js?v=prod1"></script>
 
 </body>
 </html>
