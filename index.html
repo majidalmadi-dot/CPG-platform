@@ -11,7 +11,7 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="css/main.css?v=trash1">
+<link rel="stylesheet" href="css/main.css?v=delphi1">
 </head>
 <body>
 
@@ -622,6 +622,139 @@ Access is by invitation only. Contact the platform administrator if you need an 
 <div style="text-align:center;padding:10px;background:#FEF2F2;border-radius:8px"><div style="font-size:20px;font-weight:700" id="rec-strong-against">0</div><div style="font-size:10px;color:#666">Strong Against</div></div>
 </div>
 </div>
+
+<!-- ====== DELPHI CONSENSUS VOTING SYSTEM ====== -->
+<div class="card" style="margin-top:18px;border-top:3px solid #7C3AED">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+<div>
+<div class="card-t" style="display:flex;align-items:center;gap:8px">🗳️ Delphi Consensus Voting <span class="badge" style="background:#7C3AED;color:#fff">Stage 5</span></div>
+<div class="card-st">Multi-round modified Delphi method — committee members vote on each recommendation until ≥80% consensus</div>
+</div>
+<button class="btn btn-sm" style="background:#7C3AED;color:#fff" onclick="toggleDelphiPanel('setup')">⚙️ Setup</button>
+</div>
+
+<!-- Delphi Tabs -->
+<div class="tabs" id="delphi-tabs">
+<div class="tab active" onclick="switchDelphiTab('delphi-setup')">Committee Setup</div>
+<div class="tab" onclick="switchDelphiTab('delphi-recs')">Recommendations</div>
+<div class="tab" onclick="switchDelphiTab('delphi-vote')">Voting Panel</div>
+<div class="tab" onclick="switchDelphiTab('delphi-results')">Results & Rounds</div>
+</div>
+
+<!-- TAB 1: Committee Setup -->
+<div id="delphi-setup" class="delphi-tab">
+<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px">
+<div style="flex:1;min-width:300px">
+<div style="font-weight:700;font-size:13px;margin-bottom:10px">Consensus Threshold</div>
+<div style="display:flex;align-items:center;gap:10px">
+<input type="range" id="consensus-threshold" min="60" max="95" value="80" step="5" style="flex:1" oninput="document.getElementById('threshold-val').textContent=this.value+'%'">
+<span id="threshold-val" style="font-weight:700;font-size:14px;color:#7C3AED">80%</span>
+</div>
+<div style="font-size:11px;color:var(--tl);margin-top:4px">Recommendations reaching this agreement level are finalized</div>
+</div>
+<div style="flex:1;min-width:200px">
+<div style="font-weight:700;font-size:13px;margin-bottom:10px">Max Voting Rounds</div>
+<select id="max-rounds" class="fs" style="width:100%">
+<option value="3">3 rounds (standard)</option>
+<option value="4">4 rounds</option>
+<option value="5">5 rounds (extended)</option>
+</select>
+</div>
+</div>
+
+<div style="font-weight:700;font-size:13px;margin-bottom:10px">Add Committee Members</div>
+<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+<input id="member-name" class="fi" placeholder="Full name" style="flex:2;min-width:140px">
+<input id="member-email" class="fi" placeholder="Email address" style="flex:2;min-width:180px" type="email">
+<select id="member-role" class="fs" style="flex:1;min-width:120px">
+<option>Clinical Expert</option>
+<option>Methodologist</option>
+<option>Patient Rep</option>
+<option>Pharmacist</option>
+<option>Health Economist</option>
+<option>Public Health</option>
+<option>Nursing</option>
+<option>External Reviewer</option>
+</select>
+<button class="btn btn-sm" style="background:#7C3AED;color:#fff" onclick="addDelphiMember()">+ Add</button>
+</div>
+<div id="delphi-member-list">
+<table style="width:100%;font-size:12px" id="delphi-member-table">
+<tr><th>Name</th><th>Email</th><th>Role</th><th>COI Status</th><th></th></tr>
+</table>
+<p style="text-align:center;color:var(--tl);font-size:12px;padding:10px" id="no-members-msg">No committee members added yet</p>
+</div>
+</div>
+
+<!-- TAB 2: Recommendations for Voting -->
+<div id="delphi-recs" class="delphi-tab" style="display:none">
+<div style="font-weight:700;font-size:13px;margin-bottom:10px">Add Recommendations to Vote On</div>
+<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+<input id="rec-text" class="fi" placeholder="Recommendation text (e.g. We recommend metformin as first-line...)" style="flex:3;min-width:250px">
+<select id="rec-grade" class="fs" style="flex:1;min-width:120px">
+<option>Strong For</option>
+<option>Conditional For</option>
+<option>Conditional Against</option>
+<option>Strong Against</option>
+</select>
+<select id="rec-certainty" class="fs" style="flex:1;min-width:100px">
+<option>⊕⊕⊕⊕ High</option>
+<option>⊕⊕⊕◯ Moderate</option>
+<option>⊕⊕◯◯ Low</option>
+<option>⊕◯◯◯ Very Low</option>
+</select>
+<button class="btn btn-sm" style="background:#7C3AED;color:#fff" onclick="addDelphiRec()">+ Add</button>
+</div>
+<div style="margin-bottom:10px">
+<input id="rec-rationale" class="fi" placeholder="Supporting rationale / evidence summary (optional)" style="width:100%">
+</div>
+<button class="btn btn-sm btn-ai" onclick="autoPopulateRecs()" style="margin-bottom:12px">🤖 Auto-Populate from EtR Table</button>
+<div id="delphi-rec-list"></div>
+</div>
+
+<!-- TAB 3: Voting Panel (what committee members see) -->
+<div id="delphi-vote" class="delphi-tab" style="display:none">
+<div style="background:linear-gradient(135deg,#7C3AED,#6D28D9);color:#fff;border-radius:10px;padding:16px;margin-bottom:14px">
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+<div>
+<div style="font-size:18px;font-weight:700">Delphi Voting — Round <span id="current-round-num">1</span></div>
+<div style="font-size:12px;opacity:.8;margin-top:2px">Review each recommendation and cast your vote</div>
+</div>
+<div style="text-align:right">
+<div style="font-size:11px;opacity:.7">Voting as:</div>
+<select id="voting-as-member" class="fs" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);font-size:12px;padding:4px 8px">
+<option value="">Select your name...</option>
+</select>
+</div>
+</div>
+</div>
+<div id="voting-cards-container"><p style="text-align:center;color:var(--tl);font-size:13px;padding:20px">Add recommendations and committee members first</p></div>
+<div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
+<button class="btn btn-o" onclick="previewVotingPage()">👁️ Preview Member Page</button>
+<button class="btn" style="background:#7C3AED;color:#fff" onclick="submitAllVotes()">✅ Submit Round Votes</button>
+<button class="btn btn-ai" onclick="sendVotingEmails()">📧 Email Voting Links to Committee</button>
+</div>
+</div>
+
+<!-- TAB 4: Results & Rounds Dashboard -->
+<div id="delphi-results" class="delphi-tab" style="display:none">
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+<div style="text-align:center;padding:12px;background:#F5F3FF;border-radius:8px"><div style="font-size:22px;font-weight:700;color:#7C3AED" id="delphi-stat-round">1</div><div style="font-size:10px;color:#666">Current Round</div></div>
+<div style="text-align:center;padding:12px;background:#F0FDF4;border-radius:8px"><div style="font-size:22px;font-weight:700;color:var(--ok)" id="delphi-stat-consensus">0</div><div style="font-size:10px;color:#666">Consensus Reached</div></div>
+<div style="text-align:center;padding:12px;background:#FFFBEB;border-radius:8px"><div style="font-size:22px;font-weight:700;color:var(--warn)" id="delphi-stat-pending">0</div><div style="font-size:10px;color:#666">Pending</div></div>
+<div style="text-align:center;padding:12px;background:#EFF6FF;border-radius:8px"><div style="font-size:22px;font-weight:700;color:var(--info)" id="delphi-stat-response">0%</div><div style="font-size:10px;color:#666">Response Rate</div></div>
+</div>
+<div id="delphi-results-table"></div>
+<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+<button class="btn" style="background:#7C3AED;color:#fff" onclick="startNextRound()">🔄 Start Next Round</button>
+<button class="btn btn-ai" onclick="sendRoundReminder()">📧 Send Round Reminder</button>
+<button class="btn btn-o" onclick="exportDelphiReport()">📊 Export Consensus Report</button>
+<button class="btn btn-o" onclick="finalizeConsensus()">✅ Finalize & Lock Consensus</button>
+</div>
+</div>
+</div>
+<!-- end delphi -->
+
 </div>
 
 <div id="wf6" class="wfs" style="display:none">
@@ -1646,9 +1779,9 @@ Net Budget Impact = Cost<sub>new mix</sub> − Cost<sub>current mix</sub><br>
 </div>
 </div>
 
-<script src="js/app.js?v=trash1"></script>
-<script src="js/ai-engine.js?v=trash1"></script>
-<script src="js/reports.js?v=trash1"></script>
+<script src="js/app.js?v=delphi1"></script>
+<script src="js/ai-engine.js?v=delphi1"></script>
+<script src="js/reports.js?v=delphi1"></script>
 
 </body>
 </html>

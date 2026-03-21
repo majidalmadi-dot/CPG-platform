@@ -5147,6 +5147,619 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 
 // ============================================================
+// DELPHI CONSENSUS VOTING SYSTEM
+// Multi-round modified Delphi with email integration
+// ============================================================
+var DELPHI_KEY = 'cpg_delphi_data';
+
+function getDelphiData() {
+  try {
+    return JSON.parse(localStorage.getItem(DELPHI_KEY)) || {
+      members: [],
+      recommendations: [],
+      rounds: [],
+      currentRound: 1,
+      threshold: 80,
+      maxRounds: 3,
+      finalized: false
+    };
+  } catch(e) {
+    return { members:[], recommendations:[], rounds:[], currentRound:1, threshold:80, maxRounds:3, finalized:false };
+  }
+}
+
+function saveDelphiData(data) {
+  localStorage.setItem(DELPHI_KEY, JSON.stringify(data));
+}
+
+// --- Tab switching ---
+function switchDelphiTab(tabId) {
+  document.querySelectorAll('.delphi-tab').forEach(function(t) { t.style.display = 'none'; });
+  var el = document.getElementById(tabId);
+  if (el) el.style.display = 'block';
+  // Update tab active states
+  var tabs = document.querySelectorAll('#delphi-tabs .tab');
+  var tabMap = ['delphi-setup','delphi-recs','delphi-vote','delphi-results'];
+  tabs.forEach(function(tab, i) {
+    tab.className = tabMap[i] === tabId ? 'tab active' : 'tab';
+  });
+  // Refresh views
+  if (tabId === 'delphi-vote') renderVotingCards();
+  if (tabId === 'delphi-results') renderDelphiResults();
+  if (tabId === 'delphi-recs') renderDelphiRecs();
+}
+
+function toggleDelphiPanel(tab) {
+  switchDelphiTab('delphi-' + (tab || 'setup'));
+}
+
+// --- Committee Member Management ---
+function addDelphiMember() {
+  var name = document.getElementById('member-name').value.trim();
+  var email = document.getElementById('member-email').value.trim();
+  var role = document.getElementById('member-role').value;
+  if (!name || !email) { showToast('Please enter name and email','warn'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Invalid email format','err'); return; }
+
+  var data = getDelphiData();
+  if (data.members.some(function(m) { return m.email === email; })) {
+    showToast('Member with this email already exists','warn'); return;
+  }
+  data.members.push({ id: 'mem_'+Date.now(), name:name, email:email, role:role, coiDeclared:false, addedAt:Date.now() });
+  saveDelphiData(data);
+
+  document.getElementById('member-name').value = '';
+  document.getElementById('member-email').value = '';
+  renderMemberList();
+  showToast(name+' added to committee','ok');
+}
+
+function removeMember(memId) {
+  var data = getDelphiData();
+  data.members = data.members.filter(function(m) { return m.id !== memId; });
+  saveDelphiData(data);
+  renderMemberList();
+}
+
+function toggleCOI(memId) {
+  var data = getDelphiData();
+  data.members.forEach(function(m) { if (m.id === memId) m.coiDeclared = !m.coiDeclared; });
+  saveDelphiData(data);
+  renderMemberList();
+}
+
+function renderMemberList() {
+  var data = getDelphiData();
+  var noMsg = document.getElementById('no-members-msg');
+  var table = document.getElementById('delphi-member-table');
+  if (!table) return;
+
+  // Clear all rows except header
+  while (table.rows.length > 1) table.deleteRow(1);
+
+  if (data.members.length === 0) {
+    if (noMsg) noMsg.style.display = 'block';
+    return;
+  }
+  if (noMsg) noMsg.style.display = 'none';
+
+  data.members.forEach(function(m) {
+    var row = table.insertRow();
+    row.innerHTML = '<td style="font-weight:600">' + m.name + '</td>' +
+      '<td style="font-size:11px">' + m.email + '</td>' +
+      '<td><span class="badge" style="background:#F5F3FF;color:#7C3AED;font-size:10px">' + m.role + '</span></td>' +
+      '<td><button class="btn btn-sm" style="font-size:10px;' + (m.coiDeclared ? 'background:#D1FAE5;color:#065F46' : 'background:#FEF3C7;color:#92400E') + '" onclick="toggleCOI(\'' + m.id + '\')">' + (m.coiDeclared ? '✅ Declared' : '⚠️ Pending') + '</button></td>' +
+      '<td><button class="btn btn-sm" style="color:var(--err);font-size:10px" onclick="removeMember(\'' + m.id + '\')">Remove</button></td>';
+  });
+
+  // Update voting dropdown
+  var sel = document.getElementById('voting-as-member');
+  if (sel) {
+    sel.innerHTML = '<option value="">Select your name...</option>';
+    data.members.forEach(function(m) {
+      sel.innerHTML += '<option value="' + m.id + '">' + m.name + ' (' + m.role + ')</option>';
+    });
+  }
+}
+
+// --- Recommendation Management ---
+function addDelphiRec() {
+  var text = document.getElementById('rec-text').value.trim();
+  var grade = document.getElementById('rec-grade').value;
+  var certainty = document.getElementById('rec-certainty').value;
+  var rationale = document.getElementById('rec-rationale').value.trim();
+  if (!text) { showToast('Please enter recommendation text','warn'); return; }
+
+  var data = getDelphiData();
+  var recNum = data.recommendations.length + 1;
+  data.recommendations.push({
+    id: 'rec_'+Date.now(),
+    num: recNum,
+    text: text,
+    grade: grade,
+    certainty: certainty,
+    rationale: rationale,
+    status: 'pending' // pending | consensus | no-consensus
+  });
+  saveDelphiData(data);
+
+  document.getElementById('rec-text').value = '';
+  document.getElementById('rec-rationale').value = '';
+  renderDelphiRecs();
+  showToast('Recommendation #'+recNum+' added','ok');
+}
+
+function removeRec(recId) {
+  var data = getDelphiData();
+  data.recommendations = data.recommendations.filter(function(r) { return r.id !== recId; });
+  // Re-number
+  data.recommendations.forEach(function(r, i) { r.num = i + 1; });
+  saveDelphiData(data);
+  renderDelphiRecs();
+}
+
+function autoPopulateRecs() {
+  // Pull recommendations from EtR summary counts if available
+  showToast('Auto-populate from EtR table — use AI EtR tools to generate recommendations first','info');
+}
+
+function renderDelphiRecs() {
+  var container = document.getElementById('delphi-rec-list');
+  if (!container) return;
+  var data = getDelphiData();
+
+  if (data.recommendations.length === 0) {
+    container.innerHTML = '<p style="text-align:center;color:var(--tl);font-size:12px;padding:16px">No recommendations added yet</p>';
+    return;
+  }
+
+  var html = '';
+  data.recommendations.forEach(function(r) {
+    var gradeColor = r.grade.indexOf('Strong For') >= 0 ? '#16A34A' : r.grade.indexOf('Conditional For') >= 0 ? '#2563EB' : r.grade.indexOf('Conditional Against') >= 0 ? '#D97706' : '#DC2626';
+    var statusBadge = r.status === 'consensus' ? '<span class="badge b-ok" style="font-size:9px">✅ Consensus</span>' :
+                      r.status === 'no-consensus' ? '<span class="badge b-err" style="font-size:9px">❌ No Consensus</span>' :
+                      '<span class="badge" style="background:#F5F3FF;color:#7C3AED;font-size:9px">🗳️ Pending</span>';
+
+    html += '<div style="border:1px solid #E2E8F0;border-left:4px solid '+gradeColor+';border-radius:8px;padding:12px;margin-bottom:8px">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start">';
+    html += '<div style="flex:1"><div style="font-weight:700;font-size:13px;margin-bottom:4px">Rec #'+r.num+' '+statusBadge+'</div>';
+    html += '<div style="font-size:13px;line-height:1.5">'+r.text+'</div>';
+    html += '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">';
+    html += '<span class="badge" style="background:'+gradeColor+';color:#fff;font-size:10px">'+r.grade+'</span>';
+    html += '<span class="badge" style="font-size:10px">'+r.certainty+'</span>';
+    html += '</div>';
+    if (r.rationale) html += '<div style="font-size:11px;color:var(--tl);margin-top:6px;padding:6px;background:#F8FAFC;border-radius:4px">'+r.rationale+'</div>';
+    html += '</div>';
+    html += '<button class="btn btn-sm" style="color:var(--err);font-size:10px;white-space:nowrap" onclick="removeRec(\''+r.id+'\')">Remove</button>';
+    html += '</div></div>';
+  });
+  container.innerHTML = html;
+}
+
+// --- Voting Interface ---
+function renderVotingCards() {
+  var container = document.getElementById('voting-cards-container');
+  if (!container) return;
+  var data = getDelphiData();
+
+  document.getElementById('current-round-num').textContent = data.currentRound;
+
+  if (data.recommendations.length === 0 || data.members.length === 0) {
+    container.innerHTML = '<p style="text-align:center;color:var(--tl);font-size:13px;padding:20px">Add recommendations and committee members first</p>';
+    return;
+  }
+
+  var pendingRecs = data.recommendations.filter(function(r) { return r.status === 'pending'; });
+  if (pendingRecs.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:30px;background:#F0FDF4;border-radius:8px"><div style="font-size:28px;margin-bottom:8px">✅</div><div style="font-weight:700;color:var(--ok)">All recommendations have reached consensus!</div></div>';
+    return;
+  }
+
+  var html = '';
+  pendingRecs.forEach(function(r, idx) {
+    var gradeColor = r.grade.indexOf('Strong For') >= 0 ? '#16A34A' : r.grade.indexOf('Conditional For') >= 0 ? '#2563EB' : r.grade.indexOf('Conditional Against') >= 0 ? '#D97706' : '#DC2626';
+
+    html += '<div class="vote-card" style="border:1px solid #E2E8F0;border-radius:10px;padding:16px;margin-bottom:12px;background:#fff">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">';
+    html += '<div style="font-weight:700;font-size:14px">Recommendation #'+r.num+'</div>';
+    html += '<div style="display:flex;gap:4px"><span class="badge" style="background:'+gradeColor+';color:#fff;font-size:10px">'+r.grade+'</span><span class="badge" style="font-size:10px">'+r.certainty+'</span></div>';
+    html += '</div>';
+
+    html += '<div style="font-size:13px;line-height:1.6;padding:12px;background:#F8FAFC;border-radius:8px;border-left:3px solid '+gradeColor+';margin-bottom:10px">'+r.text+'</div>';
+
+    if (r.rationale) {
+      html += '<details style="margin-bottom:10px"><summary style="font-size:12px;color:#7C3AED;cursor:pointer;font-weight:600">📋 View Evidence & Rationale</summary>';
+      html += '<div style="font-size:12px;color:var(--tl);padding:10px;background:#F5F3FF;border-radius:6px;margin-top:6px;line-height:1.6">'+r.rationale+'</div></details>';
+    }
+
+    // Vote options
+    html += '<div style="font-weight:600;font-size:12px;margin-bottom:8px">Your Vote:</div>';
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">';
+    var voteOptions = [
+      {val:'strongly-agree', label:'Strongly Agree', bg:'#16A34A'},
+      {val:'agree', label:'Agree', bg:'#22C55E'},
+      {val:'neutral', label:'Neutral', bg:'#F59E0B'},
+      {val:'disagree', label:'Disagree', bg:'#EF4444'},
+      {val:'strongly-disagree', label:'Strongly Disagree', bg:'#DC2626'}
+    ];
+    voteOptions.forEach(function(opt) {
+      html += '<label style="display:flex;align-items:center;gap:4px;padding:6px 12px;border:2px solid #E2E8F0;border-radius:6px;cursor:pointer;font-size:12px;transition:all .2s" onmouseover="this.style.borderColor=\''+opt.bg+'\'" onmouseout="if(!this.querySelector(\'input\').checked)this.style.borderColor=\'#E2E8F0\'">';
+      html += '<input type="radio" name="vote-'+r.id+'" value="'+opt.val+'" onchange="this.closest(\'label\').style.borderColor=\''+opt.bg+'\';this.closest(\'label\').style.background=\''+opt.bg+'15\'">';
+      html += '<span style="color:'+opt.bg+';font-weight:600">'+opt.label+'</span></label>';
+    });
+    html += '</div>';
+
+    // Comment
+    html += '<div><input class="fi" id="comment-'+r.id+'" placeholder="Optional comment or suggested revision..." style="font-size:12px;width:100%"></div>';
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+function submitAllVotes() {
+  var data = getDelphiData();
+  var memberId = document.getElementById('voting-as-member').value;
+  if (!memberId) { showToast('Please select your name first','warn'); return; }
+
+  var member = data.members.find(function(m) { return m.id === memberId; });
+  var pendingRecs = data.recommendations.filter(function(r) { return r.status === 'pending'; });
+
+  // Collect votes
+  var votes = [];
+  var allVoted = true;
+  pendingRecs.forEach(function(r) {
+    var radios = document.querySelectorAll('input[name="vote-'+r.id+'"]');
+    var selected = null;
+    radios.forEach(function(radio) { if (radio.checked) selected = radio.value; });
+    var comment = (document.getElementById('comment-'+r.id) || {}).value || '';
+    if (!selected) { allVoted = false; }
+    votes.push({ recId: r.id, vote: selected, comment: comment });
+  });
+
+  if (!allVoted) { showToast('Please vote on all recommendations','warn'); return; }
+
+  // Store votes in current round
+  var roundIdx = data.currentRound - 1;
+  if (!data.rounds[roundIdx]) {
+    data.rounds[roundIdx] = { roundNum: data.currentRound, startedAt: Date.now(), votes: {} };
+  }
+  data.rounds[roundIdx].votes[memberId] = {
+    memberName: member.name,
+    memberEmail: member.email,
+    votedAt: Date.now(),
+    responses: votes
+  };
+
+  // Check consensus for each recommendation
+  checkConsensus(data);
+
+  saveDelphiData(data);
+  showToast('Votes submitted for Round '+data.currentRound+' as '+member.name,'ok');
+  switchDelphiTab('delphi-results');
+}
+
+function checkConsensus(data) {
+  var roundIdx = data.currentRound - 1;
+  var round = data.rounds[roundIdx];
+  if (!round) return;
+
+  var threshold = parseInt(document.getElementById('consensus-threshold').value) || data.threshold || 80;
+  data.threshold = threshold;
+  var totalMembers = data.members.length;
+  var totalVoters = Object.keys(round.votes).length;
+
+  data.recommendations.forEach(function(rec) {
+    if (rec.status !== 'pending') return;
+
+    var agreeCount = 0;
+    Object.keys(round.votes).forEach(function(memId) {
+      var memberVotes = round.votes[memId].responses;
+      var recVote = memberVotes.find(function(v) { return v.recId === rec.id; });
+      if (recVote && (recVote.vote === 'strongly-agree' || recVote.vote === 'agree')) {
+        agreeCount++;
+      }
+    });
+
+    if (totalVoters > 0) {
+      var pct = (agreeCount / totalVoters) * 100;
+      rec.lastAgreementPct = Math.round(pct);
+      if (pct >= threshold) {
+        rec.status = 'consensus';
+        rec.consensusRound = data.currentRound;
+        rec.consensusPct = Math.round(pct);
+      }
+    }
+  });
+}
+
+function startNextRound() {
+  var data = getDelphiData();
+  var maxRounds = parseInt(document.getElementById('max-rounds').value) || data.maxRounds || 3;
+  data.maxRounds = maxRounds;
+
+  if (data.currentRound >= maxRounds) {
+    // Mark remaining pending as no-consensus
+    data.recommendations.forEach(function(r) {
+      if (r.status === 'pending') r.status = 'no-consensus';
+    });
+    saveDelphiData(data);
+    renderDelphiResults();
+    showToast('Maximum rounds reached — remaining items marked as no consensus','warn');
+    return;
+  }
+
+  var pending = data.recommendations.filter(function(r) { return r.status === 'pending'; });
+  if (pending.length === 0) {
+    showToast('All recommendations already have consensus!','ok');
+    return;
+  }
+
+  data.currentRound++;
+  saveDelphiData(data);
+  renderDelphiResults();
+  showToast('Round '+data.currentRound+' started — '+pending.length+' recommendations to re-vote','ok');
+}
+
+// --- Results Dashboard ---
+function renderDelphiResults() {
+  var container = document.getElementById('delphi-results-table');
+  if (!container) return;
+  var data = getDelphiData();
+
+  // Update stats
+  var consensus = data.recommendations.filter(function(r) { return r.status === 'consensus'; }).length;
+  var pending = data.recommendations.filter(function(r) { return r.status === 'pending'; }).length;
+  var roundIdx = data.currentRound - 1;
+  var round = data.rounds[roundIdx];
+  var voterCount = round ? Object.keys(round.votes).length : 0;
+  var responseRate = data.members.length > 0 ? Math.round((voterCount / data.members.length) * 100) : 0;
+
+  document.getElementById('delphi-stat-round').textContent = data.currentRound;
+  document.getElementById('delphi-stat-consensus').textContent = consensus;
+  document.getElementById('delphi-stat-pending').textContent = pending;
+  document.getElementById('delphi-stat-response').textContent = responseRate + '%';
+
+  if (data.recommendations.length === 0) {
+    container.innerHTML = '<p style="text-align:center;color:var(--tl);font-size:12px;padding:16px">No recommendations to display</p>';
+    return;
+  }
+
+  var html = '<table style="width:100%;font-size:12px"><tr><th>#</th><th>Recommendation</th><th>Grade</th><th>Agreement</th><th>Status</th><th>Round</th></tr>';
+  data.recommendations.forEach(function(r) {
+    var pct = r.lastAgreementPct || 0;
+    var pctColor = pct >= 80 ? 'var(--ok)' : pct >= 60 ? 'var(--warn)' : 'var(--err)';
+    var statusHtml = r.status === 'consensus' ? '<span class="badge b-ok" style="font-size:10px">✅ Consensus</span>' :
+                     r.status === 'no-consensus' ? '<span class="badge b-err" style="font-size:10px">❌ Failed</span>' :
+                     '<span class="badge" style="background:#F5F3FF;color:#7C3AED;font-size:10px">🗳️ Voting</span>';
+
+    html += '<tr>';
+    html += '<td style="font-weight:700">'+r.num+'</td>';
+    html += '<td style="max-width:300px;line-height:1.4">'+r.text.substring(0,100)+(r.text.length>100?'...':'')+'</td>';
+    html += '<td><span class="badge" style="font-size:10px">'+r.grade+'</span></td>';
+    html += '<td><div style="display:flex;align-items:center;gap:6px"><div class="pbar" style="width:80px;height:8px"><div class="pfill" style="width:'+pct+'%;background:'+pctColor+'"></div></div><span style="font-weight:600;color:'+pctColor+'">'+pct+'%</span></div></td>';
+    html += '<td>'+statusHtml+'</td>';
+    html += '<td>'+(r.consensusRound ? 'R'+r.consensusRound : 'R'+data.currentRound)+'</td>';
+    html += '</tr>';
+  });
+  html += '</table>';
+
+  // Show per-round history
+  if (data.rounds.length > 0) {
+    html += '<div style="margin-top:16px;font-weight:700;font-size:13px;margin-bottom:8px">Round History</div>';
+    data.rounds.forEach(function(round, idx) {
+      var numVoters = Object.keys(round.votes).length;
+      var date = new Date(round.startedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      html += '<div style="padding:8px 12px;background:#F8FAFC;border-radius:6px;margin-bottom:4px;font-size:12px;display:flex;justify-content:space-between">';
+      html += '<span><strong>Round '+(idx+1)+'</strong> — '+date+'</span>';
+      html += '<span>'+numVoters+'/'+data.members.length+' voted</span>';
+      // List who voted
+      var names = Object.values(round.votes).map(function(v) { return v.memberName; }).join(', ');
+      html += '</div>';
+      if (names) html += '<div style="font-size:11px;color:var(--tl);padding:2px 12px;margin-bottom:6px">Voters: '+names+'</div>';
+    });
+  }
+
+  container.innerHTML = html;
+}
+
+// --- Email System ---
+function sendVotingEmails() {
+  var data = getDelphiData();
+  if (data.members.length === 0) { showToast('No committee members to email','warn'); return; }
+
+  var pending = data.recommendations.filter(function(r) { return r.status === 'pending'; });
+  if (pending.length === 0) { showToast('No pending recommendations to vote on','info'); return; }
+
+  // Build email preview modal
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center';
+  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+
+  var memberRows = data.members.map(function(m) {
+    return '<tr><td style="padding:4px 8px"><input type="checkbox" checked class="email-check" data-email="'+m.email+'" data-name="'+m.name+'"></td><td style="padding:4px 8px;font-weight:600">'+m.name+'</td><td style="padding:4px 8px;font-size:11px">'+m.email+'</td><td style="padding:4px 8px"><span class="badge" style="font-size:10px">'+m.role+'</span></td></tr>';
+  }).join('');
+
+  modal.innerHTML = '<div style="background:#fff;border-radius:12px;padding:24px;max-width:650px;width:95%;max-height:85vh;overflow-y:auto">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0">📧 Send Voting Invitations</h3><button class="btn btn-sm" onclick="this.closest(\'div[style*=fixed]\').remove()">✕</button></div>' +
+    '<div style="background:#F5F3FF;border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px"><strong>Round '+data.currentRound+'</strong> — '+pending.length+' recommendations require votes</div>' +
+    '<div style="font-weight:600;font-size:13px;margin-bottom:8px">Select Recipients:</div>' +
+    '<table style="width:100%;font-size:12px"><tr><th style="width:30px"></th><th>Name</th><th>Email</th><th>Role</th></tr>' + memberRows + '</table>' +
+    '<div style="margin-top:14px;font-weight:600;font-size:13px;margin-bottom:8px">Email Preview:</div>' +
+    '<div style="border:1px solid #E2E8F0;border-radius:8px;padding:14px;background:#FAFAFA;font-size:12px;line-height:1.7">' +
+    '<div style="color:var(--tl);margin-bottom:8px"><strong>Subject:</strong> KSUMC CPG Delphi Voting — Round '+data.currentRound+' ('+pending.length+' recommendations)</div>' +
+    '<p>Dear [Member Name],</p>' +
+    '<p>You are invited to participate in <strong>Round '+data.currentRound+'</strong> of the Delphi consensus voting for the KSUMC Clinical Practice Guideline.</p>' +
+    '<p><strong>'+pending.length+' recommendation(s)</strong> require your vote. Please review the evidence summaries and cast your vote on each recommendation.</p>' +
+    '<p>The consensus threshold is set at <strong>'+data.threshold+'%</strong> agreement.</p>' +
+    '<p style="background:#F0FDF4;padding:8px;border-radius:6px">🔗 <strong>Vote here:</strong> [Platform voting link will be included]</p>' +
+    '<p>Thank you for your contribution to evidence-based practice.</p>' +
+    '<p style="color:var(--tl)">— KSUMC National CPG Authority</p>' +
+    '</div>' +
+    '<div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">' +
+    '<button class="btn btn-o" onclick="this.closest(\'div[style*=fixed]\').remove()">Cancel</button>' +
+    '<button class="btn" style="background:#7C3AED;color:#fff" onclick="confirmSendEmails(this)">📧 Send to Selected Members</button>' +
+    '</div></div>';
+
+  document.body.appendChild(modal);
+}
+
+function confirmSendEmails(btn) {
+  var checkboxes = document.querySelectorAll('.email-check:checked');
+  if (checkboxes.length === 0) { showToast('No members selected','warn'); return; }
+
+  var data = getDelphiData();
+  var pending = data.recommendations.filter(function(r) { return r.status === 'pending'; });
+  var recipients = [];
+  checkboxes.forEach(function(cb) { recipients.push({ email: cb.dataset.email, name: cb.dataset.name }); });
+
+  // Build mailto links (since this is a GitHub Pages app, we use mailto)
+  var subject = encodeURIComponent('KSUMC CPG Delphi Voting — Round '+data.currentRound+' ('+pending.length+' recommendations)');
+  var recList = pending.map(function(r) { return '  Rec #'+r.num+': '+r.text.substring(0,80); }).join('\n');
+
+  recipients.forEach(function(recip) {
+    var body = encodeURIComponent(
+      'Dear '+recip.name+',\n\n' +
+      'You are invited to participate in Round '+data.currentRound+' of the Delphi consensus voting.\n\n' +
+      'Recommendations requiring your vote:\n' + recList + '\n\n' +
+      'Please log in to the KSUMC CPG Platform to cast your votes:\n' +
+      window.location.href + '\n\n' +
+      'Navigate to: Workflow → Stage 5 (EtR) → Delphi Voting → Voting Panel\n\n' +
+      'Consensus threshold: '+data.threshold+'%\n\n' +
+      'Thank you,\nKSUMC National CPG Authority'
+    );
+    window.open('mailto:'+recip.email+'?subject='+subject+'&body='+body, '_blank');
+  });
+
+  btn.closest('div[style*=fixed]').remove();
+  showToast('Email drafts opened for '+recipients.length+' members','ok');
+}
+
+function sendRoundReminder() {
+  var data = getDelphiData();
+  var roundIdx = data.currentRound - 1;
+  var round = data.rounds[roundIdx];
+  var votedIds = round ? Object.keys(round.votes) : [];
+  var nonVoters = data.members.filter(function(m) { return votedIds.indexOf(m.id) === -1; });
+
+  if (nonVoters.length === 0) { showToast('All members have voted this round!','ok'); return; }
+
+  var subject = encodeURIComponent('Reminder: KSUMC CPG Delphi Voting Round '+data.currentRound);
+  nonVoters.forEach(function(m) {
+    var body = encodeURIComponent(
+      'Dear '+m.name+',\n\n' +
+      'This is a reminder that your vote is still needed for Round '+data.currentRound+' of the Delphi consensus process.\n\n' +
+      'Please visit: '+window.location.href+'\n\n' +
+      'Navigate to: Workflow → Stage 5 → Delphi Voting → Voting Panel\n\n' +
+      'Thank you,\nKSUMC National CPG Authority'
+    );
+    window.open('mailto:'+m.email+'?subject='+subject+'&body='+body, '_blank');
+  });
+
+  showToast('Reminders opened for '+nonVoters.length+' non-voters','ok');
+}
+
+// --- Preview / Export ---
+function previewVotingPage() {
+  var data = getDelphiData();
+  var pending = data.recommendations.filter(function(r) { return r.status === 'pending'; });
+  if (pending.length === 0) { showToast('No pending recommendations','info'); return; }
+
+  var w = window.open('', '_blank');
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>KSUMC CPG Delphi Voting — Round '+data.currentRound+'</title>';
+  html += '<style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#1E293B}';
+  html += '.rec{border:1px solid #E2E8F0;border-radius:10px;padding:20px;margin:16px 0}.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}';
+  html += '.vote-opt{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border:2px solid #E2E8F0;border-radius:6px;margin:4px;cursor:pointer;font-size:13px}';
+  html += 'h1{color:#7C3AED}input[type=text]{width:100%;padding:8px;border:1px solid #E2E8F0;border-radius:6px;margin-top:8px}</style></head><body>';
+  html += '<h1>🗳️ KSUMC CPG Delphi Voting — Round '+data.currentRound+'</h1>';
+  html += '<p style="color:#64748B">Please review each recommendation below and select your level of agreement. Add comments for any items you disagree with.</p>';
+  html += '<p><strong>Consensus threshold:</strong> '+data.threshold+'% · <strong>Recommendations:</strong> '+pending.length+'</p>';
+
+  pending.forEach(function(r) {
+    html += '<div class="rec"><h3>Recommendation #'+r.num+'</h3>';
+    html += '<p style="font-size:15px;line-height:1.6;background:#F8FAFC;padding:12px;border-radius:8px">'+r.text+'</p>';
+    html += '<p><span class="badge" style="background:#16A34A;color:#fff">'+r.grade+'</span> <span class="badge" style="background:#EFF6FF;color:#2563EB">'+r.certainty+'</span></p>';
+    if (r.rationale) html += '<p style="font-size:13px;color:#64748B"><strong>Rationale:</strong> '+r.rationale+'</p>';
+    html += '<p><strong>Your Vote:</strong></p>';
+    ['Strongly Agree','Agree','Neutral','Disagree','Strongly Disagree'].forEach(function(v) {
+      html += '<label class="vote-opt"><input type="radio" name="v'+r.num+'"> '+v+'</label>';
+    });
+    html += '<p style="margin-top:12px"><strong>Comments:</strong></p><input type="text" placeholder="Optional comment or suggested revision...">';
+    html += '</div>';
+  });
+
+  html += '<div style="margin:30px 0;text-align:center"><button style="background:#7C3AED;color:#fff;border:none;padding:12px 32px;border-radius:8px;font-size:15px;cursor:pointer">✅ Submit Votes</button></div>';
+  html += '</body></html>';
+
+  w.document.write(html);
+  w.document.close();
+}
+
+function exportDelphiReport() {
+  var data = getDelphiData();
+  var report = 'KSUMC CPG DELPHI CONSENSUS REPORT\n';
+  report += '================================\n\n';
+  report += 'Date: '+new Date().toLocaleDateString()+'\n';
+  report += 'Rounds completed: '+data.currentRound+'\n';
+  report += 'Consensus threshold: '+data.threshold+'%\n';
+  report += 'Committee members: '+data.members.length+'\n\n';
+
+  report += 'COMMITTEE\n---------\n';
+  data.members.forEach(function(m) {
+    report += m.name+' ('+m.role+') — '+m.email+'\n';
+  });
+
+  report += '\nRECOMMENDATIONS\n---------------\n';
+  data.recommendations.forEach(function(r) {
+    report += '\nRec #'+r.num+': '+r.text+'\n';
+    report += '  Grade: '+r.grade+' | Certainty: '+r.certainty+'\n';
+    report += '  Status: '+r.status.toUpperCase();
+    if (r.consensusPct) report += ' ('+r.consensusPct+'% in Round '+r.consensusRound+')';
+    if (r.lastAgreementPct && r.status==='pending') report += ' (last: '+r.lastAgreementPct+'%)';
+    report += '\n';
+  });
+
+  report += '\nROUND DETAILS\n-------------\n';
+  data.rounds.forEach(function(round, idx) {
+    report += '\nRound '+(idx+1)+' — '+new Date(round.startedAt).toLocaleDateString()+'\n';
+    Object.values(round.votes).forEach(function(v) {
+      report += '  '+v.memberName+' voted '+new Date(v.votedAt).toLocaleString()+'\n';
+      v.responses.forEach(function(resp) {
+        var rec = data.recommendations.find(function(r) { return r.id === resp.recId; });
+        report += '    Rec #'+(rec?rec.num:'?')+': '+resp.vote+(resp.comment?' — "'+resp.comment+'"':'')+'\n';
+      });
+    });
+  });
+
+  var blob = new Blob([report], {type:'text/plain'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'delphi-consensus-report-round'+data.currentRound+'.txt';
+  a.click();
+  showToast('Report exported','ok');
+}
+
+function finalizeConsensus() {
+  var data = getDelphiData();
+  var pending = data.recommendations.filter(function(r) { return r.status === 'pending'; });
+  if (pending.length > 0) {
+    if (!confirm(pending.length+' recommendation(s) have not reached consensus.\n\nMark them as "No Consensus" and finalize?')) return;
+    pending.forEach(function(r) { r.status = 'no-consensus'; });
+  }
+  data.finalized = true;
+  saveDelphiData(data);
+  renderDelphiResults();
+  showToast('Consensus process finalized — results locked','ok');
+}
+
+// Init on page load
+document.addEventListener('DOMContentLoaded', function() {
+  var data = getDelphiData();
+  if (data.members.length > 0) renderMemberList();
+  if (data.recommendations.length > 0) renderDelphiRecs();
+});
+
+// ============================================================
 // GUIDELINE TRASH / SOFT DELETE SYSTEM
 // 30-day retention with restore capability
 // ============================================================
