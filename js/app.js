@@ -5145,3 +5145,179 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
 })();
+
+// ============================================================
+// GUIDELINE TRASH / SOFT DELETE SYSTEM
+// 30-day retention with restore capability
+// ============================================================
+var TRASH_KEY = 'cpg_trash_bin';
+var TRASH_RETENTION_DAYS = 30;
+
+function getTrashBin() {
+  try {
+    var data = JSON.parse(localStorage.getItem(TRASH_KEY) || '[]');
+    // Auto-purge items older than 30 days
+    var now = Date.now();
+    var cutoff = TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+    var filtered = data.filter(function(item) {
+      return (now - item.deletedAt) < cutoff;
+    });
+    if (filtered.length !== data.length) {
+      localStorage.setItem(TRASH_KEY, JSON.stringify(filtered));
+    }
+    return filtered;
+  } catch(e) {
+    return [];
+  }
+}
+
+function saveTrashBin(items) {
+  localStorage.setItem(TRASH_KEY, JSON.stringify(items));
+}
+
+function archiveGuideline(glId, glName) {
+  if (!confirm('Move "' + glName + '" to trash?\n\nIt will be recoverable for 30 days.')) return;
+
+  var trash = getTrashBin();
+  // Check if already in trash
+  var exists = trash.some(function(t) { return t.id === glId; });
+  if (exists) {
+    showToast('Already in trash', 'warn');
+    return;
+  }
+
+  trash.push({
+    id: glId,
+    name: glName,
+    deletedAt: Date.now(),
+    deletedBy: (currentUser && currentUser.email) || 'unknown'
+  });
+  saveTrashBin(trash);
+
+  // Hide elements with data-gl-id matching
+  hideGuidelineElements(glId);
+  updateTrashBadge();
+  showToast(glName + ' moved to trash', 'ok');
+}
+
+function hideGuidelineElements(glId) {
+  // Hide all elements (rows, cards) with data-gl-id
+  document.querySelectorAll('[data-gl-id="' + glId + '"]').forEach(function(el) {
+    el.style.display = 'none';
+    el.setAttribute('data-trashed', 'true');
+  });
+}
+
+function showGuidelineElements(glId) {
+  document.querySelectorAll('[data-gl-id="' + glId + '"]').forEach(function(el) {
+    el.style.display = '';
+    el.removeAttribute('data-trashed');
+  });
+}
+
+function restoreGuideline(glId) {
+  var trash = getTrashBin();
+  var item = trash.find(function(t) { return t.id === glId; });
+  if (!item) return;
+
+  trash = trash.filter(function(t) { return t.id !== glId; });
+  saveTrashBin(trash);
+
+  showGuidelineElements(glId);
+  updateTrashBadge();
+  renderTrashBin();
+  showToast(item.name + ' restored', 'ok');
+}
+
+function permanentDeleteGuideline(glId) {
+  var trash = getTrashBin();
+  var item = trash.find(function(t) { return t.id === glId; });
+  if (!item) return;
+
+  if (!confirm('Permanently delete "' + item.name + '"?\n\nThis cannot be undone.')) return;
+
+  trash = trash.filter(function(t) { return t.id !== glId; });
+  saveTrashBin(trash);
+
+  updateTrashBadge();
+  renderTrashBin();
+  showToast(item.name + ' permanently deleted', 'ok');
+}
+
+function emptyTrash() {
+  var trash = getTrashBin();
+  if (trash.length === 0) {
+    showToast('Trash is already empty', 'info');
+    return;
+  }
+  if (!confirm('Permanently delete all ' + trash.length + ' item(s) in trash?\n\nThis cannot be undone.')) return;
+
+  saveTrashBin([]);
+  updateTrashBadge();
+  renderTrashBin();
+  showToast('Trash emptied', 'ok');
+}
+
+function toggleTrashBin() {
+  var section = document.getElementById('trash-bin-section');
+  if (!section) return;
+  var isHidden = section.style.display === 'none';
+  section.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) renderTrashBin();
+}
+
+function renderTrashBin() {
+  var container = document.getElementById('trash-bin-list');
+  if (!container) return;
+
+  var trash = getTrashBin();
+  if (trash.length === 0) {
+    container.innerHTML = '<p style="color:var(--tl);font-size:13px;text-align:center;padding:20px">Trash is empty</p>';
+    return;
+  }
+
+  var html = '<table style="width:100%;font-size:13px"><tr><th>Guideline</th><th>Deleted</th><th>Days Left</th><th>Actions</th></tr>';
+  var now = Date.now();
+  trash.forEach(function(item) {
+    var elapsed = now - item.deletedAt;
+    var daysElapsed = Math.floor(elapsed / (24*60*60*1000));
+    var daysLeft = TRASH_RETENTION_DAYS - daysElapsed;
+    var deletedDate = new Date(item.deletedAt).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+    var urgency = daysLeft <= 7 ? 'color:var(--err);font-weight:600' : 'color:var(--tl)';
+
+    html += '<tr>';
+    html += '<td><strong>' + item.name + '</strong><br><span style="font-size:10px;color:var(--tl)">ID: ' + item.id + '</span></td>';
+    html += '<td style="font-size:12px">' + deletedDate + '</td>';
+    html += '<td style="' + urgency + '">' + daysLeft + ' days</td>';
+    html += '<td style="white-space:nowrap">';
+    html += '<button class="btn btn-sm" style="background:var(--ok);color:#fff;margin-right:4px;font-size:11px" onclick="restoreGuideline(\'' + item.id + '\')">Restore</button>';
+    html += '<button class="btn btn-sm" style="color:var(--err);font-size:11px" onclick="permanentDeleteGuideline(\'' + item.id + '\')">Delete</button>';
+    html += '</td></tr>';
+  });
+  html += '</table>';
+  container.innerHTML = html;
+}
+
+function updateTrashBadge() {
+  var badge = document.getElementById('trash-count-badge');
+  if (!badge) return;
+  var trash = getTrashBin();
+  if (trash.length > 0) {
+    badge.style.display = 'flex';
+    badge.textContent = trash.length;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// On page load: hide trashed guidelines and update badge
+function initTrashSystem() {
+  var trash = getTrashBin();
+  trash.forEach(function(item) {
+    hideGuidelineElements(item.id);
+  });
+  updateTrashBadge();
+}
+
+// Run on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', initTrashSystem);

@@ -11,7 +11,7 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="css/main.css?v=btnfix1">
+<link rel="stylesheet" href="css/main.css?v=trash1">
 </head>
 <body>
 
@@ -1437,17 +1437,33 @@ Net Budget Impact = Cost<sub>new mix</sub> − Cost<sub>current mix</sub><br>
 <div class="card">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
 <div><div class="card-t">National CPG Registry</div><div class="card-st">All published and in-development guidelines</div></div>
+<div style="display:flex;gap:8px">
 <button class="btn btn-p" onclick="openM('new-gl-modal')">+ New Guideline</button>
+<button class="btn btn-o" id="trash-toggle-btn" onclick="toggleTrashBin()" style="position:relative">🗑️ Trash <span id="trash-count-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--err);color:#fff;font-size:9px;width:18px;height:18px;border-radius:50%;display:none;align-items:center;justify-content:center">0</span></button>
+</div>
 </div>
 <div style="display:flex;gap:8px;margin-bottom:14px">
 <input class="fi" placeholder="Search guidelines..." style="flex:1">
 <select class="fs" style="width:auto"><option>All Statuses</option><option>Published</option><option>In Development</option><option>Overdue</option></select>
 <select class="fs" style="width:auto"><option>All Specialties</option><option>Endocrinology</option><option>Gastroenterology</option><option>Oncology</option><option>Pulmonology</option></select>
 </div>
-<div class="grid g3">
-<div class="card" style="border-left:4px solid var(--ok)"><div style="display:flex;justify-content:space-between"><span class="badge b-ok">Published</span><span style="font-size:10px;color:var(--tl)">v2.1</span></div><h3 style="font-size:13px;margin:8px 0 3px">T2DM — Adult Management</h3><p style="font-size:11px;color:var(--tl)">KSUMC Endocrinology · 14 recommendations</p></div>
-<div class="card" style="border-left:4px solid var(--ok)"><div style="display:flex;justify-content:space-between"><span class="badge b-ok">Published</span><span style="font-size:10px;color:var(--tl)">v1.2</span></div><h3 style="font-size:13px;margin:8px 0 3px">Hypertension — Primary Care</h3><p style="font-size:11px;color:var(--tl)">MOH · ADAPTE from ESC/ESH</p></div>
-<div class="card" style="border-left:4px solid var(--warn)"><div style="display:flex;justify-content:space-between"><span class="badge b-w">In Dev</span><span style="font-size:10px;color:var(--tl)">Stage 5</span></div><h3 style="font-size:13px;margin:8px 0 3px">Asthma — Adult</h3><p style="font-size:11px;color:var(--tl)">Saudi Thoracic Society · Delphi R2</p></div>
+<div class="grid g3" id="registry-cards">
+<div class="card" data-gl-id="t2dm" style="border-left:4px solid var(--ok)"><div style="display:flex;justify-content:space-between"><span class="badge b-ok">Published</span><span style="font-size:10px;color:var(--tl)">v2.1</span></div><h3 style="font-size:13px;margin:8px 0 3px">T2DM — Adult Management</h3><p style="font-size:11px;color:var(--tl)">KSUMC Endocrinology · 14 recommendations</p></div>
+<div class="card" data-gl-id="htn" style="border-left:4px solid var(--ok)"><div style="display:flex;justify-content:space-between"><span class="badge b-ok">Published</span><span style="font-size:10px;color:var(--tl)">v1.2</span></div><h3 style="font-size:13px;margin:8px 0 3px">Hypertension — Primary Care</h3><p style="font-size:11px;color:var(--tl)">MOH · ADAPTE from ESC/ESH</p></div>
+<div class="card" data-gl-id="asthma" style="border-left:4px solid var(--warn)"><div style="display:flex;justify-content:space-between"><span class="badge b-w">In Dev</span><span style="font-size:10px;color:var(--tl)">Stage 5</span></div><h3 style="font-size:13px;margin:8px 0 3px">Asthma — Adult</h3><p style="font-size:11px;color:var(--tl)">Saudi Thoracic Society · Delphi R2</p></div>
+</div>
+<!-- Trash Bin Section (hidden by default) -->
+<div id="trash-bin-section" style="display:none;margin-top:16px">
+<div class="card" style="border-top:3px solid var(--err);background:#FEF2F2">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+<div><div class="card-t" style="color:var(--err)">🗑️ Trash Bin</div><div class="card-st">Deleted guidelines are kept for 30 days, then permanently removed</div></div>
+<div style="display:flex;gap:8px">
+<button class="btn btn-sm btn-o" onclick="emptyTrash()" style="color:var(--err)">Empty Trash</button>
+<button class="btn btn-sm btn-o" onclick="toggleTrashBin()">Close</button>
+</div>
+</div>
+<div id="trash-bin-list"><p style="color:var(--tl);font-size:13px;text-align:center;padding:20px">Trash is empty</p></div>
+</div>
 </div>
 </div>
 </div>
@@ -1457,31 +1473,31 @@ Net Budget Impact = Cost<sub>new mix</sub> − Cost<sub>current mix</sub><br>
 <div class="card">
 <div class="card-t" style="margin-bottom:14px">Guideline Lifecycle Tracker</div>
 <table>
-<tr><th>Guideline</th><th>Ver</th><th>Status</th><th>Published</th><th>Review Due</th><th>AGREE II</th><th>GIN</th><th></th></tr>
-<tr style="cursor:pointer" onclick="showGuidelineDetail('t2dm')"><td><strong>T2DM — Adult</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2024-001</span></td><td>v2.1</td><td><span class="badge b-ok">Published</span></td><td>Jan 2024</td><td>Jan 2027</td><td style="color:var(--ok);font-weight:600">91%</td><td style="color:var(--ok);font-weight:600">16/18</td><td><button class="btn btn-sm btn-o">View →</button></td></tr>
-<tr style="cursor:pointer" onclick="showGuidelineDetail('hpylori')"><td><strong>H. pylori</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2022-003</span></td><td>v1.1</td><td><span class="badge b-err">Overdue</span></td><td>Jun 2022</td><td style="color:var(--err);font-weight:600">Jun 2025 ⚠️</td><td style="color:var(--warn);font-weight:600">72%</td><td style="color:var(--warn);font-weight:600">11/18</td><td><button class="btn btn-sm" style="background:var(--err);color:#fff">Update →</button></td></tr>
-<tr style="cursor:pointer" onclick="showGuidelineDetail('crc')"><td><strong>CRC Screening</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2023-012</span></td><td>v1.2</td><td><span class="badge b-i">Review</span></td><td>Mar 2023</td><td style="color:var(--warn)">Mar 2026</td><td style="color:var(--info);font-weight:600">84%</td><td style="color:var(--ok);font-weight:600">15/18</td><td><button class="btn btn-sm btn-o">View →</button></td></tr>
-<tr style="cursor:pointer" onclick="showGuidelineDetail('htn')"><td><strong>Hypertension — Primary Care</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2024-005</span></td><td>v1.2</td><td><span class="badge b-ok">Published</span></td><td>Mar 2024</td><td>Mar 2027</td><td style="color:var(--ok);font-weight:600">88%</td><td style="color:var(--ok);font-weight:600">15/18</td><td><button class="btn btn-sm btn-o">View →</button></td></tr>
-<tr style="cursor:pointer" onclick="showGuidelineDetail('asthma')"><td><strong>Asthma — Adult</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2025-002</span></td><td>v0.8</td><td><span class="badge b-w">In Dev</span></td><td>—</td><td>—</td><td style="color:var(--tl)">—</td><td style="color:var(--tl)">—</td><td><button class="btn btn-sm" style="background:var(--ai1);color:#fff">Continue →</button></td></tr>
+<tr><th>Guideline</th><th>Ver</th><th>Status</th><th>Published</th><th>Review Due</th><th>AGREE II</th><th>GIN</th><th></th><th></th></tr>
+<tr data-gl-id="t2dm" style="cursor:pointer" onclick="showGuidelineDetail('t2dm')"><td><strong>T2DM — Adult</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2024-001</span></td><td>v2.1</td><td><span class="badge b-ok">Published</span></td><td>Jan 2024</td><td>Jan 2027</td><td style="color:var(--ok);font-weight:600">91%</td><td style="color:var(--ok);font-weight:600">16/18</td><td><button class="btn btn-sm btn-o">View →</button></td><td><button class="btn btn-sm" style="color:var(--err);font-size:11px" onclick="event.stopPropagation();archiveGuideline('t2dm','T2DM — Adult Management')" title="Move to trash">🗑️</button></td></tr>
+<tr data-gl-id="hpylori" style="cursor:pointer" onclick="showGuidelineDetail('hpylori')"><td><strong>H. pylori</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2022-003</span></td><td>v1.1</td><td><span class="badge b-err">Overdue</span></td><td>Jun 2022</td><td style="color:var(--err);font-weight:600">Jun 2025 ⚠️</td><td style="color:var(--warn);font-weight:600">72%</td><td style="color:var(--warn);font-weight:600">11/18</td><td><button class="btn btn-sm" style="background:var(--err);color:#fff">Update →</button></td><td><button class="btn btn-sm" style="color:var(--err);font-size:11px" onclick="event.stopPropagation();archiveGuideline('hpylori','H. pylori Eradication')" title="Move to trash">🗑️</button></td></tr>
+<tr data-gl-id="crc" style="cursor:pointer" onclick="showGuidelineDetail('crc')"><td><strong>CRC Screening</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2023-012</span></td><td>v1.2</td><td><span class="badge b-i">Review</span></td><td>Mar 2023</td><td style="color:var(--warn)">Mar 2026</td><td style="color:var(--info);font-weight:600">84%</td><td style="color:var(--ok);font-weight:600">15/18</td><td><button class="btn btn-sm btn-o">View →</button></td><td><button class="btn btn-sm" style="color:var(--err);font-size:11px" onclick="event.stopPropagation();archiveGuideline('crc','CRC Screening')" title="Move to trash">🗑️</button></td></tr>
+<tr data-gl-id="htn" style="cursor:pointer" onclick="showGuidelineDetail('htn')"><td><strong>Hypertension — Primary Care</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2024-005</span></td><td>v1.2</td><td><span class="badge b-ok">Published</span></td><td>Mar 2024</td><td>Mar 2027</td><td style="color:var(--ok);font-weight:600">88%</td><td style="color:var(--ok);font-weight:600">15/18</td><td><button class="btn btn-sm btn-o">View →</button></td><td><button class="btn btn-sm" style="color:var(--err);font-size:11px" onclick="event.stopPropagation();archiveGuideline('htn','Hypertension — Primary Care')" title="Move to trash">🗑️</button></td></tr>
+<tr data-gl-id="asthma" style="cursor:pointer" onclick="showGuidelineDetail('asthma')"><td><strong>Asthma — Adult</strong><br><span style="font-size:10px;color:var(--tl)">KSUMC-CPG-2025-002</span></td><td>v0.8</td><td><span class="badge b-w">In Dev</span></td><td>—</td><td>—</td><td style="color:var(--tl)">—</td><td style="color:var(--tl)">—</td><td><button class="btn btn-sm" style="background:var(--ai1);color:#fff">Continue →</button></td><td><button class="btn btn-sm" style="color:var(--err);font-size:11px" onclick="event.stopPropagation();archiveGuideline('asthma','Asthma — Adult')" title="Move to trash">🗑️</button></td></tr>
 </table>
 </div>
 <div class="card" style="margin-top:16px">
 <div class="card-t" style="margin-bottom:14px">📁 Published Guideline Repository</div>
 <div class="card-st" style="margin-bottom:14px">Official published CPGs stored and versioned — click to access full document</div>
 <div class="grid g3">
-<div class="card" style="border-left:4px solid var(--ok);cursor:pointer" onclick="showGuidelineDetail('t2dm')">
+<div class="card" data-gl-id="t2dm" style="border-left:4px solid var(--ok);cursor:pointer" onclick="showGuidelineDetail('t2dm')">
 <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge b-ok">Published v2.1</span><span style="font-size:10px;color:var(--tl)">📄 PDF</span></div>
 <h3 style="font-size:13px;margin:8px 0 3px">T2DM — Adult Management</h3>
 <p style="font-size:11px;color:var(--tl)">KSUMC Endocrinology · 14 recommendations · AGREE II: 91%</p>
 <div style="font-size:10px;color:var(--tl);margin-top:6px">📅 Published: Jan 2024 · 📋 Next review: Jan 2027</div>
 </div>
-<div class="card" style="border-left:4px solid var(--ok);cursor:pointer" onclick="showGuidelineDetail('htn')">
+<div class="card" data-gl-id="htn" style="border-left:4px solid var(--ok);cursor:pointer" onclick="showGuidelineDetail('htn')">
 <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge b-ok">Published v1.2</span><span style="font-size:10px;color:var(--tl)">📄 PDF</span></div>
 <h3 style="font-size:13px;margin:8px 0 3px">Hypertension — Primary Care</h3>
 <p style="font-size:11px;color:var(--tl)">MOH · ADAPTE from ESC/ESH · 11 recommendations · AGREE II: 88%</p>
 <div style="font-size:10px;color:var(--tl);margin-top:6px">📅 Published: Mar 2024 · 📋 Next review: Mar 2027</div>
 </div>
-<div class="card" style="border-left:4px solid var(--ok);cursor:pointer" onclick="showGuidelineDetail('hpylori')">
+<div class="card" data-gl-id="hpylori" style="border-left:4px solid var(--ok);cursor:pointer" onclick="showGuidelineDetail('hpylori')">
 <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge b-err">Overdue v1.1</span><span style="font-size:10px;color:var(--tl)">📄 PDF</span></div>
 <h3 style="font-size:13px;margin:8px 0 3px">H. pylori Eradication</h3>
 <p style="font-size:11px;color:var(--tl)">KSUMC GI · 8 recommendations · AGREE II: 72%</p>
@@ -1514,19 +1530,19 @@ Net Budget Impact = Cost<sub>new mix</sub> − Cost<sub>current mix</sub><br>
 <div class="card-t">Published Guideline Repository</div>
 <div class="card-st" style="margin-bottom:14px">Final approved guidelines available for download and implementation</div>
 <div class="grid g3">
-<div class="card" style="border-left:4px solid var(--ok);cursor:pointer" onclick="showGuidelineDetail('t2dm')">
+<div class="card" data-gl-id="t2dm" style="border-left:4px solid var(--ok);cursor:pointer" onclick="showGuidelineDetail('t2dm')">
 <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge b-ok">Published</span><span style="font-size:11px;color:var(--tl)">Jan 2024</span></div>
 <div class="card-t" style="margin:8px 0 4px">Type 2 Diabetes Mellitus</div>
 <div style="font-size:12px;color:var(--tl)">KSUMC-CPG-2024-001 · v2.1 · AGREE II: 91%</div>
 <div style="margin-top:8px;display:flex;gap:6px"><button class="btn btn-sm" style="font-size:11px">📥 PDF</button><button class="btn btn-sm" style="font-size:11px">📋 Summary</button></div>
 </div>
-<div class="card" style="border-left:4px solid var(--ok);cursor:pointer" onclick="showGuidelineDetail('htn')">
+<div class="card" data-gl-id="htn" style="border-left:4px solid var(--ok);cursor:pointer" onclick="showGuidelineDetail('htn')">
 <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge b-ok">Published</span><span style="font-size:11px;color:var(--tl)">Mar 2024</span></div>
 <div class="card-t" style="margin:8px 0 4px">Hypertension — Primary Care</div>
 <div style="font-size:12px;color:var(--tl)">KSUMC-CPG-2024-005 · v1.2 · AGREE II: 88%</div>
 <div style="margin-top:8px;display:flex;gap:6px"><button class="btn btn-sm" style="font-size:11px">📥 PDF</button><button class="btn btn-sm" style="font-size:11px">📋 Summary</button></div>
 </div>
-<div class="card" style="border-left:4px solid var(--ok);cursor:pointer" onclick="showGuidelineDetail('crc')">
+<div class="card" data-gl-id="crc" style="border-left:4px solid var(--ok);cursor:pointer" onclick="showGuidelineDetail('crc')">
 <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge b-s">Under Review</span><span style="font-size:11px;color:var(--tl)">Mar 2023</span></div>
 <div class="card-t" style="margin:8px 0 4px">Colorectal Cancer Screening</div>
 <div style="font-size:12px;color:var(--tl)">KSUMC-CPG-2023-012 · v1.2 · AGREE II: 84%</div>
@@ -1630,9 +1646,9 @@ Net Budget Impact = Cost<sub>new mix</sub> − Cost<sub>current mix</sub><br>
 </div>
 </div>
 
-<script src="js/app.js?v=btnfix1"></script>
-<script src="js/ai-engine.js?v=btnfix1"></script>
-<script src="js/reports.js?v=btnfix1"></script>
+<script src="js/app.js?v=trash1"></script>
+<script src="js/ai-engine.js?v=trash1"></script>
+<script src="js/reports.js?v=trash1"></script>
 
 </body>
 </html>
