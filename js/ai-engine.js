@@ -21,16 +21,21 @@ function _deobfuscate(str) {
   try { return atob(str).split('').reverse().join(''); } catch(e) { return ''; }
 }
 
-// Hardwired API key (fallback if no user-set key)
-var _HW = _obfuscate('AIzaSyBE_smT5wfFYR2baZetJ8FEqZ009p_Xz9g');
+// Edge Function URL for server-side AI proxy (API key never exposed to client)
+var EDGE_FN_URL = 'https://ufxqmmhfskbvxitahovo.supabase.co/functions/v1/ai-proxy';
 
 window.AIEngine = {
   getKey: function() {
     var stored = localStorage.getItem(KEY_STORAGE);
     if (stored) return _deobfuscate(stored);
-    // Fallback to hardwired key
-    return _deobfuscate(_HW);
+    // No hardcoded fallback — use Edge Function proxy instead
+    return '';
   },
+  useProxy: function() {
+    // Use proxy when no user-set key (key is server-side in Edge Function)
+    return !this.getKey();
+  },
+  getProxyUrl: function() { return EDGE_FN_URL; },
   setKey: function(key) {
     if (key) localStorage.setItem(KEY_STORAGE, _obfuscate(key));
     else localStorage.removeItem(KEY_STORAGE);
@@ -42,7 +47,8 @@ window.AIEngine = {
     localStorage.setItem(MODEL_STORAGE, m);
   },
   hasKey: function() {
-    return !!this.getKey();
+    // Returns true if we have a direct key OR the Edge Function proxy is available
+    return !!this.getKey() || !!EDGE_FN_URL;
   }
 };
 
@@ -123,16 +129,13 @@ window.saveAISettings = function() {
 
 // ---- CALL GEMINI API (with streaming) ----
 window.callGemini = async function(systemPrompt, userMessage, onChunk, onDone, onError) {
-  var key = AIEngine.getKey();
-  if (!key) {
-    if (onError) onError('NO_KEY');
-    return;
-  }
-
   var model = AIEngine.getModel();
-  var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':streamGenerateContent?alt=sse&key=' + key;
+  var useProxy = AIEngine.useProxy();
+  var key = AIEngine.getKey();
 
+  // Build the request body (same format for both proxy and direct)
   var body = {
+    model: model,
     system_instruction: {
       parts: [{ text: systemPrompt }]
     },
@@ -146,10 +149,24 @@ window.callGemini = async function(systemPrompt, userMessage, onChunk, onDone, o
     }
   };
 
+  var url, headers;
+  if (useProxy) {
+    // Use Supabase Edge Function — API key stays server-side
+    url = AIEngine.getProxyUrl();
+    headers = { 'Content-Type': 'application/json' };
+  } else if (key) {
+    // Direct Gemini API with user-provided key
+    url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':streamGenerateContent?alt=sse&key=' + key;
+    headers = { 'Content-Type': 'application/json' };
+  } else {
+    if (onError) onError('NO_KEY');
+    return;
+  }
+
   try {
     var resp = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: headers,
       body: JSON.stringify(body)
     });
 
