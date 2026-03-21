@@ -5,28 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KSUMC National CPG Authority — AI-Powered Platform</title>
 <meta name="description" content="KSUMC National Clinical Practice Guidelines Authority — an AI-powered platform for developing, managing, and publishing evidence-based clinical guidelines. Features GRADE methodology, systematic review tools, and health economic analysis.">
-<meta name="theme-color" content="#0D5C3E">
+<meta name="theme-color" content="#D97757">
 <meta property="og:title" content="KSUMC National CPG Authority">
 <meta property="og:description" content="AI-powered clinical practice guideline development platform for King Saud University Medical City">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="css/main.css?v=prod3">
+<link rel="stylesheet" href="css/main.css?v=claude1">
 </head>
 <body>
 
 <!-- LOGIN GATE — shown when not authenticated -->
-<div id="login-gate" style="display:flex;align-items:center;justify-content:center;position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#0D5C3E 0%,#1a7a56 50%,#0D5C3E 100%)">
+<div id="login-gate" style="display:flex;align-items:center;justify-content:center;position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#1E1E2E 0%,#2D2D3D 50%,#1E1E2E 100%)">
 <div style="width:100%;max-width:420px;margin:20px;background:#fff;border-radius:16px;padding:40px 32px;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
 <div style="text-align:center;margin-bottom:28px">
 <div style="font-size:48px;margin-bottom:12px">🏥</div>
-<div style="font-weight:800;font-size:22px;color:#0D5C3E;margin-bottom:4px">KSUMC CPG Authority</div>
+<div style="font-weight:800;font-size:22px;color:#D97757;margin-bottom:4px">KSUMC CPG Authority</div>
 <div style="font-size:13px;color:#64748B">المرجع الوطني للأدلة الإكلينيكية</div>
 <div style="font-size:12px;color:#94A3B8;margin-top:4px">Sign in to access the platform</div>
 </div>
-<div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:4px">Email</label><input id="gate-email" type="email" placeholder="you@ksumc.edu.sa" style="width:100%;padding:10px 14px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:14px;box-sizing:border-box;outline:none;transition:border 0.2s" onfocus="this.style.borderColor='#0D5C3E'" onblur="this.style.borderColor='#CBD5E1'"></div>
-<div style="margin-bottom:20px"><label style="display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:4px">Password</label><input id="gate-pass" type="password" placeholder="Enter your password" style="width:100%;padding:10px 14px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:14px;box-sizing:border-box;outline:none;transition:border 0.2s" onfocus="this.style.borderColor='#0D5C3E'" onblur="this.style.borderColor='#CBD5E1'" onkeydown="if(event.key==='Enter')doSignIn()"></div>
-<button id="gate-signin-btn" onclick="doSignIn()" style="width:100%;padding:12px;background:#0D5C3E;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#1a7a56'" onmouseout="this.style.background='#0D5C3E'">Sign In</button>
+<div style="margin-bottom:14px"><label style="display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:4px">Email</label><input id="gate-email" type="email" placeholder="you@ksumc.edu.sa" style="width:100%;padding:10px 14px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:14px;box-sizing:border-box;outline:none;transition:border 0.2s" onfocus="this.style.borderColor='#D97757'" onblur="this.style.borderColor='#CBD5E1'"></div>
+<div style="margin-bottom:20px"><label style="display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:4px">Password</label><input id="gate-pass" type="password" placeholder="Enter your password" style="width:100%;padding:10px 14px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:14px;box-sizing:border-box;outline:none;transition:border 0.2s" onfocus="this.style.borderColor='#D97757'" onblur="this.style.borderColor='#CBD5E1'" onkeydown="if(event.key==='Enter')doSignIn()"></div>
+<button id="gate-signin-btn" onclick="doSignIn()" style="width:100%;padding:12px;background:#D97757;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#E8956E'" onmouseout="this.style.background='#D97757'">Sign In</button>
+<button id="gate-demo-btn" onclick="document.getElementById('login-gate').style.display='none'" style="width:100%;margin-top:12px;padding:12px;background:#6B7280;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='#4B5563'" onmouseout="this.style.background='#6B7280'">Enter Demo Mode →</button>
 <div style="margin-top:20px;padding:12px;background:#F8FAFC;border-radius:8px;font-size:11px;color:#64748B;text-align:center">
 Access is by invitation only. Contact the platform administrator if you need an account.
 </div>
@@ -92,7 +93,6 @@ Access is by invitation only. Contact the platform administrator if you need an 
 <span class="ai-status">AI Engine Active</span>
 </div>
 <div class="header-right">
-<div class="role-badge" id="cr">Steering Committee Chair</div>
 <select class="fs" style="width:auto;padding:5px 8px;font-size:11px" onchange="document.getElementById('cr').textContent=this.options[this.selectedIndex].text">
 <option>Steering Committee Chair</option><option>Technical Committee Lead</option><option>Guideline Panel Member</option><option>GRADE Methodologist</option><option>External Reviewer</option><option>Public Consultation</option>
 </select>
@@ -214,7 +214,7 @@ Access is by invitation only. Contact the platform administrator if you need an 
 <input id="ai-cmd" placeholder="e.g. 'Develop a GRADE guideline for GLP-1 agonists in T2DM' or 'Run a meta-analysis on SGLT2i and heart failure'" onkeydown="if(event.key==='Enter')runAI()">
 <button class="btn btn-ai" onclick="runAI()">Execute</button>
 </div>
-<div id="ai-output" style="display:none;margin-top:16px;padding:16px;background:#F5F3FF;border-radius:10px;border:1px solid #DDD6FE">
+<div id="ai-output" style="display:none;margin-top:16px;padding:16px;background:#FAF9F6;border-radius:10px;border:1px solid #DDD6FE">
 <div style="font-weight:600;margin-bottom:8px;color:var(--ai1)">🤖 AI Processing...</div>
 <div id="ai-result" style="font-size:13px;line-height:1.7"></div>
 </div>
@@ -313,9 +313,9 @@ Access is by invitation only. Contact the platform administrator if you need an 
 <div class="card-t">National CPG Authority — Governance Architecture</div>
 <div class="card-st" style="margin-bottom:18px">Multi-tiered authority model aligned with WHO, NICE, and GIN-McMaster governance standards</div>
 <div class="pyramid">
-<div class="pyr-l" style="width:38%;background:linear-gradient(135deg,#0A4A32,#0D5C3E)">TIER 1 — National Steering Committee (NSC)<small>Strategic oversight · Priority setting · Final endorsement · Royal mandate</small></div>
-<div class="pyr-l" style="width:50%;background:linear-gradient(135deg,#1B6B93,#2980B9)">TIER 2 — Technical Oversight Committee (TOC)<small>Methodological standards · Framework compliance · Quality assurance · COI</small></div>
-<div class="pyr-l" style="width:62%;background:linear-gradient(135deg,#C4A035,#E8C94A);color:#1A1A2E">TIER 3 — Guideline Development Groups (GDGs)<small>Topic-specific panels · Evidence synthesis · GRADE appraisal · Recommendations</small></div>
+<div class="pyr-l" style="width:38%;background:linear-gradient(135deg,#C85C42,#D97757)">TIER 1 — National Steering Committee (NSC)<small>Strategic oversight · Priority setting · Final endorsement · Royal mandate</small></div>
+<div class="pyr-l" style="width:50%;background:linear-gradient(135deg,#1E1E2E,#3D3D50)">TIER 2 — Technical Oversight Committee (TOC)<small>Methodological standards · Framework compliance · Quality assurance · COI</small></div>
+<div class="pyr-l" style="width:62%;background:linear-gradient(135deg,#F59E0B,#FBBF24);color:#1A1A2E">TIER 3 — Guideline Development Groups (GDGs)<small>Topic-specific panels · Evidence synthesis · GRADE appraisal · Recommendations</small></div>
 <div class="pyr-l" style="width:74%;background:linear-gradient(135deg,#6366F1,#818CF8)">TIER 4 — Evidence Review Teams (ERTs)<small>Systematic reviews · Data extraction · Risk of bias · GRADE profiling</small></div>
 <div class="pyr-l" style="width:86%;background:linear-gradient(135deg,#64748B,#94A3B8)">TIER 5 — External Review & Public Consultation<small>Peer review · Stakeholder feedback · Patient input · International experts</small></div>
 </div>
@@ -434,7 +434,7 @@ Access is by invitation only. Contact the platform administrator if you need an 
     <button class="btn btn-ai" onclick="aiSuggestScores()">\u{1F50D} AI Suggest</button>
   </div>
 </div>
-<div id="ai-suggest-log" style="display:none;margin-top:14px;padding:12px;background:#F5F3FF;border-radius:8px;font-size:12px;line-height:1.7;max-height:260px;overflow-y:auto"></div>
+<div id="ai-suggest-log" style="display:none;margin-top:14px;padding:12px;background:#FAF9F6;border-radius:8px;font-size:12px;line-height:1.7;max-height:260px;overflow-y:auto"></div>
 </div>
 <div class="grid g2">
 <div class="card">
@@ -498,7 +498,7 @@ Access is by invitation only. Contact the platform administrator if you need an 
     <button class="btn btn-ai" onclick="aiGeneratePICOs()">🔍 Generate</button>
   </div>
 </div>
-<div id="pico-gen-log" style="display:none;margin-top:14px;padding:12px;background:#F5F3FF;border-radius:8px;font-size:12px;line-height:1.7;max-height:200px;overflow-y:auto"></div>
+<div id="pico-gen-log" style="display:none;margin-top:14px;padding:12px;background:#FAF9F6;border-radius:8px;font-size:12px;line-height:1.7;max-height:200px;overflow-y:auto"></div>
 </div>
 
 <!-- AI-Generated PICO Questions -->
@@ -739,7 +739,7 @@ Access is by invitation only. Contact the platform administrator if you need an 
 <!-- TAB 4: Results & Rounds Dashboard -->
 <div id="delphi-results" class="delphi-tab" style="display:none">
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
-<div style="text-align:center;padding:12px;background:#F5F3FF;border-radius:8px"><div style="font-size:22px;font-weight:700;color:#7C3AED" id="delphi-stat-round">1</div><div style="font-size:10px;color:#666">Current Round</div></div>
+<div style="text-align:center;padding:12px;background:#FAF9F6;border-radius:8px"><div style="font-size:22px;font-weight:700;color:#7C3AED" id="delphi-stat-round">1</div><div style="font-size:10px;color:#666">Current Round</div></div>
 <div style="text-align:center;padding:12px;background:#F0FDF4;border-radius:8px"><div style="font-size:22px;font-weight:700;color:var(--ok)" id="delphi-stat-consensus">0</div><div style="font-size:10px;color:#666">Consensus Reached</div></div>
 <div style="text-align:center;padding:12px;background:#FFFBEB;border-radius:8px"><div style="font-size:22px;font-weight:700;color:var(--warn)" id="delphi-stat-pending">0</div><div style="font-size:10px;color:#666">Pending</div></div>
 <div style="text-align:center;padding:12px;background:#EFF6FF;border-radius:8px"><div style="font-size:22px;font-weight:700;color:var(--info)" id="delphi-stat-response">0%</div><div style="font-size:10px;color:#666">Response Rate</div></div>
@@ -1780,15 +1780,15 @@ Net Budget Impact = Cost<sub>new mix</sub> − Cost<sub>current mix</sub><br>
 </div>
 
 <!-- Security & Utilities (load first) -->
-<script src="js/sanitize.js?v=prod3"></script>
-<script src="js/modal.js?v=prod3"></script>
-<script src="js/supabase-dal.js?v=prod3"></script>
-<script src="js/ai-proxy-client.js?v=prod3"></script>
+<script src="js/sanitize.js?v=claude1"></script>
+<script src="js/modal.js?v=claude1"></script>
+<script src="js/supabase-dal.js?v=claude1"></script>
+<script src="js/ai-proxy-client.js?v=claude1"></script>
 
 <!-- Core Application -->
-<script src="js/app.js?v=prod3"></script>
-<script src="js/ai-engine.js?v=prod3"></script>
-<script src="js/reports.js?v=prod3"></script>
+<script src="js/app.js?v=claude1"></script>
+<script src="js/ai-engine.js?v=claude1"></script>
+<script src="js/reports.js?v=claude1"></script>
 
 </body>
 </html>
