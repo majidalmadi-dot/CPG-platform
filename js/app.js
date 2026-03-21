@@ -173,6 +173,255 @@ var DataStore = {
 };
 
 // ============================================================
+// HYBRID DATA LAYER: DAL with localStorage Fallback
+// ============================================================
+// Initialize DAL on page load
+document.addEventListener('DOMContentLoaded', async function() {
+  if (window.DAL) {
+    try {
+      await DAL.init();
+      console.log('DAL initialized successfully');
+    } catch(e) {
+      console.warn('DAL initialization failed, running in offline mode:', e.message);
+    }
+  }
+});
+
+// Hybrid wrapper for loading projects (tries DAL, falls back to localStorage)
+async function loadProjects() {
+  try {
+    if (window.DAL && window.DAL.projects && window.DAL.projects.list) {
+      var result = await DAL.projects.list();
+      if (result && !result.error) return result;
+    }
+  } catch(e) {
+    console.warn('DAL projects.list() failed, using localStorage:', e.message);
+  }
+  // Fallback to localStorage
+  try {
+    return JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
+  } catch(e) {
+    return [];
+  }
+}
+
+// Hybrid wrapper for saving projects
+async function saveProjects(projects) {
+  // Always save to localStorage as cache
+  try {
+    localStorage.setItem('ksumc_projects', JSON.stringify(projects));
+  } catch(e) {}
+  
+  // Try to persist to DAL (async, non-blocking)
+  if (window.DAL && window.DAL.projects && window.DAL.projects.update) {
+    projects.forEach(async function(proj) {
+      try {
+        await DAL.projects.update(proj.id, proj);
+      } catch(e) {
+        console.warn('DAL project update failed for ' + proj.id + ':', e.message);
+      }
+    });
+  }
+}
+
+// Hybrid wrapper for loading COI data
+async function loadCOIData() {
+  try {
+    if (window.DAL && window.DAL.coi && window.DAL.coi.get) {
+      var activeId = localStorage.getItem('ksumc_active_project');
+      if (activeId) {
+        var result = await DAL.coi.get(activeId);
+        if (result && !result.error) return result;
+      }
+    }
+  } catch(e) {
+    console.warn('DAL COI get() failed, using localStorage:', e.message);
+  }
+  // Fallback to localStorage
+  try {
+    return JSON.parse(localStorage.getItem('ksumc_coi_data') || '{"members":[]}');
+  } catch(e) {
+    return { members: [] };
+  }
+}
+
+// Hybrid wrapper for saving COI data
+async function saveCOIData(coiData) {
+  // Always save to localStorage as cache
+  try {
+    saveCOIData(coiData);
+  } catch(e) {}
+  
+  // Try to persist to DAL
+  try {
+    var activeId = localStorage.getItem('ksumc_active_project');
+    if (window.DAL && window.DAL.coi && window.DAL.coi.updateCOI && activeId) {
+      await DAL.coi.updateCOI(activeId, coiData);
+    }
+  } catch(e) {
+    console.warn('DAL COI update failed:', e.message);
+  }
+}
+
+// Hybrid wrapper for loading dev checklist
+async function loadDevChecklist() {
+  try {
+    if (window.DAL && window.DAL.devChecklist && window.DAL.devChecklist.get) {
+      var activeId = localStorage.getItem('ksumc_active_project');
+      if (activeId) {
+        var result = await DAL.devChecklist.get(activeId);
+        if (result && !result.error) return result;
+      }
+    }
+  } catch(e) {
+    console.warn('DAL devChecklist get() failed, using localStorage:', e.message);
+  }
+  // Fallback to localStorage
+  try {
+    return JSON.parse(localStorage.getItem('ksumc_dev_checklist') || 'null') || {
+      sections: [],
+      completed: {}
+    };
+  } catch(e) {
+    return { sections: [], completed: {} };
+  }
+}
+
+// Hybrid wrapper for saving dev checklist
+async function saveDevChecklist(checklistData) {
+  // Always save to localStorage as cache
+  try {
+    saveDevChecklist(checklistData);
+  } catch(e) {}
+  
+  // Try to persist to DAL
+  try {
+    var activeId = localStorage.getItem('ksumc_active_project');
+    if (window.DAL && window.DAL.devChecklist && window.DAL.devChecklist.update && activeId) {
+      await DAL.devChecklist.update(activeId, checklistData);
+    }
+  } catch(e) {
+    console.warn('DAL devChecklist update failed:', e.message);
+  }
+}
+
+// Hybrid wrapper for loading panel votes
+async function loadPanelVotes() {
+  try {
+    if (window.DAL && window.DAL.votes && window.DAL.votes.list) {
+      var activeId = localStorage.getItem('ksumc_active_project');
+      if (activeId) {
+        var result = await DAL.votes.list({ projectId: activeId });
+        if (result && !result.error) return result;
+      }
+    }
+  } catch(e) {
+    console.warn('DAL votes list() failed, using localStorage:', e.message);
+  }
+  // Fallback to localStorage
+  try {
+    return JSON.parse(localStorage.getItem('ksumc_panel_votes') || '{}');
+  } catch(e) {
+    return {};
+  }
+}
+
+// Hybrid wrapper for saving panel votes
+async function savePanelVotes(votes) {
+  // Always save to localStorage as cache
+  try {
+    localStorage.setItem('ksumc_panel_votes', JSON.stringify(votes));
+  } catch(e) {}
+  
+  // Try to persist to DAL (async, non-blocking)
+  try {
+    var activeId = localStorage.getItem('ksumc_active_project');
+    if (window.DAL && window.DAL.votes && window.DAL.votes.create && activeId) {
+      // DAL vote methods expect individual vote records, not a bulk object
+      // For now, just log that we're persisting to localStorage
+      console.log('Panel votes saved to localStorage, DAL persistence pending implementation');
+    }
+  } catch(e) {
+    console.warn('DAL votes save failed:', e.message);
+  }
+}
+
+// Hybrid wrapper for loading Delphi data
+async function loadDelphiData() {
+  try {
+    if (window.DAL && window.DAL.delphi && window.DAL.delphi.getResults) {
+      var activeId = localStorage.getItem('ksumc_active_project');
+      if (activeId) {
+        var result = await DAL.delphi.getResults(activeId);
+        if (result && !result.error) return result;
+      }
+    }
+  } catch(e) {
+    console.warn('DAL delphi getResults() failed, using localStorage:', e.message);
+  }
+  // Fallback to localStorage
+  try {
+    return JSON.parse(localStorage.getItem('cpg_delphi_data') || '{}');
+  } catch(e) {
+    return {};
+  }
+}
+
+// Hybrid wrapper for saving Delphi data
+async function saveDelphiData(data) {
+  // Always save to localStorage as cache
+  try {
+    saveDelphiData(data);
+  } catch(e) {}
+  
+  // Try to persist to DAL
+  try {
+    var activeId = localStorage.getItem('ksumc_active_project');
+    if (window.DAL && window.DAL.delphi && activeId) {
+      console.log('Delphi data saved to localStorage, DAL persistence pending implementation');
+    }
+  } catch(e) {
+    console.warn('DAL delphi save failed:', e.message);
+  }
+}
+
+// Hybrid wrapper for loading trash bin
+async function loadTrashBin() {
+  try {
+    if (window.DAL && window.DAL.trash && window.DAL.trash.listTrash) {
+      var result = await DAL.trash.listTrash();
+      if (result && !result.error) return result;
+    }
+  } catch(e) {
+    console.warn('DAL trash listTrash() failed, using localStorage:', e.message);
+  }
+  // Fallback to localStorage
+  try {
+    return JSON.parse(localStorage.getItem('cpg_trash_bin') || '[]');
+  } catch(e) {
+    return [];
+  }
+}
+
+// Hybrid wrapper for saving trash bin
+async function saveTrashBin(items) {
+  // Always save to localStorage as cache
+  try {
+    saveTrashBin(items);
+  } catch(e) {}
+  
+  // Try to persist to DAL
+  try {
+    if (window.DAL && window.DAL.trash && window.DAL.trash.delete) {
+      // Trash operations are complex, persist to localStorage for now
+      console.log('Trash bin saved to localStorage, DAL persistence pending implementation');
+    }
+  } catch(e) {
+    console.warn('DAL trash save failed:', e.message);
+  }
+}
+
+// ============================================================
 // INPUT VALIDATION HELPERS
 // ============================================================
 function validateField(input) {
@@ -236,7 +485,7 @@ function swf(id){
   if (activeId) {
     const projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
     const proj = projects.find(p => p.id === activeId);
-    if (proj && stage > proj.stage) { proj.stage = stage; localStorage.setItem('ksumc_projects', JSON.stringify(projects)); }
+    if (proj && stage > proj.stage) { proj.stage = stage; saveProjects(projects); }
   }
   if (id === "wf3" && typeof renderPicoSearchPanels === "function") renderPicoSearchPanels(); setTimeout(injectValidationButtons, 300);
   if (id === "wf4" && typeof renderPicoGradePanels === "function") renderPicoGradePanels();
@@ -899,7 +1148,19 @@ function buildRoBTrafficLight(idx) {
 // ============================================================
 // MAGICapp-style: Panel Voting / Delphi for Recommendations
 // ============================================================
+// Initialize from localStorage, will be updated from DAL if available
 window._panelVotes = JSON.parse(localStorage.getItem('ksumc_panel_votes') || '{}');
+// Load from DAL asynchronously after initialization
+(async function() {
+  if (window.DAL) {
+    try {
+      var loaded = await loadPanelVotes();
+      if (loaded && typeof loaded === 'object' && !Array.isArray(loaded)) {
+        window._panelVotes = loaded;
+      }
+    } catch(e) { console.warn('Failed to load panel votes from DAL:', e.message); }
+  }
+})();
 
 function showPanelVoting(idx) {
   var picos = getAllPicos();
@@ -948,10 +1209,10 @@ function showPanelVoting(idx) {
     html += '<tr style="background:#F3F4F6"><th style="border:1px solid #E5E7EB;padding:6px;text-align:left">Member</th><th style="border:1px solid #E5E7EB;padding:6px">Vote</th><th style="border:1px solid #E5E7EB;padding:6px">COI</th><th style="border:1px solid #E5E7EB;padding:6px">Comment</th></tr>';
     votes.members.forEach(function(m) {
       var vColor = optColors[options.indexOf(m.vote)] || '#666';
-      html += '<tr><td style="border:1px solid #E5E7EB;padding:6px">' + escHtml(m.name) + '</td>';
+      html += '<tr><td style="border:1px solid #E5E7EB;padding:6px">' + sanitizeHTML(m.name) + '</td>';
       html += '<td style="border:1px solid #E5E7EB;padding:6px;text-align:center;color:' + vColor + ';font-weight:600">' + m.vote + '</td>';
       html += '<td style="border:1px solid #E5E7EB;padding:6px;text-align:center">' + (m.coi ? '⚠️ Yes' : '✅ None') + '</td>';
-      html += '<td style="border:1px solid #E5E7EB;padding:6px">' + escHtml(m.comment || '') + '</td></tr>';
+      html += '<td style="border:1px solid #E5E7EB;padding:6px">' + sanitizeHTML(m.comment || '') + '</td></tr>';
     });
     html += '</table>';
 
@@ -990,7 +1251,7 @@ function castPanelVote(idx, vote) {
   window._panelVotes[idx].members.push({ name: memberName, vote: vote, coi: hasCoi, comment: comment, timestamp: new Date().toISOString() });
 
   var activeId = localStorage.getItem('ksumc_active_project');
-  if (activeId) localStorage.setItem('ksumc_panel_votes_' + activeId, JSON.stringify(window._panelVotes));
+  if (activeId) savePanelVotes(window._panelVotes);
 
   // Refresh modal
   var overlay = document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]');
@@ -1001,7 +1262,19 @@ function castPanelVote(idx, vote) {
 // ============================================================
 // MAGICapp-style: Conflict of Interest Management
 // ============================================================
+// Initialize from localStorage, will be updated from DAL if available
 window._coiData = JSON.parse(localStorage.getItem('ksumc_coi_data') || '{"members":[]}');
+// Load from DAL asynchronously after initialization
+(async function() {
+  if (window.DAL) {
+    try {
+      var loaded = await loadCOIData();
+      if (loaded && typeof loaded === 'object') {
+        window._coiData = loaded;
+      }
+    } catch(e) { console.warn('Failed to load COI data from DAL:', e.message); }
+  }
+})();
 
 function showCOIManager() {
   var overlay = document.createElement('div');
@@ -1033,10 +1306,10 @@ function showCOIManager() {
     html += '<tr style="background:#F3F4F6"><th style="border:1px solid #E5E7EB;padding:8px;text-align:left">Name</th><th style="border:1px solid #E5E7EB;padding:8px">Role</th><th style="border:1px solid #E5E7EB;padding:8px">COI Status</th><th style="border:1px solid #E5E7EB;padding:8px">Details</th><th style="border:1px solid #E5E7EB;padding:8px">Excluded PICOs</th><th style="border:1px solid #E5E7EB;padding:8px;width:50px"></th></tr>';
     window._coiData.members.forEach(function(m, mi) {
       var statusBadge = m.coiType === 'none' ? '<span style="background:#D1FAE5;color:#065F46;padding:2px 6px;border-radius:3px;font-size:10px">✅ Clear</span>' : '<span style="background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:3px;font-size:10px">⚠️ ' + m.coiType + '</span>';
-      html += '<tr><td style="border:1px solid #E5E7EB;padding:8px;font-weight:600">' + escHtml(m.name) + '</td>';
-      html += '<td style="border:1px solid #E5E7EB;padding:8px">' + escHtml(m.role) + '</td>';
+      html += '<tr><td style="border:1px solid #E5E7EB;padding:8px;font-weight:600">' + sanitizeHTML(m.name) + '</td>';
+      html += '<td style="border:1px solid #E5E7EB;padding:8px">' + sanitizeHTML(m.role) + '</td>';
       html += '<td style="border:1px solid #E5E7EB;padding:8px;text-align:center">' + statusBadge + '</td>';
-      html += '<td style="border:1px solid #E5E7EB;padding:8px;font-size:10px">' + escHtml(m.details || '—') + '</td>';
+      html += '<td style="border:1px solid #E5E7EB;padding:8px;font-size:10px">' + sanitizeHTML(m.details || '—') + '</td>';
       html += '<td style="border:1px solid #E5E7EB;padding:8px;font-size:10px">' + (m.excludedPicos && m.excludedPicos.length ? m.excludedPicos.join(', ') : 'None') + '</td>';
       html += '<td style="border:1px solid #E5E7EB;padding:8px;text-align:center"><button onclick="removeCOIMember(' + mi + ')" style="background:none;border:none;color:#DC2626;cursor:pointer;font-size:14px">✕</button></td></tr>';
     });
@@ -1057,7 +1330,7 @@ function addCOIMember() {
   var coiType = document.getElementById('coi-type').value;
   var details = document.getElementById('coi-details').value.trim();
   window._coiData.members.push({ name: name, role: role, coiType: coiType, details: details, excludedPicos: [], added: new Date().toISOString() });
-  localStorage.setItem('ksumc_coi_data', JSON.stringify(window._coiData));
+  saveCOIData(window._coiData);
   var overlay = document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]');
   if (overlay) overlay.remove();
   showCOIManager();
@@ -1065,7 +1338,7 @@ function addCOIMember() {
 
 function removeCOIMember(mi) {
   window._coiData.members.splice(mi, 1);
-  localStorage.setItem('ksumc_coi_data', JSON.stringify(window._coiData));
+  saveCOIData(window._coiData);
   var overlay = document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]');
   if (overlay) overlay.remove();
   showCOIManager();
@@ -1074,6 +1347,7 @@ function removeCOIMember(mi) {
 // ============================================================
 // MAGICapp-style: Development Checklist with AGREE II milestones
 // ============================================================
+// Initialize from localStorage, will be updated from DAL if available
 window._devChecklist = JSON.parse(localStorage.getItem('ksumc_dev_checklist') || 'null') || {
   items: [
     { id: 'scope', phase: 'Scoping', label: 'Define scope and clinical questions', done: false, responsible: '', dueDate: '' },
@@ -1098,6 +1372,17 @@ window._devChecklist = JSON.parse(localStorage.getItem('ksumc_dev_checklist') ||
     { id: 'update', phase: 'Publication', label: 'Set review/update schedule (3-5 years)', done: false, responsible: '', dueDate: '' }
   ]
 };
+// Load from DAL asynchronously after initialization
+(async function() {
+  if (window.DAL) {
+    try {
+      var loaded = await loadDevChecklist();
+      if (loaded && typeof loaded === 'object') {
+        window._devChecklist = loaded;
+      }
+    } catch(e) { console.warn('Failed to load dev checklist from DAL:', e.message); }
+  }
+})();
 
 function showDevChecklist() {
   var overlay = document.createElement('div');
@@ -1159,7 +1444,7 @@ function showDevChecklist() {
 
 function toggleChecklistItem(idx) {
   window._devChecklist.items[idx].done = !window._devChecklist.items[idx].done;
-  localStorage.setItem('ksumc_dev_checklist', JSON.stringify(window._devChecklist));
+  saveDevChecklist(window._devChecklist);
   var overlay = document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]');
   if (overlay) overlay.remove();
   showDevChecklist();
@@ -1167,7 +1452,7 @@ function toggleChecklistItem(idx) {
 
 function updateChecklistField(idx, field, value) {
   window._devChecklist.items[idx][field] = value;
-  localStorage.setItem('ksumc_dev_checklist', JSON.stringify(window._devChecklist));
+  saveDevChecklist(window._devChecklist);
 }
 
 function renderPicoSearchPanels() {
@@ -3614,7 +3899,7 @@ async function saveGuideline() {
   const project = { id: glId, title, specialty, pathway, reqBody, rationale, status: 'scoping', stage: 1, created: new Date().toISOString(), workflowData: {} };
   const projects = JSON.parse(localStorage.getItem('ksumc_projects') || '[]');
   projects.push(project);
-  localStorage.setItem('ksumc_projects', JSON.stringify(projects));
+  saveProjects(projects);
   localStorage.setItem('ksumc_active_project', glId);
 
   // Add to Kanban board (first column: Scoping & PICO)
@@ -5245,9 +5530,9 @@ function renderMemberList() {
 
   data.members.forEach(function(m) {
     var row = table.insertRow();
-    row.innerHTML = '<td style="font-weight:600">' + m.name + '</td>' +
-      '<td style="font-size:11px">' + m.email + '</td>' +
-      '<td><span class="badge" style="background:#F5F3FF;color:#7C3AED;font-size:10px">' + m.role + '</span></td>' +
+    row.innerHTML = '<td style="font-weight:600">' + sanitizeHTML(m.name) + '</td>' +
+      '<td style="font-size:11px">' + sanitizeHTML(m.email) + '</td>' +
+      '<td><span class="badge" style="background:#F5F3FF;color:#7C3AED;font-size:10px">' + sanitizeHTML(m.role) + '</span></td>' +
       '<td><button class="btn btn-sm" style="font-size:10px;' + (m.coiDeclared ? 'background:#D1FAE5;color:#065F46' : 'background:#FEF3C7;color:#92400E') + '" onclick="toggleCOI(\'' + m.id + '\')">' + (m.coiDeclared ? '✅ Declared' : '⚠️ Pending') + '</button></td>' +
       '<td><button class="btn btn-sm" style="color:var(--err);font-size:10px" onclick="removeMember(\'' + m.id + '\')">Remove</button></td>';
   });
@@ -5257,7 +5542,7 @@ function renderMemberList() {
   if (sel) {
     sel.innerHTML = '<option value="">Select your name...</option>';
     data.members.forEach(function(m) {
-      sel.innerHTML += '<option value="' + m.id + '">' + m.name + ' (' + m.role + ')</option>';
+      sel.innerHTML += '<option value="' + m.id + '">' + sanitizeHTML(m.name) + ' (' + sanitizeHTML(m.role) + ')</option>';
     });
   }
 }
@@ -5323,12 +5608,12 @@ function renderDelphiRecs() {
     html += '<div style="border:1px solid #E2E8F0;border-left:4px solid '+gradeColor+';border-radius:8px;padding:12px;margin-bottom:8px">';
     html += '<div style="display:flex;justify-content:space-between;align-items:flex-start">';
     html += '<div style="flex:1"><div style="font-weight:700;font-size:13px;margin-bottom:4px">Rec #'+r.num+' '+statusBadge+'</div>';
-    html += '<div style="font-size:13px;line-height:1.5">'+r.text+'</div>';
+    html += '<div style="font-size:13px;line-height:1.5">'+sanitizeHTML(r.text)+'</div>';
     html += '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">';
-    html += '<span class="badge" style="background:'+gradeColor+';color:#fff;font-size:10px">'+r.grade+'</span>';
-    html += '<span class="badge" style="font-size:10px">'+r.certainty+'</span>';
+    html += '<span class="badge" style="background:'+gradeColor+';color:#fff;font-size:10px">'+sanitizeHTML(r.grade)+'</span>';
+    html += '<span class="badge" style="font-size:10px">'+sanitizeHTML(r.certainty)+'</span>';
     html += '</div>';
-    if (r.rationale) html += '<div style="font-size:11px;color:var(--tl);margin-top:6px;padding:6px;background:#F8FAFC;border-radius:4px">'+r.rationale+'</div>';
+    if (r.rationale) html += '<div style="font-size:11px;color:var(--tl);margin-top:6px;padding:6px;background:#F8FAFC;border-radius:4px">'+sanitizeHTML(r.rationale)+'</div>';
     html += '</div>';
     html += '<button class="btn btn-sm" style="color:var(--err);font-size:10px;white-space:nowrap" onclick="removeRec(\''+r.id+'\')">Remove</button>';
     html += '</div></div>';
@@ -5362,14 +5647,14 @@ function renderVotingCards() {
     html += '<div class="vote-card" style="border:1px solid #E2E8F0;border-radius:10px;padding:16px;margin-bottom:12px;background:#fff">';
     html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">';
     html += '<div style="font-weight:700;font-size:14px">Recommendation #'+r.num+'</div>';
-    html += '<div style="display:flex;gap:4px"><span class="badge" style="background:'+gradeColor+';color:#fff;font-size:10px">'+r.grade+'</span><span class="badge" style="font-size:10px">'+r.certainty+'</span></div>';
+    html += '<div style="display:flex;gap:4px"><span class="badge" style="background:'+gradeColor+';color:#fff;font-size:10px">'+sanitizeHTML(r.grade)+'</span><span class="badge" style="font-size:10px">'+sanitizeHTML(r.certainty)+'</span></div>';
     html += '</div>';
 
-    html += '<div style="font-size:13px;line-height:1.6;padding:12px;background:#F8FAFC;border-radius:8px;border-left:3px solid '+gradeColor+';margin-bottom:10px">'+r.text+'</div>';
+    html += '<div style="font-size:13px;line-height:1.6;padding:12px;background:#F8FAFC;border-radius:8px;border-left:3px solid '+gradeColor+';margin-bottom:10px">'+sanitizeHTML(r.text)+'</div>';
 
     if (r.rationale) {
       html += '<details style="margin-bottom:10px"><summary style="font-size:12px;color:#7C3AED;cursor:pointer;font-weight:600">📋 View Evidence & Rationale</summary>';
-      html += '<div style="font-size:12px;color:var(--tl);padding:10px;background:#F5F3FF;border-radius:6px;margin-top:6px;line-height:1.6">'+r.rationale+'</div></details>';
+      html += '<div style="font-size:12px;color:var(--tl);padding:10px;background:#F5F3FF;border-radius:6px;margin-top:6px;line-height:1.6">'+sanitizeHTML(r.rationale)+'</div></details>';
     }
 
     // Vote options
@@ -5535,8 +5820,8 @@ function renderDelphiResults() {
 
     html += '<tr>';
     html += '<td style="font-weight:700">'+r.num+'</td>';
-    html += '<td style="max-width:300px;line-height:1.4">'+r.text.substring(0,100)+(r.text.length>100?'...':'')+'</td>';
-    html += '<td><span class="badge" style="font-size:10px">'+r.grade+'</span></td>';
+    html += '<td style="max-width:300px;line-height:1.4">'+sanitizeHTML(r.text.substring(0,100))+(r.text.length>100?'...':'')+'</td>';
+    html += '<td><span class="badge" style="font-size:10px">'+sanitizeHTML(r.grade)+'</span></td>';
     html += '<td><div style="display:flex;align-items:center;gap:6px"><div class="pbar" style="width:80px;height:8px"><div class="pfill" style="width:'+pct+'%;background:'+pctColor+'"></div></div><span style="font-weight:600;color:'+pctColor+'">'+pct+'%</span></div></td>';
     html += '<td>'+statusHtml+'</td>';
     html += '<td>'+(r.consensusRound ? 'R'+r.consensusRound : 'R'+data.currentRound)+'</td>';
@@ -5554,7 +5839,7 @@ function renderDelphiResults() {
       html += '<span><strong>Round '+(idx+1)+'</strong> — '+date+'</span>';
       html += '<span>'+numVoters+'/'+data.members.length+' voted</span>';
       // List who voted
-      var names = Object.values(round.votes).map(function(v) { return v.memberName; }).join(', ');
+      var names = Object.values(round.votes).map(function(v) { return sanitizeHTML(v.memberName); }).join(', ');
       html += '</div>';
       if (names) html += '<div style="font-size:11px;color:var(--tl);padding:2px 12px;margin-bottom:6px">Voters: '+names+'</div>';
     });
@@ -5577,7 +5862,7 @@ function sendVotingEmails() {
   modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
 
   var memberRows = data.members.map(function(m) {
-    return '<tr><td style="padding:4px 8px"><input type="checkbox" checked class="email-check" data-email="'+m.email+'" data-name="'+m.name+'"></td><td style="padding:4px 8px;font-weight:600">'+m.name+'</td><td style="padding:4px 8px;font-size:11px">'+m.email+'</td><td style="padding:4px 8px"><span class="badge" style="font-size:10px">'+m.role+'</span></td></tr>';
+    return '<tr><td style="padding:4px 8px"><input type="checkbox" checked class="email-check" data-email="'+sanitizeHTML(m.email)+'" data-name="'+sanitizeHTML(m.name)+'"></td><td style="padding:4px 8px;font-weight:600">'+sanitizeHTML(m.name)+'</td><td style="padding:4px 8px;font-size:11px">'+sanitizeHTML(m.email)+'</td><td style="padding:4px 8px"><span class="badge" style="font-size:10px">'+sanitizeHTML(m.role)+'</span></td></tr>';
   }).join('');
 
   modal.innerHTML = '<div style="background:#fff;border-radius:12px;padding:24px;max-width:650px;width:95%;max-height:85vh;overflow-y:auto">' +
@@ -5619,7 +5904,7 @@ function confirmSendEmails(btn) {
 
   recipients.forEach(function(recip) {
     var body = encodeURIComponent(
-      'Dear '+recip.name+',\n\n' +
+      'Dear '+sanitizeHTML(recip.name)+',\n\n' +
       'You are invited to participate in Round '+data.currentRound+' of the Delphi consensus voting.\n\n' +
       'Recommendations requiring your vote:\n' + recList + '\n\n' +
       'Please log in to the KSUMC CPG Platform to cast your votes:\n' +
@@ -5628,7 +5913,7 @@ function confirmSendEmails(btn) {
       'Consensus threshold: '+data.threshold+'%\n\n' +
       'Thank you,\nKSUMC National CPG Authority'
     );
-    window.open('mailto:'+recip.email+'?subject='+subject+'&body='+body, '_blank');
+    window.open('mailto:'+sanitizeHTML(recip.email)+'?subject='+subject+'&body='+body, '_blank');
   });
 
   btn.closest('div[style*=fixed]').remove();
@@ -5647,7 +5932,7 @@ function sendRoundReminder() {
   var subject = encodeURIComponent('Reminder: KSUMC CPG Delphi Voting Round '+data.currentRound);
   nonVoters.forEach(function(m) {
     var body = encodeURIComponent(
-      'Dear '+m.name+',\n\n' +
+      'Dear '+sanitizeHTML(m.name)+',\n\n' +
       'This is a reminder that your vote is still needed for Round '+data.currentRound+' of the Delphi consensus process.\n\n' +
       'Please visit: '+window.location.href+'\n\n' +
       'Navigate to: Workflow → Stage 5 → Delphi Voting → Voting Panel\n\n' +
